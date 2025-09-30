@@ -3,12 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Julinemart HR System</title>
+    <title>JulineMart HR System</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'brand-purple': '#7c3aed',
+                        'brand-orange': '#f97316',
+                    }
+                }
+            }
+        }
+    </script>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <div id="root"></div>
@@ -16,13 +29,13 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ⚠️ REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
-        const SUPABASE_URL = 'https://uttpqcovbuxaheguqvyo.supabase.co';  // Example: https://xxxxx.supabase.co
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0dHBxY292YnV4YWhlZ3VxdnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjIwMTUsImV4cCI6MjA3NDgzODAxNX0.DSoOumPSSZKfs4e308-vTP6BItl-Bx8SWUHqz6ALKa0';  // Long string starting with eyJ...
+        // ⚠️ REPLACE WITH YOUR CREDENTIALS - KEEP THESE PRIVATE!
+        const SUPABASE_URL = 'https://uttpqcovbuxaheguqvyo.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0dHBxY292YnV4YWhlZ3VxdnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjIwMTUsImV4cCI6MjA3NDgzODAxNX0.DSoOumPSSZKfs4e308-vTP6BItl-Bx8SWUHqz6ALKa0';
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Icons (simple SVG)
+        // Simple Icons
         const Icons = {
             Users: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
             Dollar: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
@@ -34,7 +47,185 @@
             Trash: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>,
             Download: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>,
             Lock: () => <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>,
-            Logout: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+            Logout: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>,
+            Settings: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        };
+
+        // PDF Payslip Generator
+        const generatePDFPayslip = (payroll, employee, settings) => {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const pageWidth = doc.internal.pageSize.width;
+            const margin = 20;
+            let yPos = 20;
+
+            // Purple Header
+            doc.setFillColor(124, 58, 237);
+            doc.rect(0, 0, pageWidth, 35, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(20);
+            doc.setFont(undefined, 'bold');
+            doc.text(settings.company_name || 'JulineMart', pageWidth - margin, 15, { align: 'right' });
+            
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            const addressLines = (settings.company_address || '').split('\n');
+            addressLines.forEach((line, i) => {
+                doc.text(line, pageWidth - margin, 22 + (i * 4), { align: 'right' });
+            });
+
+            doc.setTextColor(0, 0, 0);
+            yPos = 50;
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Payslip - ${new Date().toLocaleDateString()}`, margin, yPos);
+            
+            yPos += 12;
+
+            // Employee Details
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('Name', margin, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.text(payroll.employee_name, margin + 35, yPos);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Employee Code', margin, yPos + 6);
+            doc.setFont(undefined, 'normal');
+            doc.text(employee.employee_code || 'N/A', margin + 35, yPos + 6);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Designation', margin, yPos + 12);
+            doc.setFont(undefined, 'normal');
+            doc.text(employee.position || 'N/A', margin + 35, yPos + 12);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Department', margin, yPos + 18);
+            doc.setFont(undefined, 'normal');
+            doc.text(employee.department || 'N/A', margin + 35, yPos + 18);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Working Days', margin, yPos + 24);
+            doc.setFont(undefined, 'normal');
+            doc.text(String(payroll.working_days || 'N/A'), margin + 35, yPos + 24);
+
+            // Right Column
+            const rightCol = pageWidth / 2 + 10;
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('Payslip no.', rightCol, yPos);
+            doc.setFont(undefined, 'normal');
+            doc.text(payroll.payslip_no || 'N/A', rightCol + 35, yPos);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Bank Name', rightCol, yPos + 6);
+            doc.setFont(undefined, 'normal');
+            doc.text(employee.bank_name || 'N/A', rightCol + 35, yPos + 6);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Bank A/C no.', rightCol, yPos + 12);
+            doc.setFont(undefined, 'normal');
+            doc.text(employee.bank_account || 'N/A', rightCol + 35, yPos + 12);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Mode of payment', rightCol, yPos + 18);
+            doc.setFont(undefined, 'normal');
+            doc.text(employee.payment_mode || 'Bank', rightCol + 35, yPos + 18);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Pay Period', rightCol, yPos + 24);
+            doc.setFont(undefined, 'normal');
+            const payPeriod = payroll.pay_period_start && payroll.pay_period_end 
+                ? `${payroll.pay_period_start}/${payroll.pay_period_end}`
+                : `${payroll.month} ${payroll.year}`;
+            doc.text(payPeriod, rightCol + 35, yPos + 24);
+
+            yPos += 35;
+
+            // Table
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.5);
+            doc.setFillColor(240, 240, 240);
+            doc.rect(margin, yPos, (pageWidth - 2 * margin) / 2 - 2, 8, 'F');
+            doc.rect(pageWidth / 2, yPos, (pageWidth - 2 * margin) / 2 - 2, 8, 'F');
+            
+            doc.setFont(undefined, 'bold');
+            doc.text('Earnings', margin + 2, yPos + 5);
+            doc.text('Amount', (pageWidth / 2) - 25, yPos + 5, { align: 'right' });
+            doc.text('Deductions', pageWidth / 2 + 2, yPos + 5);
+            doc.text('Amount', pageWidth - margin - 2, yPos + 5, { align: 'right' });
+
+            yPos += 10;
+
+            doc.setFont(undefined, 'normal');
+            doc.text('Salary', margin + 2, yPos + 5);
+            doc.text(`₦ ${parseFloat(payroll.basic_salary).toLocaleString()}`, (pageWidth / 2) - 25, yPos + 5, { align: 'right' });
+
+            if (payroll.allowances > 0) {
+                yPos += 6;
+                doc.text('Allowances', margin + 2, yPos + 5);
+                doc.text(`₦ ${parseFloat(payroll.allowances).toLocaleString()}`, (pageWidth / 2) - 25, yPos + 5, { align: 'right' });
+            }
+
+            let dedYPos = yPos - (payroll.allowances > 0 ? 6 : 0);
+            if (payroll.tax > 0) {
+                doc.text('Tax', pageWidth / 2 + 2, dedYPos + 5);
+                doc.text(`₦ ${parseFloat(payroll.tax).toLocaleString()}`, pageWidth - margin - 2, dedYPos + 5, { align: 'right' });
+                dedYPos += 6;
+            }
+            if (payroll.deductions > 0) {
+                doc.text('Other Deductions', pageWidth / 2 + 2, dedYPos + 5);
+                doc.text(`₦ ${parseFloat(payroll.deductions).toLocaleString()}`, pageWidth - margin - 2, dedYPos + 5, { align: 'right' });
+            }
+
+            yPos += 18;
+
+            doc.line(margin, yPos, pageWidth / 2 - 2, yPos);
+            doc.line(pageWidth / 2, yPos, pageWidth - margin, yPos);
+            
+            yPos += 6;
+            doc.setFont(undefined, 'bold');
+            doc.text('Total Payments', margin + 2, yPos);
+            doc.text(`₦ ${parseFloat(payroll.gross_salary).toLocaleString()}`, (pageWidth / 2) - 25, yPos, { align: 'right' });
+            
+            const totalDeductions = parseFloat(payroll.tax) + parseFloat(payroll.deductions);
+            doc.text('Total Deductions', pageWidth / 2 + 2, yPos);
+            doc.text(`₦ ${totalDeductions.toLocaleString()}`, pageWidth - margin - 2, yPos, { align: 'right' });
+
+            yPos += 10;
+
+            // Net Pay
+            doc.setFillColor(124, 58, 237);
+            doc.rect(pageWidth / 2, yPos - 3, (pageWidth / 2) - margin, 10, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.text('Net Pay', pageWidth / 2 + 2, yPos + 3);
+            doc.text(`₦ ${parseFloat(payroll.net_salary).toLocaleString()}`, pageWidth - margin - 2, yPos + 3, { align: 'right' });
+
+            if (payroll.comments) {
+                yPos += 15;
+                doc.setTextColor(0, 0, 0);
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(9);
+                doc.text('• Other Comments', margin, yPos);
+                yPos += 5;
+                doc.text(payroll.comments, margin + 5, yPos);
+            }
+
+            // Footer
+            const footerY = doc.internal.pageSize.height - 40;
+            doc.setTextColor(100, 100, 100);
+            doc.setFontSize(8);
+            doc.text(settings.payslip_footer || '', pageWidth / 2, footerY, { align: 'center', maxWidth: pageWidth - 40 });
+            
+            doc.line(pageWidth - margin - 40, footerY + 20, pageWidth - margin, footerY + 20);
+            doc.setFontSize(10);
+            doc.setFont(undefined, 'bold');
+            doc.text('SIGNATURE', pageWidth - margin, footerY + 25, { align: 'right' });
+
+            doc.save(`Payslip_${payroll.employee_name}_${payroll.month}_${payroll.year}.pdf`);
         };
 
         function App() {
@@ -46,16 +237,20 @@
             const [payrolls, setPayrolls] = useState([]);
             const [leaveRequests, setLeaveRequests] = useState([]);
             const [attendance, setAttendance] = useState([]);
+            const [settings, setSettings] = useState({});
             const [loading, setLoading] = useState(false);
             const [showModal, setShowModal] = useState(false);
             const [modalType, setModalType] = useState('');
             const [editingItem, setEditingItem] = useState(null);
+            const [showSettings, setShowSettings] = useState(false);
 
             const [employeeForm, setEmployeeForm] = useState({
-                name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20
+                name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20,
+                employeeCode: '', bankName: '', bankAccount: '', paymentMode: 'Bank'
             });
             const [payrollForm, setPayrollForm] = useState({
-                employeeId: '', month: '', year: '', basicSalary: '', allowances: 0, deductions: 0, taxRate: 10
+                employeeId: '', month: '', year: '', basicSalary: '', allowances: 0, deductions: 0, taxRate: 10,
+                workingDays: 30, payPeriodStart: '', payPeriodEnd: '', comments: ''
             });
             const [leaveForm, setLeaveForm] = useState({
                 employeeId: '', startDate: '', endDate: '', reason: '', type: 'Annual'
@@ -63,6 +258,7 @@
             const [attendanceForm, setAttendanceForm] = useState({
                 employeeId: '', date: '', status: 'Present'
             });
+            const [settingsForm, setSettingsForm] = useState({});
 
             useEffect(() => {
                 const loggedIn = localStorage.getItem('julinemart_logged_in');
@@ -74,8 +270,37 @@
             useEffect(() => {
                 if (isLoggedIn) {
                     loadAllData();
+                    loadSettings();
                 }
             }, [isLoggedIn]);
+
+            const loadSettings = async () => {
+                try {
+                    const { data } = await supabase.from('company_settings').select('*').eq('id', 1).single();
+                    if (data) {
+                        setSettings(data);
+                        setSettingsForm(data);
+                    }
+                } catch (error) {
+                    console.error('Error loading settings:', error);
+                }
+            };
+
+            const saveSettings = async () => {
+                setLoading(true);
+                try {
+                    const { error } = await supabase
+                        .from('company_settings')
+                        .upsert({ id: 1, ...settingsForm, updated_at: new Date().toISOString() });
+                    
+                    if (error) throw error;
+                    await loadSettings();
+                    alert('Settings saved successfully!');
+                } catch (error) {
+                    alert('Error saving settings: ' + error.message);
+                }
+                setLoading(false);
+            };
 
             const handleLogin = async () => {
                 setLoginError('');
@@ -140,7 +365,11 @@
                         department: item.department,
                         salary: item.salary,
                         joinDate: item.join_date,
-                        leaveBalance: item.leave_balance
+                        leaveBalance: item.leave_balance,
+                        employeeCode: item.employee_code || '',
+                        bankName: item.bank_name || '',
+                        bankAccount: item.bank_account || '',
+                        paymentMode: item.payment_mode || 'Bank'
                     });
                 }
                 setShowModal(true);
@@ -149,8 +378,8 @@
             const closeModal = () => {
                 setShowModal(false);
                 setEditingItem(null);
-                setEmployeeForm({ name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20 });
-                setPayrollForm({ employeeId: '', month: '', year: '', basicSalary: '', allowances: 0, deductions: 0, taxRate: 10 });
+                setEmployeeForm({ name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20, employeeCode: '', bankName: '', bankAccount: '', paymentMode: 'Bank' });
+                setPayrollForm({ employeeId: '', month: '', year: '', basicSalary: '', allowances: 0, deductions: 0, taxRate: 10, workingDays: 30, payPeriodStart: '', payPeriodEnd: '', comments: '' });
                 setLeaveForm({ employeeId: '', startDate: '', endDate: '', reason: '', type: 'Annual' });
                 setAttendanceForm({ employeeId: '', date: '', status: 'Present' });
             };
@@ -158,29 +387,24 @@
             const handleAddEmployee = async () => {
                 setLoading(true);
                 try {
+                    const employeeData = {
+                        name: employeeForm.name,
+                        email: employeeForm.email,
+                        position: employeeForm.position,
+                        department: employeeForm.department,
+                        salary: parseFloat(employeeForm.salary),
+                        join_date: employeeForm.joinDate,
+                        leave_balance: parseInt(employeeForm.leaveBalance),
+                        employee_code: employeeForm.employeeCode,
+                        bank_name: employeeForm.bankName,
+                        bank_account: employeeForm.bankAccount,
+                        payment_mode: employeeForm.paymentMode
+                    };
+
                     if (editingItem) {
-                        await supabase
-                            .from('employees')
-                            .update({
-                                name: employeeForm.name,
-                                email: employeeForm.email,
-                                position: employeeForm.position,
-                                department: employeeForm.department,
-                                salary: parseFloat(employeeForm.salary),
-                                join_date: employeeForm.joinDate,
-                                leave_balance: parseInt(employeeForm.leaveBalance)
-                            })
-                            .eq('id', editingItem.id);
+                        await supabase.from('employees').update(employeeData).eq('id', editingItem.id);
                     } else {
-                        await supabase.from('employees').insert([{
-                            name: employeeForm.name,
-                            email: employeeForm.email,
-                            position: employeeForm.position,
-                            department: employeeForm.department,
-                            salary: parseFloat(employeeForm.salary),
-                            join_date: employeeForm.joinDate,
-                            leave_balance: parseInt(employeeForm.leaveBalance)
-                        }]);
+                        await supabase.from('employees').insert([employeeData]);
                     }
                     await loadAllData();
                     closeModal();
@@ -216,6 +440,8 @@
                 const tax = (grossSalary * taxRate) / 100;
                 const netSalary = grossSalary - tax - deductions;
 
+                const payslipNo = `PY${String(payrolls.length + 1).padStart(4, '0')}`;
+
                 setLoading(true);
                 try {
                     await supabase.from('payrolls').insert([{
@@ -228,7 +454,12 @@
                         deductions,
                         tax,
                         gross_salary: grossSalary,
-                        net_salary: netSalary
+                        net_salary: netSalary,
+                        payslip_no: payslipNo,
+                        working_days: payrollForm.workingDays,
+                        pay_period_start: payrollForm.payPeriodStart,
+                        pay_period_end: payrollForm.payPeriodEnd,
+                        comments: payrollForm.comments
                     }]);
                     await loadAllData();
                     closeModal();
@@ -309,32 +540,6 @@
                 setLoading(false);
             };
 
-            const downloadPayslip = (payroll) => {
-                const content = `JULINEMART - Official Payslip
-
-Employee: ${payroll.employee_name}
-Period: ${payroll.month} ${payroll.year}
-Date: ${payroll.generated_date}
-
-EARNINGS
-Basic Salary:     $${parseFloat(payroll.basic_salary).toFixed(2)}
-Allowances:       $${parseFloat(payroll.allowances).toFixed(2)}
-Gross Salary:     $${parseFloat(payroll.gross_salary).toFixed(2)}
-
-DEDUCTIONS
-Tax:              $${parseFloat(payroll.tax).toFixed(2)}
-Other:            $${parseFloat(payroll.deductions).toFixed(2)}
-
-NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
-
-                const blob = new Blob([content], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Payslip_${payroll.employee_name}_${payroll.month}_${payroll.year}.txt`;
-                a.click();
-            };
-
             const totalSalary = payrolls.reduce((sum, p) => sum + parseFloat(p.net_salary || 0), 0);
             const pendingLeaves = leaveRequests.filter(l => l.status === 'Pending').length;
             const todayDate = new Date().toISOString().split('T')[0];
@@ -343,14 +548,17 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
 
             if (!isLoggedIn) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center p-4">
+                    <div className="min-h-screen bg-gradient-to-br from-purple-600 to-orange-500 flex items-center justify-center p-4">
                         <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
                             <div className="text-center mb-8">
-                                <div className="inline-block p-3 bg-blue-100 rounded-full mb-4">
+                                {settings.logo_url && (
+                                    <img src={settings.logo_url} alt="Logo" className="h-20 mx-auto mb-4" onError={(e) => e.target.style.display = 'none'} />
+                                )}
+                                <div className="inline-block p-3 bg-purple-100 rounded-full mb-4">
                                     <Icons.Lock />
                                 </div>
-                                <h1 className="text-3xl font-bold text-gray-800">Julinemart HR</h1>
-                                <p className="text-gray-600 mt-2">Login to access your system</p>
+                                <h1 className="text-3xl font-bold text-gray-800">{settings.company_name || 'JulineMart'}</h1>
+                                <p className="text-gray-600 mt-2">HR Management System</p>
                             </div>
 
                             {loginError && (
@@ -366,7 +574,7 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                     value={loginForm.username}
                                     onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
                                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                                 />
                                 <input
                                     type="password"
@@ -374,12 +582,12 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                     value={loginForm.password}
                                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
                                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
-                                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                                    className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                                 />
                                 <button
                                     onClick={handleLogin}
                                     disabled={loading}
-                                    className="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 font-semibold disabled:bg-blue-300"
+                                    className="w-full bg-brand-purple hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold disabled:bg-gray-300"
                                 >
                                     {loading ? 'Logging in...' : 'Login'}
                                 </button>
@@ -391,7 +599,6 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                     <p className="font-mono">Username: <strong>admin</strong></p>
                                     <p className="font-mono">Password: <strong>admin123</strong></p>
                                 </div>
-                                <p className="text-xs text-red-600 mt-2">Change password after first login</p>
                             </div>
                         </div>
                     </div>
@@ -400,19 +607,33 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
 
             return (
                 <div className="min-h-screen bg-gray-50">
-                    <div className="bg-blue-600 text-white p-6 shadow-lg">
-                        <div className="container mx-auto flex justify-between items-center">
-                            <div>
-                                <h1 className="text-3xl font-bold">Julinemart HR System</h1>
-                                <p className="text-blue-100">Complete HR Management</p>
+                    <div className="bg-brand-purple text-white p-6 shadow-lg">
+                        <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
+                            <div className="flex items-center space-x-4">
+                                {settings.logo_url && (
+                                    <img src={settings.logo_url} alt="Logo" className="h-12" onError={(e) => e.target.style.display = 'none'} />
+                                )}
+                                <div>
+                                    <h1 className="text-3xl font-bold">{settings.company_name || 'JulineMart'}</h1>
+                                    <p className="text-purple-100">HR Management System</p>
+                                </div>
                             </div>
-                            <button
-                                onClick={handleLogout}
-                                className="flex items-center space-x-2 bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded-lg"
-                            >
-                                <Icons.Logout />
-                                <span>Logout</span>
-                            </button>
+                            <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => setShowSettings(true)}
+                                    className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg"
+                                >
+                                    <Icons.Settings />
+                                    <span>Settings</span>
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg"
+                                >
+                                    <Icons.Logout />
+                                    <span>Logout</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -431,8 +652,8 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                         onClick={() => setActiveTab(tab.id)}
                                         className={`flex items-center space-x-2 px-6 py-4 border-b-2 transition ${
                                             activeTab === tab.id
-                                                ? 'border-blue-600 text-blue-600'
-                                                : 'border-transparent text-gray-600 hover:text-blue-600'
+                                                ? 'border-brand-purple text-brand-purple'
+                                                : 'border-transparent text-gray-600 hover:text-brand-purple'
                                         }`}
                                     >
                                         {React.createElement(tab.icon)}
@@ -444,7 +665,7 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                     </div>
 
                     {loading && (
-                        <div className="bg-blue-600 text-white text-center py-2">Loading...</div>
+                        <div className="bg-brand-purple text-white text-center py-2">Loading...</div>
                     )}
 
                     <div className="container mx-auto px-6 py-8">
@@ -452,34 +673,34 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                             <div>
                                 <h2 className="text-2xl font-bold mb-6">Dashboard</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                                    <div className="bg-white p-6 rounded-lg shadow-md">
+                                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-brand-purple">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-gray-500 text-sm">Total Employees</p>
-                                                <p className="text-3xl font-bold text-blue-600">{employees.length}</p>
+                                                <p className="text-3xl font-bold text-brand-purple">{employees.length}</p>
                                             </div>
                                             <Icons.Users />
                                         </div>
                                     </div>
-                                    <div className="bg-white p-6 rounded-lg shadow-md">
+                                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-600">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-gray-500 text-sm">Total Payroll</p>
-                                                <p className="text-3xl font-bold text-green-600">${totalSalary.toFixed(0)}</p>
+                                                <p className="text-3xl font-bold text-green-600">₦{totalSalary.toLocaleString()}</p>
                                             </div>
                                             <Icons.Dollar />
                                         </div>
                                     </div>
-                                    <div className="bg-white p-6 rounded-lg shadow-md">
+                                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-brand-orange">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-gray-500 text-sm">Pending Leaves</p>
-                                                <p className="text-3xl font-bold text-orange-600">{pendingLeaves}</p>
+                                                <p className="text-3xl font-bold text-brand-orange">{pendingLeaves}</p>
                                             </div>
                                             <Icons.Calendar />
                                         </div>
                                     </div>
-                                    <div className="bg-white p-6 rounded-lg shadow-md">
+                                    <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-600">
                                         <div className="flex items-center justify-between">
                                             <div>
                                                 <p className="text-gray-500 text-sm">Present Today</p>
@@ -496,7 +717,7 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                         {employees.slice(0, 5).map(emp => (
                                             <div key={emp.id} className="border-b py-3 last:border-0">
                                                 <p className="font-semibold">{emp.name}</p>
-                                                <p className="text-sm text-gray-600">{emp.position}</p>
+                                                <p className="text-sm text-gray-600">{emp.position} • {emp.employee_code || 'No Code'}</p>
                                             </div>
                                         ))}
                                         {employees.length === 0 && <p className="text-gray-500 text-center py-4">No employees yet</p>}
@@ -508,9 +729,9 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                             <div key={pay.id} className="border-b py-3 last:border-0 flex justify-between">
                                                 <div>
                                                     <p className="font-semibold">{pay.employee_name}</p>
-                                                    <p className="text-sm text-gray-600">{pay.month} {pay.year}</p>
+                                                    <p className="text-sm text-gray-600">{pay.month} {pay.year} • {pay.payslip_no}</p>
                                                 </div>
-                                                <p className="text-lg font-bold text-green-600">${parseFloat(pay.net_salary).toFixed(2)}</p>
+                                                <p className="text-lg font-bold text-green-600">₦{parseFloat(pay.net_salary).toLocaleString()}</p>
                                             </div>
                                         ))}
                                         {payrolls.length === 0 && <p className="text-gray-500 text-center py-4">No payrolls yet</p>}
@@ -525,7 +746,7 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                     <h2 className="text-2xl font-bold">Employees</h2>
                                     <button
                                         onClick={() => openModal('employee')}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700"
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
                                     >
                                         <Icons.Plus />
                                         <span>Add Employee</span>
@@ -536,8 +757,9 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Code</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Position</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bank</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Salary</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                                             </tr>
@@ -549,9 +771,13 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                                         <p className="font-semibold">{emp.name}</p>
                                                         <p className="text-sm text-gray-500">{emp.email}</p>
                                                     </td>
+                                                    <td className="px-6 py-4">{emp.employee_code || 'N/A'}</td>
                                                     <td className="px-6 py-4">{emp.position}</td>
-                                                    <td className="px-6 py-4">{emp.department}</td>
-                                                    <td className="px-6 py-4">${emp.salary}</td>
+                                                    <td className="px-6 py-4">
+                                                        <p className="text-sm">{emp.bank_name || 'N/A'}</p>
+                                                        <p className="text-xs text-gray-500">{emp.bank_account || ''}</p>
+                                                    </td>
+                                                    <td className="px-6 py-4">₦{parseFloat(emp.salary).toLocaleString()}</td>
                                                     <td className="px-6 py-4">
                                                         <div className="flex space-x-2">
                                                             <button onClick={() => openModal('employee', emp)} className="text-blue-600 hover:text-blue-800">
@@ -574,10 +800,10 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                         {activeTab === 'payroll' && (
                             <div>
                                 <div className="flex justify-between items-center mb-6">
-                                    <h2 className="text-2xl font-bold">Payroll</h2>
+                                    <h2 className="text-2xl font-bold">Payroll Management</h2>
                                     <button
                                         onClick={() => openModal('payroll')}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700"
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
                                     >
                                         <Icons.Plus />
                                         <span>Generate Payroll</span>
@@ -588,25 +814,33 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payslip No</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net Salary</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net Pay</th>
                                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-200">
-                                            {payrolls.map(pay => (
-                                                <tr key={pay.id}>
-                                                    <td className="px-6 py-4 font-semibold">{pay.employee_name}</td>
-                                                    <td className="px-6 py-4">{pay.month} {pay.year}</td>
-                                                    <td className="px-6 py-4 font-bold text-green-600">${parseFloat(pay.net_salary).toFixed(2)}</td>
-                                                    <td className="px-6 py-4">
-                                                        <button onClick={() => downloadPayslip(pay)} className="text-blue-600 hover:text-blue-800 flex items-center space-x-1">
-                                                            <Icons.Download />
-                                                            <span>Download</span>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {payrolls.map(pay => {
+                                                const employee = employees.find(e => e.id === pay.employee_id);
+                                                return (
+                                                    <tr key={pay.id}>
+                                                        <td className="px-6 py-4 font-semibold">{pay.employee_name}</td>
+                                                        <td className="px-6 py-4">{pay.payslip_no || 'N/A'}</td>
+                                                        <td className="px-6 py-4">{pay.month} {pay.year}</td>
+                                                        <td className="px-6 py-4 font-bold text-green-600">₦{parseFloat(pay.net_salary).toLocaleString()}</td>
+                                                        <td className="px-6 py-4">
+                                                            <button 
+                                                                onClick={() => generatePDFPayslip(pay, employee || {}, settings)} 
+                                                                className="bg-brand-orange hover:bg-orange-600 text-white px-4 py-2 rounded-lg flex items-center space-x-1"
+                                                            >
+                                                                <Icons.Download />
+                                                                <span>PDF</span>
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                     {payrolls.length === 0 && <p className="text-center py-8 text-gray-500">No payrolls yet</p>}
@@ -620,7 +854,7 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                     <h2 className="text-2xl font-bold">Leave Management</h2>
                                     <button
                                         onClick={() => openModal('leave')}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700"
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
                                     >
                                         <Icons.Plus />
                                         <span>New Leave</span>
@@ -679,7 +913,7 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                                     <h2 className="text-2xl font-bold">Attendance</h2>
                                     <button
                                         onClick={() => openModal('attendance')}
-                                        className="bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-700"
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
                                     >
                                         <Icons.Plus />
                                         <span>Mark Attendance</span>
@@ -718,92 +952,230 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
                         )}
                     </div>
 
-                    {showModal && (
+                    {showModal && modalType === 'employee' && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-screen overflow-y-auto">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">{editingItem ? 'Edit' : 'Add'} Employee</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <input type="text" placeholder="Full Name *" value={employeeForm.name} onChange={(e) => setEmployeeForm({ ...employeeForm, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="text" placeholder="Employee Code" value={employeeForm.employeeCode} onChange={(e) => setEmployeeForm({ ...employeeForm, employeeCode: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="email" placeholder="Email *" value={employeeForm.email} onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="text" placeholder="Position *" value={employeeForm.position} onChange={(e) => setEmployeeForm({ ...employeeForm, position: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="text" placeholder="Department" value={employeeForm.department} onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Salary *" value={employeeForm.salary} onChange={(e) => setEmployeeForm({ ...employeeForm, salary: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="text" placeholder="Bank Name" value={employeeForm.bankName} onChange={(e) => setEmployeeForm({ ...employeeForm, bankName: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="text" placeholder="Bank Account" value={employeeForm.bankAccount} onChange={(e) => setEmployeeForm({ ...employeeForm, bankAccount: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <select value={employeeForm.paymentMode} onChange={(e) => setEmployeeForm({ ...employeeForm, paymentMode: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="Bank">Bank</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Cheque">Cheque</option>
+                                    </select>
+                                    <input type="date" value={employeeForm.joinDate} onChange={(e) => setEmployeeForm({ ...employeeForm, joinDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Leave Balance" value={employeeForm.leaveBalance} onChange={(e) => setEmployeeForm({ ...employeeForm, leaveBalance: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                </div>
+                                <div className="flex space-x-3 mt-6">
+                                    <button onClick={handleAddEmployee} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Save</button>
+                                    <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showModal && modalType === 'payroll' && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-screen overflow-y-auto">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Generate Payroll</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <select value={payrollForm.employeeId} onChange={(e) => setPayrollForm({ ...payrollForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="">Select Employee *</option>
+                                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name} ({emp.employee_code || emp.id})</option>)}
+                                    </select>
+                                    <select value={payrollForm.month} onChange={(e) => setPayrollForm({ ...payrollForm, month: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="">Select Month *</option>
+                                        {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
+                                    </select>
+                                    <input type="number" placeholder="Year *" value={payrollForm.year} onChange={(e) => setPayrollForm({ ...payrollForm, year: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Working Days" value={payrollForm.workingDays} onChange={(e) => setPayrollForm({ ...payrollForm, workingDays: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="date" placeholder="Pay Period Start" value={payrollForm.payPeriodStart} onChange={(e) => setPayrollForm({ ...payrollForm, payPeriodStart: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="date" placeholder="Pay Period End" value={payrollForm.payPeriodEnd} onChange={(e) => setPayrollForm({ ...payrollForm, payPeriodEnd: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Basic Salary (optional)" value={payrollForm.basicSalary} onChange={(e) => setPayrollForm({ ...payrollForm, basicSalary: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Allowances" value={payrollForm.allowances} onChange={(e) => setPayrollForm({ ...payrollForm, allowances: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Deductions" value={payrollForm.deductions} onChange={(e) => setPayrollForm({ ...payrollForm, deductions: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Tax Rate %" value={payrollForm.taxRate} onChange={(e) => setPayrollForm({ ...payrollForm, taxRate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                </div>
+                                <textarea placeholder="Comments (optional)" value={payrollForm.comments} onChange={(e) => setPayrollForm({ ...payrollForm, comments: e.target.value })} className="w-full px-4 py-2 border rounded-lg mt-4" rows="3" />
+                                <div className="flex space-x-3 mt-6">
+                                    <button onClick={handleAddPayroll} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Generate</button>
+                                    <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showModal && modalType === 'leave' && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                             <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-screen overflow-y-auto">
-                                <h3 className="text-2xl font-bold mb-6">
-                                    {editingItem ? 'Edit' : 'Add'} {modalType.charAt(0).toUpperCase() + modalType.slice(1)}
-                                </h3>
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">New Leave Request</h3>
+                                <div className="space-y-4">
+                                    <select value={leaveForm.employeeId} onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="">Select Employee *</option>
+                                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                                    </select>
+                                    <select value={leaveForm.type} onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="Annual">Annual Leave</option>
+                                        <option value="Sick">Sick Leave</option>
+                                        <option value="Emergency">Emergency Leave</option>
+                                        <option value="Unpaid">Unpaid Leave</option>
+                                    </select>
+                                    <input type="date" value={leaveForm.startDate} onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="date" value={leaveForm.endDate} onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <textarea placeholder="Reason" value={leaveForm.reason} onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} className="w-full px-4 py-2 border rounded-lg" rows="3" />
+                                    <div className="flex space-x-3">
+                                        <button onClick={handleAddLeave} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Submit</button>
+                                        <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
-                                {modalType === 'employee' && (
-                                    <div className="space-y-4">
-                                        <input type="text" placeholder="Full Name" value={employeeForm.name} onChange={(e) => setEmployeeForm({ ...employeeForm, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="email" placeholder="Email" value={employeeForm.email} onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="text" placeholder="Position" value={employeeForm.position} onChange={(e) => setEmployeeForm({ ...employeeForm, position: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="text" placeholder="Department" value={employeeForm.department} onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="number" placeholder="Salary" value={employeeForm.salary} onChange={(e) => setEmployeeForm({ ...employeeForm, salary: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="date" value={employeeForm.joinDate} onChange={(e) => setEmployeeForm({ ...employeeForm, joinDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="number" placeholder="Leave Balance" value={employeeForm.leaveBalance} onChange={(e) => setEmployeeForm({ ...employeeForm, leaveBalance: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <div className="flex space-x-3">
-                                            <button onClick={handleAddEmployee} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Save</button>
-                                            <button onClick={closeModal} className="flex-1 bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
+                    {showModal && modalType === 'attendance' && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Mark Attendance</h3>
+                                <div className="space-y-4">
+                                    <select value={attendanceForm.employeeId} onChange={(e) => setAttendanceForm({ ...attendanceForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="">Select Employee *</option>
+                                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                                    </select>
+                                    <input type="date" value={attendanceForm.date} onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <select value={attendanceForm.status} onChange={(e) => setAttendanceForm({ ...attendanceForm, status: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="Present">Present</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Half Day">Half Day</option>
+                                        <option value="Late">Late</option>
+                                    </select>
+                                    <div className="flex space-x-3">
+                                        <button onClick={handleAddAttendance} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Mark</button>
+                                        <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showSettings && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-3xl w-full max-h-screen overflow-y-auto">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Company Settings</h3>
+                                
+                                <div className="space-y-6">
+                                    <div className="bg-purple-50 p-6 rounded-lg">
+                                        <h4 className="font-semibold mb-4 text-lg">Company Information</h4>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Company Name</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={settingsForm.company_name || ''} 
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, company_name: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Address</label>
+                                                <textarea 
+                                                    value={settingsForm.company_address || ''} 
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, company_address: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg"
+                                                    rows="3"
+                                                    placeholder="Street Address&#10;City, State&#10;Country"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className="block text-sm font-medium mb-2">Phone</label>
+                                                    <input 
+                                                        type="text" 
+                                                        value={settingsForm.company_phone || ''} 
+                                                        onChange={(e) => setSettingsForm({ ...settingsForm, company_phone: e.target.value })}
+                                                        className="w-full px-4 py-2 border rounded-lg"
+                                                        placeholder="+234 XXX XXX XXXX"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium mb-2">Email</label>
+                                                    <input 
+                                                        type="email" 
+                                                        value={settingsForm.company_email || ''} 
+                                                        onChange={(e) => setSettingsForm({ ...settingsForm, company_email: e.target.value })}
+                                                        className="w-full px-4 py-2 border rounded-lg"
+                                                        placeholder="hr@julinemart.com"
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
 
-                                {modalType === 'payroll' && (
-                                    <div className="space-y-4">
-                                        <select value={payrollForm.employeeId} onChange={(e) => setPayrollForm({ ...payrollForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                            <option value="">Select Employee</option>
-                                            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                                        </select>
-                                        <select value={payrollForm.month} onChange={(e) => setPayrollForm({ ...payrollForm, month: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                            <option value="">Select Month</option>
-                                            {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
-                                        </select>
-                                        <input type="number" placeholder="Year" value={payrollForm.year} onChange={(e) => setPayrollForm({ ...payrollForm, year: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="number" placeholder="Basic Salary (optional)" value={payrollForm.basicSalary} onChange={(e) => setPayrollForm({ ...payrollForm, basicSalary: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="number" placeholder="Allowances" value={payrollForm.allowances} onChange={(e) => setPayrollForm({ ...payrollForm, allowances: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="number" placeholder="Deductions" value={payrollForm.deductions} onChange={(e) => setPayrollForm({ ...payrollForm, deductions: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="number" placeholder="Tax Rate %" value={payrollForm.taxRate} onChange={(e) => setPayrollForm({ ...payrollForm, taxRate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <div className="flex space-x-3">
-                                            <button onClick={handleAddPayroll} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Generate</button>
-                                            <button onClick={closeModal} className="flex-1 bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
+                                    <div className="bg-orange-50 p-6 rounded-lg">
+                                        <h4 className="font-semibold mb-4 text-lg">Logo & Branding</h4>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium mb-2">Logo URL</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={settingsForm.logo_url || ''} 
+                                                    onChange={(e) => setSettingsForm({ ...settingsForm, logo_url: e.target.value })}
+                                                    className="w-full px-4 py-2 border rounded-lg"
+                                                    placeholder="./logo.png or https://yoursite.com/logo.png"
+                                                />
+                                                <p className="text-xs text-gray-600 mt-2">Upload your logo to GitHub, then enter: ./logo.png</p>
+                                            </div>
+                                            {settingsForm.logo_url && (
+                                                <div className="mt-3">
+                                                    <p className="text-sm font-medium mb-2">Preview:</p>
+                                                    <img src={settingsForm.logo_url} alt="Logo" className="h-20 border rounded" onError={(e) => e.target.style.display = 'none'} />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
-                                )}
 
-                                {modalType === 'leave' && (
-                                    <div className="space-y-4">
-                                        <select value={leaveForm.employeeId} onChange={(e) => setLeaveForm({ ...leaveForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                            <option value="">Select Employee</option>
-                                            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                                        </select>
-                                        <select value={leaveForm.type} onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                            <option value="Annual">Annual</option>
-                                            <option value="Sick">Sick</option>
-                                            <option value="Emergency">Emergency</option>
-                                            <option value="Unpaid">Unpaid</option>
-                                        </select>
-                                        <input type="date" value={leaveForm.startDate} onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <input type="date" value={leaveForm.endDate} onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <textarea placeholder="Reason" value={leaveForm.reason} onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} className="w-full px-4 py-2 border rounded-lg" rows="3" />
-                                        <div className="flex space-x-3">
-                                            <button onClick={handleAddLeave} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Submit</button>
-                                            <button onClick={closeModal} className="flex-1 bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
+                                    <div className="bg-blue-50 p-6 rounded-lg">
+                                        <h4 className="font-semibold mb-4 text-lg">Payslip Footer</h4>
+                                        <textarea 
+                                            value={settingsForm.payslip_footer || ''} 
+                                            onChange={(e) => setSettingsForm({ ...settingsForm, payslip_footer: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg"
+                                            rows="2"
+                                            placeholder="This is a computer-generated payslip..."
+                                        />
+                                    </div>
+
+                                    <div className="bg-gray-100 p-6 rounded-lg">
+                                        <h4 className="font-semibold mb-4 text-lg">Brand Colors</h4>
+                                        <div className="flex space-x-4">
+                                            <div className="text-center">
+                                                <div className="w-20 h-20 rounded-lg bg-brand-purple mb-2"></div>
+                                                <p className="text-xs font-medium">Purple</p>
+                                                <p className="text-xs text-gray-600">#7c3aed</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="w-20 h-20 rounded-lg bg-brand-orange mb-2"></div>
+                                                <p className="text-xs font-medium">Orange</p>
+                                                <p className="text-xs text-gray-600">#f97316</p>
+                                            </div>
                                         </div>
                                     </div>
-                                )}
+                                </div>
 
-                                {modalType === 'attendance' && (
-                                    <div className="space-y-4">
-                                        <select value={attendanceForm.employeeId} onChange={(e) => setAttendanceForm({ ...attendanceForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                            <option value="">Select Employee</option>
-                                            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                                        </select>
-                                        <input type="date" value={attendanceForm.date} onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                        <select value={attendanceForm.status} onChange={(e) => setAttendanceForm({ ...attendanceForm, status: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                            <option value="Present">Present</option>
-                                            <option value="Absent">Absent</option>
-                                            <option value="Half Day">Half Day</option>
-                                            <option value="Late">Late</option>
-                                        </select>
-                                        <div className="flex space-x-3">
-                                            <button onClick={handleAddAttendance} className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Mark</button>
-                                            <button onClick={closeModal} className="flex-1 bg-gray-300 px-4 py-2 rounded-lg hover:bg-gray-400">Cancel</button>
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="flex space-x-3 mt-8">
+                                    <button onClick={saveSettings} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold">
+                                        Save Settings
+                                    </button>
+                                    <button onClick={() => setShowSettings(false)} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-3 rounded-lg font-semibold">
+                                        Close
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -814,5 +1186,4 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
-
 </html>
