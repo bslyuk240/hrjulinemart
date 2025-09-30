@@ -17,8 +17,8 @@
         const { useState, useEffect } = React;
 
         // ⚠️ REPLACE THESE WITH YOUR ACTUAL SUPABASE CREDENTIALS
-        const SUPABASE_URL = 'YOUR_SUPABASE_URL_HERE';  // Example: https://xxxxx.supabase.co
-        const SUPABASE_KEY = 'YOUR_SUPABASE_ANON_KEY_HERE';  // Long string starting with eyJ...
+        const SUPABASE_URL = 'https://uttpqcovbuxaheguqvyo.supabase.co';  // Example: https://xxxxx.supabase.co
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0dHBxY292YnV4YWhlZ3VxdnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjIwMTUsImV4cCI6MjA3NDgzODAxNX0.DSoOumPSSZKfs4e308-vTP6BItl-Bx8SWUHqz6ALKa0';  // Long string starting with eyJ...
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -814,4 +814,5 @@ NET SALARY:       $${parseFloat(payroll.net_salary).toFixed(2)}`;
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
+
 </html>
