@@ -243,14 +243,16 @@
 
             yPos += 12;
 
-            doc.setFillColor(46, 204, 113);
-            doc.rect(margin, yPos - 3, pageWidth - 2 * margin, 12, 'F');
-            
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.text('NET PAY', margin + 5, yPos + 5);
-            doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
+// Draw a line separator instead of colored box
+doc.setDrawColor(46, 204, 113);
+doc.setLineWidth(0.5);
+doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
+
+doc.setTextColor(46, 204, 113);
+doc.setFontSize(14);
+doc.setFont(undefined, 'bold');
+doc.text('NET PAY', margin + 5, yPos + 5);
+doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
 
             if (payroll.comments) {
                 yPos += 20;
@@ -1628,4 +1630,5 @@
     </script>
 </body>
 </html>
+
 
