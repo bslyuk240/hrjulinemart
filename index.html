@@ -211,12 +211,12 @@
                 if (i < earningsData.length) {
                     doc.setFont(undefined, 'normal');
                     doc.text(earningsData[i][0], margin + 5, yPos);
-                    doc.text('NGN ' + earningsData[i][1], margin + colWidth - 5, yPos, { align: 'right' });
+                    doc.text('₦ ' + earningsData[i][1], margin + colWidth - 5, yPos, { align: 'right' });
                 }
                 
                 if (i < deductionsData.length) {
                     doc.text(deductionsData[i][0], pageWidth / 2 + 6, yPos);
-                    doc.text('NGN ' + deductionsData[i][1], pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
+                    doc.text('₦ ' + deductionsData[i][1], pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
                 }
                 
                 yPos += 7;
@@ -232,27 +232,25 @@
             doc.setFont(undefined, 'bold');
             doc.setFontSize(11);
             doc.text('Total Earnings', margin + 5, yPos);
-            doc.text('NGN ' + parseFloat(payroll.gross_salary || 0).toLocaleString(), margin + colWidth - 5, yPos, { align: 'right' });
+            doc.text('₦ ' + parseFloat(payroll.gross_salary || 0).toLocaleString(), margin + colWidth - 5, yPos, { align: 'right' });
 
             const totalDeductions = parseFloat(payroll.tax || 0) + parseFloat(payroll.pension || 0) + 
                                    parseFloat(payroll.nhf || 0) + parseFloat(payroll.loan_deduction || 0) + 
                                    parseFloat(payroll.other_deductions || 0);
             
             doc.text('Total Deductions', pageWidth / 2 + 6, yPos);
-            doc.text('NGN ' + totalDeductions.toLocaleString(), pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
+            doc.text('₦ ' + totalDeductions.toLocaleString(), pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
 
             yPos += 12;
 
-// Draw a line separator instead of colored box
-doc.setDrawColor(46, 204, 113);
-doc.setLineWidth(0.5);
-doc.line(margin, yPos - 2, pageWidth - margin, yPos - 2);
-
-doc.setTextColor(46, 204, 113);
-doc.setFontSize(14);
-doc.setFont(undefined, 'bold');
-doc.text('NET PAY', margin + 5, yPos + 5);
-doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
+            doc.setFillColor(46, 204, 113);
+            doc.rect(margin, yPos - 3, pageWidth - 2 * margin, 12, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('NET PAY', margin + 5, yPos + 5);
+            doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
 
             if (payroll.comments) {
                 yPos += 20;
@@ -388,20 +386,30 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         setCurrentUserId(adminData.id);
                         setLoginForm({ username: '', password: '' });
                     } else {
-                        const { data: empData } = await supabase
-                            .from('employees')
-                            .select('*')
-                            .eq('email', loginForm.username)
-                            .single();
+    const { data: empData } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', loginForm.username)
+        .single();
 
-                        if (empData && empData.password === loginForm.password) {
-                            setIsLoggedIn(true);
-                            setUserRole('employee');
-                            setCurrentUserId(empData.id);
-                            localStorage.setItem('julinemart_logged_in', 'true');
-                            localStorage.setItem('julinemart_user_role', 'employee');
-                            localStorage.setItem('julinemart_user_id', empData.id);
-                            setLoginForm({ username: '', password: '' });
+    if (empData) {
+        // Check if password matches or use default if no password set
+        const employeePassword = empData.password || 'employee123';
+        if (employeePassword === loginForm.password) {
+            setIsLoggedIn(true);
+            setUserRole('employee');
+            setCurrentUserId(empData.id);
+            localStorage.setItem('julinemart_logged_in', 'true');
+            localStorage.setItem('julinemart_user_role', 'employee');
+            localStorage.setItem('julinemart_user_id', empData.id);
+            setLoginForm({ username: '', password: '' });
+        } else {
+            setLoginError('Invalid email or password');
+        }
+    } else {
+        setLoginError('Invalid email or password');
+    }
+});
                         } else {
                             setLoginError('Invalid credentials');
                         }
@@ -556,17 +564,28 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
 };
 
             const handleDeleteEmployee = async (id) => {
-                if (confirm('Are you sure you want to delete this employee?')) {
-                    setLoading(true);
-                    try {
-                        await supabase.from('employees').delete().eq('id', id);
-                        await loadAllData();
-                    } catch (error) {
-                        alert('Error deleting employee: ' + error.message);
-                    }
-                    setLoading(false);
-                }
-            };
+    if (confirm('Are you sure you want to delete this employee? This will also delete all their payrolls, leave requests, and attendance records.')) {
+        setLoading(true);
+        try {
+            // Delete related records first (to avoid foreign key constraint errors)
+            await supabase.from('payrolls').delete().eq('employee_id', id);
+            await supabase.from('leave_requests').delete().eq('employee_id', id);
+            await supabase.from('attendance').delete().eq('employee_id', id);
+            
+            // Now delete the employee
+            const { error } = await supabase.from('employees').delete().eq('id', id);
+            
+            if (error) throw error;
+            
+            alert('Employee and all related records deleted successfully');
+            await loadAllData();
+        } catch (error) {
+            alert('Error deleting employee: ' + error.message);
+            console.error('Delete error:', error);
+        }
+        setLoading(false);
+    }
+};
 
             const handleAddPayroll = async () => {
                 const employee = employees.find(e => e.id === parseInt(payrollForm.employeeId));
@@ -589,14 +608,10 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                 const totalDeductions = tax + pension + nhf + loanDeduction + otherDeductions;
                 const netSalary = grossSalary - totalDeductions;
 
-                // Generate unique payslip number (format: PY0001, PY0002, etc.)
-const currentYear = payrollForm.year || new Date().getFullYear();
-const currentMonth = payrollForm.month || 'JAN';
-const payslipCount = payrolls.length + 1;
-const payslipNo = `PY${currentYear}-${currentMonth.substring(0,3)}-${String(payslipCount).padStart(3, '0')}`;
+                const payslipNo = `PY${String(payrolls.length + 1).padStart(4, '0')}`;
 
-setLoading(true);
-try {
+                setLoading(true);
+                try {
                     await supabase.from('payrolls').insert([{
                         employee_id: employee.id,
                         employee_name: employee.name,
@@ -753,13 +768,11 @@ try {
                             </div>
 
                             <div className="mt-6 text-center text-sm text-gray-600">
-                                <p className="mb-2">Default Admin Login:</p>
-                                <div className="bg-gray-100 p-3 rounded mb-3">
-                                    <p className="font-mono">Username: <strong>admin</strong></p>
-                                    <p className="font-mono">Password: <strong>admin123</strong></p>
-                                </div>
-                                <p className="text-xs text-gray-500">Employee Login: Use your email and password (Default: employee123)</p>
-                            </div>
+    <p className="text-xs text-gray-500">
+        <strong>Admin:</strong> Login with your admin credentials<br />
+        <strong>Employee:</strong> Login with your email address
+    </p>
+</div>
                         </div>
                     </div>
                 );
@@ -1634,6 +1647,4 @@ try {
     </script>
 </body>
 </html>
-
-
 
