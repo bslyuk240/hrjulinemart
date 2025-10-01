@@ -835,18 +835,18 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                         <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
                                     )}
                                     <div>
-                                        <h1 className="text-lg sm:text-xl font-bold">{settings.company_name || 'JulineMart'}</h1>
-                                        <p className="text-purple-100">Employee Portal</p>
+                                        <h1 className="text-sm sm:text-lg md:text-xl font-bold">{settings.company_name || 'JulineMart'}</h1>
+                                        <p className="text-purple-100 text-xs sm:text-sm">Employee Portal</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center space-x-3">
-                                    <span className="text-sm">Welcome, {currentEmployee.name}</span>
+                                <div className="flex items-center space-x-2 sm:space-x-3">
+                                    <span className="text-xs sm:text-sm">Welcome, {currentEmployee.name}</span>
                                     <button
                                         onClick={handleLogout}
-                                        className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg"
+                                        className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm"
                                     >
                                         <Icons.Logout />
-                                        <span>Logout</span>
+                                        <span className="hidden sm:inline">Logout</span>
                                     </button>
                                 </div>
                             </div>
@@ -978,31 +978,31 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                     <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
                                 )}
                                 <div>
-                                    <h1 className="text-xl sm:text-2xl font-bold">{settings.company_name || 'JulineMart'}</h1>
-                                    <p className="text-purple-100">HR Management System</p>
+                                    <h1 className="text-sm sm:text-lg md:text-xl font-bold">{settings.company_name || 'JulineMart'}</h1>
+                                    <p className="text-purple-100 text-xs sm:text-sm">HR Management System</p>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-3">
+                            <div className="flex items-center space-x-1 sm:space-x-3">
                                 <button
                                     onClick={() => setShowChangePassword(true)}
-                                    className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg text-sm"
+                                    className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm"
                                 >
                                     <Icons.Lock />
-                                    <span>Change Password</span>
+                                    <span className="hidden sm:inline">Change Password</span>
                                 </button>
                                 <button
                                     onClick={() => setShowSettings(true)}
-                                    className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg"
+                                    className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm"
                                 >
                                     <Icons.Settings />
-                                    <span>Settings</span>
+                                    <span className="hidden sm:inline">Settings</span>
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg"
+                                    className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm"
                                 >
                                     <Icons.Logout />
-                                    <span>Logout</span>
+                                    <span className="hidden sm:inline">Logout</span>
                                 </button>
                             </div>
                         </div>
