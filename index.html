@@ -211,12 +211,12 @@
                 if (i < earningsData.length) {
                     doc.setFont(undefined, 'normal');
                     doc.text(earningsData[i][0], margin + 5, yPos);
-                    doc.text('₦ ' + earningsData[i][1], margin + colWidth - 5, yPos, { align: 'right' });
+                    doc.text('NGN ' + earningsData[i][1], margin + colWidth - 5, yPos, { align: 'right' });
                 }
                 
                 if (i < deductionsData.length) {
                     doc.text(deductionsData[i][0], pageWidth / 2 + 6, yPos);
-                    doc.text('₦ ' + deductionsData[i][1], pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
+                    doc.text('NGN ' + deductionsData[i][1], pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
                 }
                 
                 yPos += 7;
@@ -232,14 +232,14 @@
             doc.setFont(undefined, 'bold');
             doc.setFontSize(11);
             doc.text('Total Earnings', margin + 5, yPos);
-            doc.text('₦ ' + parseFloat(payroll.gross_salary || 0).toLocaleString(), margin + colWidth - 5, yPos, { align: 'right' });
+            doc.text('NGN ' + parseFloat(payroll.gross_salary || 0).toLocaleString(), margin + colWidth - 5, yPos, { align: 'right' });
 
             const totalDeductions = parseFloat(payroll.tax || 0) + parseFloat(payroll.pension || 0) + 
                                    parseFloat(payroll.nhf || 0) + parseFloat(payroll.loan_deduction || 0) + 
                                    parseFloat(payroll.other_deductions || 0);
             
             doc.text('Total Deductions', pageWidth / 2 + 6, yPos);
-            doc.text('₦ ' + totalDeductions.toLocaleString(), pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
+            doc.text('NGN ' + totalDeductions.toLocaleString(), pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
 
             yPos += 12;
 
@@ -252,7 +252,7 @@ doc.setTextColor(46, 204, 113);
 doc.setFontSize(14);
 doc.setFont(undefined, 'bold');
 doc.text('NET PAY', margin + 5, yPos + 5);
-doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
+doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
 
             if (payroll.comments) {
                 yPos += 20;
@@ -589,10 +589,14 @@ doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                 const totalDeductions = tax + pension + nhf + loanDeduction + otherDeductions;
                 const netSalary = grossSalary - totalDeductions;
 
-                const payslipNo = `PY${String(payrolls.length + 1).padStart(4, '0')}`;
+                // Generate unique payslip number (format: PY0001, PY0002, etc.)
+const currentYear = payrollForm.year || new Date().getFullYear();
+const currentMonth = payrollForm.month || 'JAN';
+const payslipCount = payrolls.length + 1;
+const payslipNo = `PY${currentYear}-${currentMonth.substring(0,3)}-${String(payslipCount).padStart(3, '0')}`;
 
-                setLoading(true);
-                try {
+setLoading(true);
+try {
                     await supabase.from('payrolls').insert([{
                         employee_id: employee.id,
                         employee_name: employee.name,
@@ -1630,5 +1634,6 @@ doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
     </script>
 </body>
 </html>
+
 
 
