@@ -388,24 +388,30 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         setCurrentUserId(adminData.id);
                         setLoginForm({ username: '', password: '' });
                     } else {
-                        const { data: empData } = await supabase
-                            .from('employees')
-                            .select('*')
-                            .eq('email', loginForm.username)
-                            .single();
+    const { data: empData } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', loginForm.username)
+        .single();
 
-                        if (empData && empData.password === loginForm.password) {
-                            setIsLoggedIn(true);
-                            setUserRole('employee');
-                            setCurrentUserId(empData.id);
-                            localStorage.setItem('julinemart_logged_in', 'true');
-                            localStorage.setItem('julinemart_user_role', 'employee');
-                            localStorage.setItem('julinemart_user_id', empData.id);
-                            setLoginForm({ username: '', password: '' });
-                        } else {
-                            setLoginError('Invalid credentials');
-                        }
-                    }
+    if (empData) {
+        // Check if password matches or use default if no password set
+        const employeePassword = empData.password || 'employee123';
+        if (employeePassword === loginForm.password) {
+            setIsLoggedIn(true);
+            setUserRole('employee');
+            setCurrentUserId(empData.id);
+            localStorage.setItem('julinemart_logged_in', 'true');
+            localStorage.setItem('julinemart_user_role', 'employee');
+            localStorage.setItem('julinemart_user_id', empData.id);
+            setLoginForm({ username: '', password: '' });
+        } else {
+            setLoginError('Invalid email or password');
+        }
+    } else {
+        setLoginError('Invalid email or password');
+    }
+}
                 } catch (err) {
                     setLoginError('Login failed. Please check your credentials.');
                 }
@@ -556,17 +562,28 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
 };
 
             const handleDeleteEmployee = async (id) => {
-                if (confirm('Are you sure you want to delete this employee?')) {
-                    setLoading(true);
-                    try {
-                        await supabase.from('employees').delete().eq('id', id);
-                        await loadAllData();
-                    } catch (error) {
-                        alert('Error deleting employee: ' + error.message);
-                    }
-                    setLoading(false);
-                }
-            };
+    if (confirm('Are you sure you want to delete this employee? This will also delete all their payrolls, leave requests, and attendance records.')) {
+        setLoading(true);
+        try {
+            // Delete related records first (to avoid foreign key constraint errors)
+            await supabase.from('payrolls').delete().eq('employee_id', id);
+            await supabase.from('leave_requests').delete().eq('employee_id', id);
+            await supabase.from('attendance').delete().eq('employee_id', id);
+            
+            // Now delete the employee
+            const { error } = await supabase.from('employees').delete().eq('id', id);
+            
+            if (error) throw error;
+            
+            alert('Employee and all related records deleted successfully');
+            await loadAllData();
+        } catch (error) {
+            alert('Error deleting employee: ' + error.message);
+            console.error('Delete error:', error);
+        }
+        setLoading(false);
+    }
+};
 
             const handleAddPayroll = async () => {
                 const employee = employees.find(e => e.id === parseInt(payrollForm.employeeId));
@@ -753,13 +770,11 @@ try {
                             </div>
 
                             <div className="mt-6 text-center text-sm text-gray-600">
-                                <p className="mb-2">Default Admin Login:</p>
-                                <div className="bg-gray-100 p-3 rounded mb-3">
-                                    <p className="font-mono">Username: <strong>admin</strong></p>
-                                    <p className="font-mono">Password: <strong>admin123</strong></p>
-                                </div>
-                                <p className="text-xs text-gray-500">Employee Login: Use your email and password (Default: employee123)</p>
-                            </div>
+    <p className="text-xs text-gray-500">
+        <strong>Admin:</strong> Login with your admin credentials<br />
+        <strong>Employee:</strong> Login with your email address
+    </p>
+</div>
                         </div>
                     </div>
                 );
@@ -1634,6 +1649,7 @@ try {
     </script>
 </body>
 </html>
+
 
 
 
