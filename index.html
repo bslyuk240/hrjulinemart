@@ -529,33 +529,58 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
     setAttendanceForm({ employeeId: '', date: '', status: 'Present' });
 };
             const handleAddEmployee = async () => {
+    // Validate required fields
+    if (!employeeForm.name || !employeeForm.email || !employeeForm.position || !employeeForm.salary) {
+        alert('Please fill in all required fields: Name, Email, Position, and Salary');
+        return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(employeeForm.email)) {
+        alert('Please enter a valid email address');
+        return;
+    }
+
     setLoading(true);
     try {
         const employeeData = {
             name: employeeForm.name,
             email: employeeForm.email,
             position: employeeForm.position,
-            department: employeeForm.department,
+            department: employeeForm.department || '',
             salary: parseFloat(employeeForm.salary),
-            join_date: employeeForm.joinDate,
-            leave_balance: parseInt(employeeForm.leaveBalance),
-            employee_code: employeeForm.employeeCode,
-            bank_name: employeeForm.bankName,
-            bank_account: employeeForm.bankAccount,
-            payment_mode: employeeForm.paymentMode,
-            phone: employeeForm.phone,
-            profile_pic: employeeForm.profilePic,
+            join_date: employeeForm.joinDate || new Date().toISOString().split('T')[0],
+            leave_balance: parseInt(employeeForm.leaveBalance) || 20,
+            employee_code: employeeForm.employeeCode || '',
+            bank_name: employeeForm.bankName || '',
+            bank_account: employeeForm.bankAccount || '',
+            payment_mode: employeeForm.paymentMode || 'Bank',
+            phone: employeeForm.phone || '',
+            profile_pic: employeeForm.profilePic || '',
             password: 'employee123'
         };
 
+        console.log('Attempting to save employee:', employeeData);
+
+        let result;
         if (editingItem) {
-            await supabase.from('employees').update(employeeData).eq('id', editingItem.id);
+            result = await supabase.from('employees').update(employeeData).eq('id', editingItem.id);
         } else {
-            await supabase.from('employees').insert([employeeData]);
+            result = await supabase.from('employees').insert([employeeData]);
         }
+
+        console.log('Save result:', result);
+
+        if (result.error) {
+            throw result.error;
+        }
+
+        alert('Employee saved successfully!');
         await loadAllData();
         closeModal();
     } catch (error) {
+        console.error('Full error:', error);
         alert('Error saving employee: ' + error.message);
     }
     setLoading(false);
@@ -1640,6 +1665,7 @@ try {
     </script>
 </body>
 </html>
+
 
 
 
