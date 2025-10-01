@@ -50,8 +50,11 @@
         };
 
         const generatePDFPayslip = (payroll, employee, settings) => {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Use Helvetica for clearer text throughout the document
+    doc.setFont("helvetica");
             
             const pageWidth = doc.internal.pageSize.width;
             const margin = 20;
@@ -83,9 +86,9 @@
 
             doc.setTextColor(44, 62, 80);
             yPos = 58;
-            doc.setFontSize(18);
-            doc.setFont(undefined, 'bold');
-            doc.text('PAYSLIP', pageWidth / 2, yPos, { align: 'center' });
+            doc.setFontSize(20);
+doc.setFont("helvetica", 'bold');
+doc.text('PAYSLIP', pageWidth / 2, yPos, { align: 'center' });
             
             yPos += 3;
             doc.setLineWidth(1.5);
@@ -244,13 +247,13 @@
             yPos += 12;
 
             doc.setFillColor(46, 204, 113);
-            doc.rect(margin, yPos - 3, pageWidth - 2 * margin, 12, 'F');
-            
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(14);
-            doc.setFont(undefined, 'bold');
-            doc.text('NET PAY', margin + 5, yPos + 5);
-            doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
+doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 16, 'F');  // Even taller box
+
+doc.setTextColor(255, 255, 255);
+doc.setFontSize(14);
+doc.setFont(undefined, 'bold');
+doc.text('NET PAY', margin + 5, yPos + 7);
+doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 7, { align: 'right' });
 
             if (payroll.comments) {
                 yPos += 20;
@@ -1628,4 +1631,5 @@
     </script>
 </body>
 </html>
+
 
