@@ -562,24 +562,15 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
 };
 
             const handleDeleteEmployee = async (id) => {
-    if (confirm('Are you sure you want to delete this employee? This will also delete all their payrolls, leave requests, and attendance records.')) {
+    if (confirm('Are you sure you want to delete this employee? This will also delete all their related records.')) {
         setLoading(true);
         try {
-            // Delete related records first (to avoid foreign key constraint errors)
-            await supabase.from('payrolls').delete().eq('employee_id', id);
-            await supabase.from('leave_requests').delete().eq('employee_id', id);
-            await supabase.from('attendance').delete().eq('employee_id', id);
-            
-            // Now delete the employee
             const { error } = await supabase.from('employees').delete().eq('id', id);
-            
             if (error) throw error;
-            
-            alert('Employee and all related records deleted successfully');
+            alert('Employee deleted successfully');
             await loadAllData();
         } catch (error) {
             alert('Error deleting employee: ' + error.message);
-            console.error('Delete error:', error);
         }
         setLoading(false);
     }
@@ -1649,6 +1640,7 @@ try {
     </script>
 </body>
 </html>
+
 
 
 
