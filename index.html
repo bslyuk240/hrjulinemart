@@ -29,13 +29,11 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // ⚠️ REPLACE WITH YOUR CREDENTIALS - KEEP THESE PRIVATE!
         const SUPABASE_URL = 'https://uttpqcovbuxaheguqvyo.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0dHBxY292YnV4YWhlZ3VxdnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkyNjIwMTUsImV4cCI6MjA3NDgzODAxNX0.DSoOumPSSZKfs4e308-vTP6BItl-Bx8SWUHqz6ALKa0';
 
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Simple Icons
         const Icons = {
             Users: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>,
             Dollar: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>,
@@ -51,7 +49,6 @@
             Settings: () => <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
         };
 
-        // PDF Payslip Generator
         const generatePDFPayslip = (payroll, employee, settings) => {
             const { jsPDF } = window.jspdf;
             const doc = new jsPDF();
@@ -60,176 +57,232 @@
             const margin = 20;
             let yPos = 20;
 
-            // Purple Header
-            doc.setFillColor(124, 58, 237);
-            doc.rect(0, 0, pageWidth, 35, 'F');
+            doc.setFillColor(245, 247, 250);
+            doc.rect(0, 0, pageWidth, 45, 'F');
             
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(20);
+            if (settings.logo_url) {
+                try {
+                    doc.addImage(settings.logo_url, 'PNG', margin, 10, 30, 30);
+                } catch (e) {
+                    console.log('Logo loading skipped');
+                }
+            }
+
+            doc.setTextColor(44, 62, 80);
+            doc.setFontSize(24);
             doc.setFont(undefined, 'bold');
-            doc.text(settings.company_name || 'JulineMart', pageWidth - margin, 15, { align: 'right' });
+            doc.text(settings.company_name || 'JulineMart', pageWidth - margin, 18, { align: 'right' });
             
             doc.setFontSize(9);
             doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
             const addressLines = (settings.company_address || '').split('\n');
             addressLines.forEach((line, i) => {
-                doc.text(line, pageWidth - margin, 22 + (i * 4), { align: 'right' });
+                doc.text(line, pageWidth - margin, 26 + (i * 4), { align: 'right' });
             });
 
-            doc.setTextColor(0, 0, 0);
-            yPos = 50;
-            doc.setFontSize(14);
+            doc.setTextColor(44, 62, 80);
+            yPos = 58;
+            doc.setFontSize(18);
             doc.setFont(undefined, 'bold');
-            doc.text(`Payslip - ${new Date().toLocaleDateString()}`, margin, yPos);
+            doc.text('PAYSLIP', pageWidth / 2, yPos, { align: 'center' });
             
+            yPos += 3;
+            doc.setLineWidth(1.5);
+            doc.setDrawColor(52, 152, 219);
+            doc.line(pageWidth / 2 - 20, yPos, pageWidth / 2 + 20, yPos);
+
             yPos += 12;
 
-            // Employee Details
+            doc.setFillColor(245, 247, 250);
+            doc.rect(margin, yPos, pageWidth - 2 * margin, 40, 'F');
+            doc.setDrawColor(200, 200, 200);
+            doc.rect(margin, yPos, pageWidth - 2 * margin, 40);
+
+            yPos += 8;
             doc.setFontSize(10);
             doc.setFont(undefined, 'bold');
-            doc.text('Name', margin, yPos);
+            doc.setTextColor(52, 73, 94);
+
+            const labelX = margin + 5;
+            const valueX = margin + 50;
+            
+            doc.text('Employee Name:', labelX, yPos);
             doc.setFont(undefined, 'normal');
-            doc.text(payroll.employee_name, margin + 35, yPos);
+            doc.text(payroll.employee_name, valueX, yPos);
 
             doc.setFont(undefined, 'bold');
-            doc.text('Employee Code', margin, yPos + 6);
+            doc.text('Employee Code:', labelX, yPos + 7);
             doc.setFont(undefined, 'normal');
-            doc.text(employee.employee_code || 'N/A', margin + 35, yPos + 6);
+            doc.text(employee.employee_code || 'N/A', valueX, yPos + 7);
 
             doc.setFont(undefined, 'bold');
-            doc.text('Designation', margin, yPos + 12);
+            doc.text('Designation:', labelX, yPos + 14);
             doc.setFont(undefined, 'normal');
-            doc.text(employee.position || 'N/A', margin + 35, yPos + 12);
+            doc.text(employee.position || 'N/A', valueX, yPos + 14);
 
             doc.setFont(undefined, 'bold');
-            doc.text('Department', margin, yPos + 18);
+            doc.text('Department:', labelX, yPos + 21);
             doc.setFont(undefined, 'normal');
-            doc.text(employee.department || 'N/A', margin + 35, yPos + 18);
+            doc.text(employee.department || 'N/A', valueX, yPos + 21);
 
-            doc.setFont(undefined, 'bold');
-            doc.text('Working Days', margin, yPos + 24);
-            doc.setFont(undefined, 'normal');
-            doc.text(String(payroll.working_days || 'N/A'), margin + 35, yPos + 24);
-
-            // Right Column
-            const rightCol = pageWidth / 2 + 10;
+            const rightLabelX = pageWidth / 2 + 10;
+            const rightValueX = pageWidth / 2 + 50;
             
             doc.setFont(undefined, 'bold');
-            doc.text('Payslip no.', rightCol, yPos);
+            doc.text('Payslip No:', rightLabelX, yPos);
             doc.setFont(undefined, 'normal');
-            doc.text(payroll.payslip_no || 'N/A', rightCol + 35, yPos);
+            doc.text(payroll.payslip_no || 'N/A', rightValueX, yPos);
 
             doc.setFont(undefined, 'bold');
-            doc.text('Bank Name', rightCol, yPos + 6);
-            doc.setFont(undefined, 'normal');
-            doc.text(employee.bank_name || 'N/A', rightCol + 35, yPos + 6);
-
-            doc.setFont(undefined, 'bold');
-            doc.text('Bank A/C no.', rightCol, yPos + 12);
-            doc.setFont(undefined, 'normal');
-            doc.text(employee.bank_account || 'N/A', rightCol + 35, yPos + 12);
-
-            doc.setFont(undefined, 'bold');
-            doc.text('Mode of payment', rightCol, yPos + 18);
-            doc.setFont(undefined, 'normal');
-            doc.text(employee.payment_mode || 'Bank', rightCol + 35, yPos + 18);
-
-            doc.setFont(undefined, 'bold');
-            doc.text('Pay Period', rightCol, yPos + 24);
+            doc.text('Pay Period:', rightLabelX, yPos + 7);
             doc.setFont(undefined, 'normal');
             const payPeriod = payroll.pay_period_start && payroll.pay_period_end 
-                ? `${payroll.pay_period_start}/${payroll.pay_period_end}`
+                ? `${payroll.pay_period_start} to ${payroll.pay_period_end}`
                 : `${payroll.month} ${payroll.year}`;
-            doc.text(payPeriod, rightCol + 35, yPos + 24);
+            doc.text(payPeriod, rightValueX, yPos + 7);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Working Days:', rightLabelX, yPos + 14);
+            doc.setFont(undefined, 'normal');
+            doc.text(String(payroll.working_days || 30), rightValueX, yPos + 14);
+
+            doc.setFont(undefined, 'bold');
+            doc.text('Payment Mode:', rightLabelX, yPos + 21);
+            doc.setFont(undefined, 'normal');
+            doc.text(employee.payment_mode || 'Bank Transfer', rightValueX, yPos + 21);
 
             yPos += 35;
 
-            // Table
-            doc.setDrawColor(0, 0, 0);
-            doc.setLineWidth(0.5);
-            doc.setFillColor(240, 240, 240);
-            doc.rect(margin, yPos, (pageWidth - 2 * margin) / 2 - 2, 8, 'F');
-            doc.rect(pageWidth / 2, yPos, (pageWidth - 2 * margin) / 2 - 2, 8, 'F');
-            
-            doc.setFont(undefined, 'bold');
-            doc.text('Earnings', margin + 2, yPos + 5);
-            doc.text('Amount', (pageWidth / 2) - 25, yPos + 5, { align: 'right' });
-            doc.text('Deductions', pageWidth / 2 + 2, yPos + 5);
-            doc.text('Amount', pageWidth - margin - 2, yPos + 5, { align: 'right' });
-
-            yPos += 10;
-
-            doc.setFont(undefined, 'normal');
-            doc.text('Salary', margin + 2, yPos + 5);
-            doc.text(`₦ ${parseFloat(payroll.basic_salary).toLocaleString()}`, (pageWidth / 2) - 25, yPos + 5, { align: 'right' });
-
-            if (payroll.allowances > 0) {
-                yPos += 6;
-                doc.text('Allowances', margin + 2, yPos + 5);
-                doc.text(`₦ ${parseFloat(payroll.allowances).toLocaleString()}`, (pageWidth / 2) - 25, yPos + 5, { align: 'right' });
+            if (employee.bank_name) {
+                doc.setFillColor(250, 250, 250);
+                doc.rect(margin, yPos, pageWidth - 2 * margin, 12, 'F');
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(margin, yPos, pageWidth - 2 * margin, 12);
+                
+                yPos += 8;
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(9);
+                doc.text('Bank Details:', margin + 5, yPos);
+                doc.setFont(undefined, 'normal');
+                doc.text(`${employee.bank_name} - ${employee.bank_account || 'N/A'}`, margin + 35, yPos);
+                yPos += 8;
+            } else {
+                yPos += 5;
             }
 
-            let dedYPos = yPos - (payroll.allowances > 0 ? 6 : 0);
-            if (payroll.tax > 0) {
-                doc.text('Tax', pageWidth / 2 + 2, dedYPos + 5);
-                doc.text(`₦ ${parseFloat(payroll.tax).toLocaleString()}`, pageWidth - margin - 2, dedYPos + 5, { align: 'right' });
-                dedYPos += 6;
-            }
-            if (payroll.deductions > 0) {
-                doc.text('Other Deductions', pageWidth / 2 + 2, dedYPos + 5);
-                doc.text(`₦ ${parseFloat(payroll.deductions).toLocaleString()}`, pageWidth - margin - 2, dedYPos + 5, { align: 'right' });
-            }
+            const tableTop = yPos;
+            const colWidth = (pageWidth - 2 * margin) / 2 - 2;
 
-            yPos += 18;
-
-            doc.line(margin, yPos, pageWidth / 2 - 2, yPos);
-            doc.line(pageWidth / 2, yPos, pageWidth - margin, yPos);
-            
-            yPos += 6;
-            doc.setFont(undefined, 'bold');
-            doc.text('Total Payments', margin + 2, yPos);
-            doc.text(`₦ ${parseFloat(payroll.gross_salary).toLocaleString()}`, (pageWidth / 2) - 25, yPos, { align: 'right' });
-            
-            const totalDeductions = parseFloat(payroll.tax) + parseFloat(payroll.deductions);
-            doc.text('Total Deductions', pageWidth / 2 + 2, yPos);
-            doc.text(`₦ ${totalDeductions.toLocaleString()}`, pageWidth - margin - 2, yPos, { align: 'right' });
-
-            yPos += 10;
-
-            // Net Pay
-            doc.setFillColor(124, 58, 237);
-            doc.rect(pageWidth / 2, yPos - 3, (pageWidth / 2) - margin, 10, 'F');
+            doc.setFillColor(52, 152, 219);
+            doc.rect(margin, tableTop, colWidth, 10, 'F');
+            doc.rect(pageWidth / 2 + 1, tableTop, colWidth, 10, 'F');
             
             doc.setTextColor(255, 255, 255);
-            doc.text('Net Pay', pageWidth / 2 + 2, yPos + 3);
-            doc.text(`₦ ${parseFloat(payroll.net_salary).toLocaleString()}`, pageWidth - margin - 2, yPos + 3, { align: 'right' });
+            doc.setFont(undefined, 'bold');
+            doc.setFontSize(11);
+            doc.text('EARNINGS', margin + colWidth / 2, tableTop + 7, { align: 'center' });
+            doc.text('DEDUCTIONS', pageWidth / 2 + 1 + colWidth / 2, tableTop + 7, { align: 'center' });
 
-            if (payroll.comments) {
-                yPos += 15;
-                doc.setTextColor(0, 0, 0);
-                doc.setFont(undefined, 'normal');
-                doc.setFontSize(9);
-                doc.text('• Other Comments', margin, yPos);
-                yPos += 5;
-                doc.text(payroll.comments, margin + 5, yPos);
+            yPos = tableTop + 15;
+
+            doc.setTextColor(52, 73, 94);
+            doc.setFont(undefined, 'normal');
+            doc.setFontSize(10);
+
+            const earningsData = [];
+            earningsData.push(['Basic Salary', parseFloat(payroll.basic_salary || 0).toLocaleString()]);
+            
+            if (payroll.overtime_pay > 0) earningsData.push(['Overtime Pay', parseFloat(payroll.overtime_pay).toLocaleString()]);
+            if (payroll.holiday_pay > 0) earningsData.push(['Holiday Pay', parseFloat(payroll.holiday_pay).toLocaleString()]);
+            if (payroll.bonus > 0) earningsData.push(['Bonus/Incentive', parseFloat(payroll.bonus).toLocaleString()]);
+            if (payroll.allowances > 0) earningsData.push(['Allowances', parseFloat(payroll.allowances).toLocaleString()]);
+
+            const deductionsData = [];
+            if (payroll.tax > 0) deductionsData.push(['Tax (PAYE)', parseFloat(payroll.tax).toLocaleString()]);
+            if (payroll.pension > 0) deductionsData.push(['Pension', parseFloat(payroll.pension).toLocaleString()]);
+            if (payroll.nhf > 0) deductionsData.push(['NHF', parseFloat(payroll.nhf).toLocaleString()]);
+            if (payroll.loan_deduction > 0) deductionsData.push(['Loan Repayment', parseFloat(payroll.loan_deduction).toLocaleString()]);
+            if (payroll.other_deductions > 0) deductionsData.push(['Other Deductions', parseFloat(payroll.other_deductions).toLocaleString()]);
+
+            const maxRows = Math.max(earningsData.length, deductionsData.length);
+
+            for (let i = 0; i < maxRows; i++) {
+                if (i < earningsData.length) {
+                    doc.setFont(undefined, 'normal');
+                    doc.text(earningsData[i][0], margin + 5, yPos);
+                    doc.text('₦ ' + earningsData[i][1], margin + colWidth - 5, yPos, { align: 'right' });
+                }
+                
+                if (i < deductionsData.length) {
+                    doc.text(deductionsData[i][0], pageWidth / 2 + 6, yPos);
+                    doc.text('₦ ' + deductionsData[i][1], pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
+                }
+                
+                yPos += 7;
             }
 
-            // Footer
-            const footerY = doc.internal.pageSize.height - 40;
-            doc.setTextColor(100, 100, 100);
-            doc.setFontSize(8);
-            doc.text(settings.payslip_footer || '', pageWidth / 2, footerY, { align: 'center', maxWidth: pageWidth - 40 });
+            yPos += 3;
+
+            doc.setDrawColor(200, 200, 200);
+            doc.line(margin, yPos, margin + colWidth, yPos);
+            doc.line(pageWidth / 2 + 1, yPos, pageWidth / 2 + 1 + colWidth, yPos);
             
-            doc.line(pageWidth - margin - 40, footerY + 20, pageWidth - margin, footerY + 20);
-            doc.setFontSize(10);
+            yPos += 8;
             doc.setFont(undefined, 'bold');
-            doc.text('SIGNATURE', pageWidth - margin, footerY + 25, { align: 'right' });
+            doc.setFontSize(11);
+            doc.text('Total Earnings', margin + 5, yPos);
+            doc.text('₦ ' + parseFloat(payroll.gross_salary || 0).toLocaleString(), margin + colWidth - 5, yPos, { align: 'right' });
+
+            const totalDeductions = parseFloat(payroll.tax || 0) + parseFloat(payroll.pension || 0) + 
+                                   parseFloat(payroll.nhf || 0) + parseFloat(payroll.loan_deduction || 0) + 
+                                   parseFloat(payroll.other_deductions || 0);
+            
+            doc.text('Total Deductions', pageWidth / 2 + 6, yPos);
+            doc.text('₦ ' + totalDeductions.toLocaleString(), pageWidth / 2 + colWidth - 4, yPos, { align: 'right' });
+
+            yPos += 12;
+
+            doc.setFillColor(46, 204, 113);
+            doc.rect(margin, yPos - 3, pageWidth - 2 * margin, 12, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('NET PAY', margin + 5, yPos + 5);
+            doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
+
+            if (payroll.comments) {
+                yPos += 20;
+                doc.setTextColor(52, 73, 94);
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'bold');
+                doc.text('Comments:', margin, yPos);
+                doc.setFont(undefined, 'normal');
+                const splitComments = doc.splitTextToSize(payroll.comments, pageWidth - 2 * margin - 10);
+                doc.text(splitComments, margin + 5, yPos + 5);
+            }
+
+            const footerY = doc.internal.pageSize.height - 35;
+            doc.setTextColor(120, 120, 120);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'italic');
+            const footerText = settings.payslip_footer || 'This is a computer-generated payslip and does not require a signature.';
+            const splitFooter = doc.splitTextToSize(footerText, pageWidth - 40);
+            doc.text(splitFooter, pageWidth / 2, footerY, { align: 'center' });
+            
+            doc.setFont(undefined, 'normal');
+            doc.line(pageWidth - margin - 50, footerY + 20, pageWidth - margin - 5, footerY + 20);
+            doc.setFontSize(9);
+            doc.text('Authorized Signature', pageWidth - margin, footerY + 25, { align: 'right' });
 
             doc.save(`Payslip_${payroll.employee_name}_${payroll.month}_${payroll.year}.pdf`);
         };
 
         function App() {
             const [isLoggedIn, setIsLoggedIn] = useState(false);
+            const [userRole, setUserRole] = useState('');
+            const [currentUserId, setCurrentUserId] = useState(null);
             const [loginForm, setLoginForm] = useState({ username: '', password: '' });
             const [loginError, setLoginError] = useState('');
             const [activeTab, setActiveTab] = useState('dashboard');
@@ -243,14 +296,17 @@
             const [modalType, setModalType] = useState('');
             const [editingItem, setEditingItem] = useState(null);
             const [showSettings, setShowSettings] = useState(false);
+            const [showChangePassword, setShowChangePassword] = useState(false);
 
             const [employeeForm, setEmployeeForm] = useState({
                 name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20,
-                employeeCode: '', bankName: '', bankAccount: '', paymentMode: 'Bank'
+                employeeCode: '', bankName: '', bankAccount: '', paymentMode: 'Bank', phone: ''
             });
             const [payrollForm, setPayrollForm] = useState({
-                employeeId: '', month: '', year: '', basicSalary: '', allowances: 0, deductions: 0, taxRate: 10,
-                workingDays: 30, payPeriodStart: '', payPeriodEnd: '', comments: ''
+                employeeId: '', month: '', year: '', basicSalary: '', 
+                allowances: 0, overtimePay: 0, holidayPay: 0, bonus: 0,
+                tax: 0, pension: 0, nhf: 0, loanDeduction: 0, otherDeductions: 0,
+                taxRate: 10, workingDays: 30, payPeriodStart: '', payPeriodEnd: '', comments: ''
             });
             const [leaveForm, setLeaveForm] = useState({
                 employeeId: '', startDate: '', endDate: '', reason: '', type: 'Annual'
@@ -259,11 +315,18 @@
                 employeeId: '', date: '', status: 'Present'
             });
             const [settingsForm, setSettingsForm] = useState({});
+            const [passwordForm, setPasswordForm] = useState({
+                currentPassword: '', newPassword: '', confirmPassword: ''
+            });
 
             useEffect(() => {
                 const loggedIn = localStorage.getItem('julinemart_logged_in');
+                const role = localStorage.getItem('julinemart_user_role');
+                const userId = localStorage.getItem('julinemart_user_id');
                 if (loggedIn === 'true') {
                     setIsLoggedIn(true);
+                    setUserRole(role || 'admin');
+                    setCurrentUserId(userId ? parseInt(userId) : null);
                 }
             }, []);
 
@@ -307,19 +370,39 @@
                 setLoading(true);
 
                 try {
-                    const { data, error } = await supabase
+                    const { data: adminData } = await supabase
                         .from('admin_users')
                         .select('*')
                         .eq('username', loginForm.username)
                         .eq('password', loginForm.password)
                         .single();
 
-                    if (error || !data) {
-                        setLoginError('Invalid username or password');
-                    } else {
+                    if (adminData) {
                         setIsLoggedIn(true);
+                        setUserRole('admin');
                         localStorage.setItem('julinemart_logged_in', 'true');
+                        localStorage.setItem('julinemart_user_role', 'admin');
+                        localStorage.setItem('julinemart_user_id', adminData.id);
+                        setCurrentUserId(adminData.id);
                         setLoginForm({ username: '', password: '' });
+                    } else {
+                        const { data: empData } = await supabase
+                            .from('employees')
+                            .select('*')
+                            .eq('email', loginForm.username)
+                            .single();
+
+                        if (empData && empData.password === loginForm.password) {
+                            setIsLoggedIn(true);
+                            setUserRole('employee');
+                            setCurrentUserId(empData.id);
+                            localStorage.setItem('julinemart_logged_in', 'true');
+                            localStorage.setItem('julinemart_user_role', 'employee');
+                            localStorage.setItem('julinemart_user_id', empData.id);
+                            setLoginForm({ username: '', password: '' });
+                        } else {
+                            setLoginError('Invalid credentials');
+                        }
                     }
                 } catch (err) {
                     setLoginError('Login failed. Please check your credentials.');
@@ -328,26 +411,78 @@
                 setLoading(false);
             };
 
+            const handleChangePassword = async () => {
+                if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+                    alert('New passwords do not match!');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const { data } = await supabase
+                        .from('admin_users')
+                        .select('*')
+                        .eq('password', passwordForm.currentPassword)
+                        .single();
+
+                    if (!data) {
+                        alert('Current password is incorrect!');
+                        setLoading(false);
+                        return;
+                    }
+
+                    await supabase
+                        .from('admin_users')
+                        .update({ password: passwordForm.newPassword })
+                        .eq('id', data.id);
+
+                    alert('Password changed successfully!');
+                    setShowChangePassword(false);
+                    setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+                } catch (error) {
+                    alert('Error changing password: ' + error.message);
+                }
+                setLoading(false);
+            };
+
             const handleLogout = () => {
                 setIsLoggedIn(false);
+                setUserRole('');
+                setCurrentUserId(null);
                 localStorage.removeItem('julinemart_logged_in');
+                localStorage.removeItem('julinemart_user_role');
+                localStorage.removeItem('julinemart_user_id');
                 setActiveTab('dashboard');
             };
 
             const loadAllData = async () => {
                 setLoading(true);
                 try {
-                    const [empData, payData, leaveData, attData] = await Promise.all([
-                        supabase.from('employees').select('*').order('id', { ascending: true }),
-                        supabase.from('payrolls').select('*').order('id', { ascending: false }),
-                        supabase.from('leave_requests').select('*').order('id', { ascending: false }),
-                        supabase.from('attendance').select('*').order('date', { ascending: false })
-                    ]);
+                    if (userRole === 'employee') {
+                        const [empData, payData, leaveData, attData] = await Promise.all([
+                            supabase.from('employees').select('*').eq('id', currentUserId).single(),
+                            supabase.from('payrolls').select('*').eq('employee_id', currentUserId).order('id', { ascending: false }),
+                            supabase.from('leave_requests').select('*').eq('employee_id', currentUserId).order('id', { ascending: false }),
+                            supabase.from('attendance').select('*').eq('employee_id', currentUserId).order('date', { ascending: false })
+                        ]);
 
-                    if (empData.data) setEmployees(empData.data);
-                    if (payData.data) setPayrolls(payData.data);
-                    if (leaveData.data) setLeaveRequests(leaveData.data);
-                    if (attData.data) setAttendance(attData.data);
+                        if (empData.data) setEmployees([empData.data]);
+                        if (payData.data) setPayrolls(payData.data);
+                        if (leaveData.data) setLeaveRequests(leaveData.data);
+                        if (attData.data) setAttendance(attData.data);
+                    } else {
+                        const [empData, payData, leaveData, attData] = await Promise.all([
+                            supabase.from('employees').select('*').order('id', { ascending: true }),
+                            supabase.from('payrolls').select('*').order('id', { ascending: false }),
+                            supabase.from('leave_requests').select('*').order('id', { ascending: false }),
+                            supabase.from('attendance').select('*').order('date', { ascending: false })
+                        ]);
+
+                        if (empData.data) setEmployees(empData.data);
+                        if (payData.data) setPayrolls(payData.data);
+                        if (leaveData.data) setLeaveRequests(leaveData.data);
+                        if (attData.data) setAttendance(attData.data);
+                    }
                 } catch (error) {
                     console.error('Error loading data:', error);
                 }
@@ -369,7 +504,8 @@
                         employeeCode: item.employee_code || '',
                         bankName: item.bank_name || '',
                         bankAccount: item.bank_account || '',
-                        paymentMode: item.payment_mode || 'Bank'
+                        paymentMode: item.payment_mode || 'Bank',
+                        phone: item.phone || ''
                     });
                 }
                 setShowModal(true);
@@ -378,8 +514,8 @@
             const closeModal = () => {
                 setShowModal(false);
                 setEditingItem(null);
-                setEmployeeForm({ name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20, employeeCode: '', bankName: '', bankAccount: '', paymentMode: 'Bank' });
-                setPayrollForm({ employeeId: '', month: '', year: '', basicSalary: '', allowances: 0, deductions: 0, taxRate: 10, workingDays: 30, payPeriodStart: '', payPeriodEnd: '', comments: '' });
+                setEmployeeForm({ name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20, employeeCode: '', bankName: '', bankAccount: '', paymentMode: 'Bank', phone: '' });
+                setPayrollForm({ employeeId: '', month: '', year: '', basicSalary: '', allowances: 0, overtimePay: 0, holidayPay: 0, bonus: 0, tax: 0, pension: 0, nhf: 0, loanDeduction: 0, otherDeductions: 0, taxRate: 10, workingDays: 30, payPeriodStart: '', payPeriodEnd: '', comments: '' });
                 setLeaveForm({ employeeId: '', startDate: '', endDate: '', reason: '', type: 'Annual' });
                 setAttendanceForm({ employeeId: '', date: '', status: 'Present' });
             };
@@ -398,7 +534,9 @@
                         employee_code: employeeForm.employeeCode,
                         bank_name: employeeForm.bankName,
                         bank_account: employeeForm.bankAccount,
-                        payment_mode: employeeForm.paymentMode
+                        payment_mode: employeeForm.paymentMode,
+                        phone: employeeForm.phone,
+                        password: 'employee123'
                     };
 
                     if (editingItem) {
@@ -433,12 +571,20 @@
 
                 const basicSalary = parseFloat(payrollForm.basicSalary) || employee.salary;
                 const allowances = parseFloat(payrollForm.allowances) || 0;
-                const deductions = parseFloat(payrollForm.deductions) || 0;
-                const taxRate = parseFloat(payrollForm.taxRate) || 10;
+                const overtimePay = parseFloat(payrollForm.overtimePay) || 0;
+                const holidayPay = parseFloat(payrollForm.holidayPay) || 0;
+                const bonus = parseFloat(payrollForm.bonus) || 0;
                 
-                const grossSalary = basicSalary + allowances;
-                const tax = (grossSalary * taxRate) / 100;
-                const netSalary = grossSalary - tax - deductions;
+                const grossSalary = basicSalary + allowances + overtimePay + holidayPay + bonus;
+                
+                const tax = parseFloat(payrollForm.tax) || ((grossSalary * parseFloat(payrollForm.taxRate)) / 100);
+                const pension = parseFloat(payrollForm.pension) || 0;
+                const nhf = parseFloat(payrollForm.nhf) || 0;
+                const loanDeduction = parseFloat(payrollForm.loanDeduction) || 0;
+                const otherDeductions = parseFloat(payrollForm.otherDeductions) || 0;
+
+                const totalDeductions = tax + pension + nhf + loanDeduction + otherDeductions;
+                const netSalary = grossSalary - totalDeductions;
 
                 const payslipNo = `PY${String(payrolls.length + 1).padStart(4, '0')}`;
 
@@ -451,8 +597,14 @@
                         year: payrollForm.year,
                         basic_salary: basicSalary,
                         allowances,
-                        deductions,
+                        overtime_pay: overtimePay,
+                        holiday_pay: holidayPay,
+                        bonus,
                         tax,
+                        pension,
+                        nhf,
+                        loan_deduction: loanDeduction,
+                        other_deductions: otherDeductions,
                         gross_salary: grossSalary,
                         net_salary: netSalary,
                         payslip_no: payslipNo,
@@ -470,8 +622,8 @@
             };
 
             const handleAddLeave = async () => {
-                const employee = employees.find(e => e.id === parseInt(leaveForm.employeeId));
-                if (!employee) return;
+                const empId = userRole === 'employee' ? currentUserId : parseInt(leaveForm.employeeId);
+                const employee = employees.find(e => e.id === empId) || { id: empId, name: 'You' };
 
                 const startDate = new Date(leaveForm.startDate);
                 const endDate = new Date(leaveForm.endDate);
@@ -552,7 +704,7 @@
                         <div className="bg-white rounded-lg shadow-2xl p-8 max-w-md w-full">
                             <div className="text-center mb-8">
                                 {settings.logo_url && (
-                                    <img src={settings.logo_url} alt="Logo" className="h-20 mx-auto mb-4" onError={(e) => e.target.style.display = 'none'} />
+                                    <img src={settings.logo_url} alt="Logo" className="h-20 mx-auto mb-4 object-contain" onError={(e) => e.target.style.display = 'none'} />
                                 )}
                                 <div className="inline-block p-3 bg-purple-100 rounded-full mb-4">
                                     <Icons.Lock />
@@ -570,7 +722,7 @@
                             <div className="space-y-4">
                                 <input
                                     type="text"
-                                    placeholder="Username"
+                                    placeholder="Username or Email"
                                     value={loginForm.username}
                                     onChange={(e) => setLoginForm({ ...loginForm, username: e.target.value })}
                                     onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
@@ -594,13 +746,159 @@
                             </div>
 
                             <div className="mt-6 text-center text-sm text-gray-600">
-                                <p className="mb-2">Default Login:</p>
-                                <div className="bg-gray-100 p-3 rounded">
+                                <p className="mb-2">Default Admin Login:</p>
+                                <div className="bg-gray-100 p-3 rounded mb-3">
                                     <p className="font-mono">Username: <strong>admin</strong></p>
                                     <p className="font-mono">Password: <strong>admin123</strong></p>
                                 </div>
+                                <p className="text-xs text-gray-500">Employee Login: Use your email and password (Default: employee123)</p>
                             </div>
                         </div>
+                    </div>
+                );
+            }
+
+            if (userRole === 'employee') {
+                const currentEmployee = employees[0] || {};
+                return (
+                    <div className="min-h-screen bg-gray-50">
+                        <div className="bg-brand-purple text-white p-6 shadow-lg">
+                            <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
+                                <div className="flex items-center space-x-4">
+                                    {settings.logo_url && (
+                                        <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
+                                    )}
+                                    <div>
+                                        <h1 className="text-2xl font-bold">{settings.company_name || 'JulineMart'}</h1>
+                                        <p className="text-purple-100">Employee Portal</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-3">
+                                    <span className="text-sm">Welcome, {currentEmployee.name}</span>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg"
+                                    >
+                                        <Icons.Logout />
+                                        <span>Logout</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="container mx-auto px-6 py-8">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-brand-purple">
+                                    <p className="text-gray-500 text-sm">Leave Balance</p>
+                                    <p className="text-3xl font-bold text-brand-purple">{currentEmployee.leave_balance || 0} days</p>
+                                </div>
+                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-600">
+                                    <p className="text-gray-500 text-sm">Total Payslips</p>
+                                    <p className="text-3xl font-bold text-green-600">{payrolls.length}</p>
+                                </div>
+                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-brand-orange">
+                                    <p className="text-gray-500 text-sm">Pending Leaves</p>
+                                    <p className="text-3xl font-bold text-brand-orange">{leaveRequests.filter(l => l.status === 'Pending').length}</p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                <div className="bg-white p-6 rounded-lg shadow-md">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-xl font-bold">My Payslips</h3>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {payrolls.slice(0, 5).map(pay => {
+                                            const emp = currentEmployee;
+                                            return (
+                                                <div key={pay.id} className="border-b py-3 last:border-0 flex justify-between items-center">
+                                                    <div>
+                                                        <p className="font-semibold">{pay.month} {pay.year}</p>
+                                                        <p className="text-sm text-gray-600">{pay.payslip_no}</p>
+                                                    </div>
+                                                    <div className="flex items-center space-x-3">
+                                                        <p className="text-lg font-bold text-green-600">₦{parseFloat(pay.net_salary).toLocaleString()}</p>
+                                                        <button 
+                                                            onClick={() => generatePDFPayslip(pay, emp, settings)} 
+                                                            className="bg-brand-orange hover:bg-orange-600 text-white px-3 py-1 rounded-lg text-sm flex items-center space-x-1"
+                                                        >
+                                                            <Icons.Download />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                        {payrolls.length === 0 && <p className="text-gray-500 text-center py-4">No payslips yet</p>}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-6 rounded-lg shadow-md">
+                                    <div className="flex justify-between items-center mb-4">
+                                        <h3 className="text-xl font-bold">My Leave Requests</h3>
+                                        <button
+                                            onClick={() => openModal('leave')}
+                                            className="bg-brand-purple hover:bg-purple-700 text-white px-3 py-1 rounded-lg text-sm flex items-center space-x-1"
+                                        >
+                                            <Icons.Plus />
+                                            <span>Request</span>
+                                        </button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {leaveRequests.slice(0, 5).map(leave => (
+                                            <div key={leave.id} className="border-b py-3 last:border-0">
+                                                <div className="flex justify-between">
+                                                    <div>
+                                                        <p className="font-semibold">{leave.type} Leave</p>
+                                                        <p className="text-sm text-gray-600">{leave.start_date} to {leave.end_date}</p>
+                                                        <p className="text-xs text-gray-500">{leave.days} days</p>
+                                                    </div>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold h-fit ${
+                                                        leave.status === 'Approved' ? 'bg-green-100 text-green-700' :
+                                                        leave.status === 'Rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                        {leave.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {leaveRequests.length === 0 && <p className="text-gray-500 text-center py-4">No leave requests yet</p>}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {showModal && modalType === 'leave' && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-screen overflow-y-auto">
+                                    <h3 className="text-2xl font-bold mb-6 text-brand-purple">New Leave Request</h3>
+                                    <div className="space-y-4">
+                                        <select value={leaveForm.type} onChange={(e) => setLeaveForm({ ...leaveForm, type: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                            <option value="Annual">Annual Leave</option>
+                                            <option value="Sick">Sick Leave</option>
+                                            <option value="Emergency">Emergency Leave</option>
+                                            <option value="Unpaid">Unpaid Leave</option>
+                                        </select>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Start Date</label>
+                                            <input type="date" value={leaveForm.startDate} onChange={(e) => setLeaveForm({ ...leaveForm, startDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">End Date</label>
+                                            <input type="date" value={leaveForm.endDate} onChange={(e) => setLeaveForm({ ...leaveForm, endDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Reason</label>
+                                            <textarea placeholder="Reason for leave" value={leaveForm.reason} onChange={(e) => setLeaveForm({ ...leaveForm, reason: e.target.value })} className="w-full px-4 py-2 border rounded-lg" rows="3" />
+                                        </div>
+                                        <div className="flex space-x-3">
+                                            <button onClick={handleAddLeave} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Submit</button>
+                                            <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             }
@@ -611,7 +909,7 @@
                         <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
                             <div className="flex items-center space-x-4">
                                 {settings.logo_url && (
-                                    <img src={settings.logo_url} alt="Logo" className="h-12" onError={(e) => e.target.style.display = 'none'} />
+                                    <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
                                 )}
                                 <div>
                                     <h1 className="text-3xl font-bold">{settings.company_name || 'JulineMart'}</h1>
@@ -619,6 +917,13 @@
                                 </div>
                             </div>
                             <div className="flex items-center space-x-3">
+                                <button
+                                    onClick={() => setShowChangePassword(true)}
+                                    className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg text-sm"
+                                >
+                                    <Icons.Lock />
+                                    <span>Change Password</span>
+                                </button>
                                 <button
                                     onClick={() => setShowSettings(true)}
                                     className="flex items-center space-x-2 bg-purple-700 hover:bg-purple-800 px-4 py-2 rounded-lg"
@@ -960,18 +1265,22 @@
                                     <input type="text" placeholder="Full Name *" value={employeeForm.name} onChange={(e) => setEmployeeForm({ ...employeeForm, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <input type="text" placeholder="Employee Code" value={employeeForm.employeeCode} onChange={(e) => setEmployeeForm({ ...employeeForm, employeeCode: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <input type="email" placeholder="Email *" value={employeeForm.email} onChange={(e) => setEmployeeForm({ ...employeeForm, email: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="text" placeholder="Phone" value={employeeForm.phone} onChange={(e) => setEmployeeForm({ ...employeeForm, phone: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <input type="text" placeholder="Position *" value={employeeForm.position} onChange={(e) => setEmployeeForm({ ...employeeForm, position: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <input type="text" placeholder="Department" value={employeeForm.department} onChange={(e) => setEmployeeForm({ ...employeeForm, department: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <input type="number" placeholder="Salary *" value={employeeForm.salary} onChange={(e) => setEmployeeForm({ ...employeeForm, salary: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <input type="text" placeholder="Bank Name" value={employeeForm.bankName} onChange={(e) => setEmployeeForm({ ...employeeForm, bankName: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <input type="text" placeholder="Bank Account" value={employeeForm.bankAccount} onChange={(e) => setEmployeeForm({ ...employeeForm, bankAccount: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
                                     <select value={employeeForm.paymentMode} onChange={(e) => setEmployeeForm({ ...employeeForm, paymentMode: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                        <option value="Bank">Bank</option>
+                                        <option value="Bank">Bank Transfer</option>
                                         <option value="Cash">Cash</option>
                                         <option value="Cheque">Cheque</option>
                                     </select>
-                                    <input type="date" value={employeeForm.joinDate} onChange={(e) => setEmployeeForm({ ...employeeForm, joinDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="number" placeholder="Leave Balance" value={employeeForm.leaveBalance} onChange={(e) => setEmployeeForm({ ...employeeForm, leaveBalance: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="date" placeholder="Join Date" value={employeeForm.joinDate} onChange={(e) => setEmployeeForm({ ...employeeForm, joinDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <input type="number" placeholder="Leave Balance (days)" value={employeeForm.leaveBalance} onChange={(e) => setEmployeeForm({ ...employeeForm, leaveBalance: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                </div>
+                                <div className="mt-4 p-3 bg-blue-50 rounded-lg text-sm text-blue-700">
+                                    <p><strong>Note:</strong> Employee default password is "employee123". They can login with their email.</p>
                                 </div>
                                 <div className="flex space-x-3 mt-6">
                                     <button onClick={handleAddEmployee} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Save</button>
@@ -983,29 +1292,105 @@
 
                     {showModal && modalType === 'payroll' && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                            <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-screen overflow-y-auto">
+                            <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-screen overflow-y-auto">
                                 <h3 className="text-2xl font-bold mb-6 text-brand-purple">Generate Payroll</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <select value={payrollForm.employeeId} onChange={(e) => setPayrollForm({ ...payrollForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                        <option value="">Select Employee *</option>
-                                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name} ({emp.employee_code || emp.id})</option>)}
-                                    </select>
-                                    <select value={payrollForm.month} onChange={(e) => setPayrollForm({ ...payrollForm, month: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
-                                        <option value="">Select Month *</option>
-                                        {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
-                                    </select>
-                                    <input type="number" placeholder="Year *" value={payrollForm.year} onChange={(e) => setPayrollForm({ ...payrollForm, year: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="number" placeholder="Working Days" value={payrollForm.workingDays} onChange={(e) => setPayrollForm({ ...payrollForm, workingDays: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="date" placeholder="Pay Period Start" value={payrollForm.payPeriodStart} onChange={(e) => setPayrollForm({ ...payrollForm, payPeriodStart: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="date" placeholder="Pay Period End" value={payrollForm.payPeriodEnd} onChange={(e) => setPayrollForm({ ...payrollForm, payPeriodEnd: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="number" placeholder="Basic Salary (optional)" value={payrollForm.basicSalary} onChange={(e) => setPayrollForm({ ...payrollForm, basicSalary: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="number" placeholder="Allowances" value={payrollForm.allowances} onChange={(e) => setPayrollForm({ ...payrollForm, allowances: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="number" placeholder="Deductions" value={payrollForm.deductions} onChange={(e) => setPayrollForm({ ...payrollForm, deductions: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
-                                    <input type="number" placeholder="Tax Rate %" value={payrollForm.taxRate} onChange={(e) => setPayrollForm({ ...payrollForm, taxRate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium mb-1">Select Employee *</label>
+                                        <select value={payrollForm.employeeId} onChange={(e) => setPayrollForm({ ...payrollForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                            <option value="">Select Employee</option>
+                                            {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name} ({emp.employee_code || emp.id})</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Month *</label>
+                                        <select value={payrollForm.month} onChange={(e) => setPayrollForm({ ...payrollForm, month: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                            <option value="">Select Month</option>
+                                            {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'].map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Year *</label>
+                                        <input type="number" placeholder="2024" value={payrollForm.year} onChange={(e) => setPayrollForm({ ...payrollForm, year: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Pay Period Start</label>
+                                        <input type="date" value={payrollForm.payPeriodStart} onChange={(e) => setPayrollForm({ ...payrollForm, payPeriodStart: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Pay Period End</label>
+                                        <input type="date" value={payrollForm.payPeriodEnd} onChange={(e) => setPayrollForm({ ...payrollForm, payPeriodEnd: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Working Days (Total days worked this period)</label>
+                                        <input type="number" placeholder="30" value={payrollForm.workingDays} onChange={(e) => setPayrollForm({ ...payrollForm, workingDays: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    </div>
                                 </div>
-                                <textarea placeholder="Comments (optional)" value={payrollForm.comments} onChange={(e) => setPayrollForm({ ...payrollForm, comments: e.target.value })} className="w-full px-4 py-2 border rounded-lg mt-4" rows="3" />
+
+                                <div className="border-t pt-4 mb-4">
+                                    <h4 className="font-bold text-green-700 mb-3">💰 EARNINGS (Income)</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Basic Salary (Leave empty to use default)</label>
+                                            <input type="number" placeholder="Auto from employee record" value={payrollForm.basicSalary} onChange={(e) => setPayrollForm({ ...payrollForm, basicSalary: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Allowances (Transport, Housing, etc.)</label>
+                                            <input type="number" placeholder="0" value={payrollForm.allowances} onChange={(e) => setPayrollForm({ ...payrollForm, allowances: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Overtime Pay</label>
+                                            <input type="number" placeholder="0" value={payrollForm.overtimePay} onChange={(e) => setPayrollForm({ ...payrollForm, overtimePay: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Holiday Pay</label>
+                                            <input type="number" placeholder="0" value={payrollForm.holidayPay} onChange={(e) => setPayrollForm({ ...payrollForm, holidayPay: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Bonus / Incentive / Commission</label>
+                                            <input type="number" placeholder="0" value={payrollForm.bonus} onChange={(e) => setPayrollForm({ ...payrollForm, bonus: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="border-t pt-4 mb-4">
+                                    <h4 className="font-bold text-red-700 mb-3">➖ DEDUCTIONS</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Tax/PAYE (Or use % below)</label>
+                                            <input type="number" placeholder="0" value={payrollForm.tax} onChange={(e) => setPayrollForm({ ...payrollForm, tax: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Tax Rate % (If amount above is 0)</label>
+                                            <input type="number" placeholder="10" value={payrollForm.taxRate} onChange={(e) => setPayrollForm({ ...payrollForm, taxRate: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Pension Contribution</label>
+                                            <input type="number" placeholder="0" value={payrollForm.pension} onChange={(e) => setPayrollForm({ ...payrollForm, pension: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">NHF (National Housing Fund)</label>
+                                            <input type="number" placeholder="0" value={payrollForm.nhf} onChange={(e) => setPayrollForm({ ...payrollForm, nhf: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Loan Repayment</label>
+                                            <input type="number" placeholder="0" value={payrollForm.loanDeduction} onChange={(e) => setPayrollForm({ ...payrollForm, loanDeduction: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Other Deductions (Insurance, etc.)</label>
+                                            <input type="number" placeholder="0" value={payrollForm.otherDeductions} onChange={(e) => setPayrollForm({ ...payrollForm, otherDeductions: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="border-t pt-4">
+                                    <label className="block text-sm font-medium mb-1">Comments (Optional)</label>
+                                    <textarea placeholder="Any additional notes..." value={payrollForm.comments} onChange={(e) => setPayrollForm({ ...payrollForm, comments: e.target.value })} className="w-full px-4 py-2 border rounded-lg" rows="3" />
+                                </div>
+
                                 <div className="flex space-x-3 mt-6">
-                                    <button onClick={handleAddPayroll} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Generate</button>
+                                    <button onClick={handleAddPayroll} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Generate Payroll</button>
                                     <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
                                 </div>
                             </div>
@@ -1110,7 +1495,7 @@
                                                         value={settingsForm.company_email || ''} 
                                                         onChange={(e) => setSettingsForm({ ...settingsForm, company_email: e.target.value })}
                                                         className="w-full px-4 py-2 border rounded-lg"
-                                                        placeholder="hr@julinemart.com"
+                                                        placeholder="hr@company.com"
                                                     />
                                                 </div>
                                             </div>
@@ -1127,14 +1512,19 @@
                                                     value={settingsForm.logo_url || ''} 
                                                     onChange={(e) => setSettingsForm({ ...settingsForm, logo_url: e.target.value })}
                                                     className="w-full px-4 py-2 border rounded-lg"
-                                                    placeholder="./logo.png or https://yoursite.com/logo.png"
+                                                    placeholder="https://yoursite.com/logo.png"
                                                 />
-                                                <p className="text-xs text-gray-600 mt-2">Upload your logo to GitHub, then enter: ./logo.png</p>
+                                                <p className="text-xs text-gray-600 mt-2">Tip: Upload your logo to your GitHub repository, then use the raw URL</p>
+                                                <p className="text-xs text-gray-500">Example: https://raw.githubusercontent.com/username/repo/main/logo.png</p>
                                             </div>
                                             {settingsForm.logo_url && (
                                                 <div className="mt-3">
                                                     <p className="text-sm font-medium mb-2">Preview:</p>
-                                                    <img src={settingsForm.logo_url} alt="Logo" className="h-20 border rounded" onError={(e) => e.target.style.display = 'none'} />
+                                                    <img src={settingsForm.logo_url} alt="Logo" className="h-20 border rounded object-contain bg-white p-2" onError={(e) => {
+                                                        e.target.style.display = 'none';
+                                                        e.target.nextSibling.style.display = 'block';
+                                                    }} />
+                                                    <p className="text-red-500 text-sm mt-2" style={{display: 'none'}}>Failed to load logo. Please check the URL.</p>
                                                 </div>
                                             )}
                                         </div>
@@ -1147,24 +1537,8 @@
                                             onChange={(e) => setSettingsForm({ ...settingsForm, payslip_footer: e.target.value })}
                                             className="w-full px-4 py-2 border rounded-lg"
                                             rows="2"
-                                            placeholder="This is a computer-generated payslip..."
+                                            placeholder="This is a computer-generated payslip and does not require a signature."
                                         />
-                                    </div>
-
-                                    <div className="bg-gray-100 p-6 rounded-lg">
-                                        <h4 className="font-semibold mb-4 text-lg">Brand Colors</h4>
-                                        <div className="flex space-x-4">
-                                            <div className="text-center">
-                                                <div className="w-20 h-20 rounded-lg bg-brand-purple mb-2"></div>
-                                                <p className="text-xs font-medium">Purple</p>
-                                                <p className="text-xs text-gray-600">#7c3aed</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="w-20 h-20 rounded-lg bg-brand-orange mb-2"></div>
-                                                <p className="text-xs font-medium">Orange</p>
-                                                <p className="text-xs text-gray-600">#f97316</p>
-                                            </div>
-                                        </div>
                                     </div>
                                 </div>
 
@@ -1175,6 +1549,51 @@
                                     <button onClick={() => setShowSettings(false)} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-3 rounded-lg font-semibold">
                                         Close
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showChangePassword && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Change Password</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Current Password</label>
+                                        <input 
+                                            type="password" 
+                                            value={passwordForm.currentPassword} 
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">New Password</label>
+                                        <input 
+                                            type="password" 
+                                            value={passwordForm.newPassword} 
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Confirm New Password</label>
+                                        <input 
+                                            type="password" 
+                                            value={passwordForm.confirmPassword} 
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg"
+                                        />
+                                    </div>
+                                    <div className="flex space-x-3 mt-6">
+                                        <button onClick={handleChangePassword} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">
+                                            Change Password
+                                        </button>
+                                        <button onClick={() => setShowChangePassword(false)} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">
+                                            Cancel
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
