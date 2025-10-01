@@ -369,7 +369,7 @@
                 setLoginError('');
                 setLoading(true);
 
-                try {
+                try 
                     const { data: adminData } = await supabase
                         .from('admin_users')
                         .select('*')
@@ -386,35 +386,30 @@
                         setCurrentUserId(adminData.id);
                         setLoginForm({ username: '', password: '' });
                     } else {
-    const { data: empData } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('email', loginForm.username)
-        .single();
+                        const { data: empData } = await supabase
+                            .from('employees')
+                            .select('*')
+                            .eq('email', loginForm.username)
+                            .single();
 
-    if (empData) {
-        // Check if password matches or use default if no password set
-        const employeePassword = empData.password || 'employee123';
-        if (employeePassword === loginForm.password) {
-            setIsLoggedIn(true);
-            setUserRole('employee');
-            setCurrentUserId(empData.id);
-            localStorage.setItem('julinemart_logged_in', 'true');
-            localStorage.setItem('julinemart_user_role', 'employee');
-            localStorage.setItem('julinemart_user_id', empData.id);
-            setLoginForm({ username: '', password: '' });
-        } else {
-            setLoginError('Invalid email or password');
-        }
-    } else {
-        setLoginError('Invalid email or password');
-    }
-});
+                        if (empData) {
+                            const employeePassword = empData.password || 'employee123';
+                            if (employeePassword === loginForm.password) {
+                                setIsLoggedIn(true);
+                                setUserRole('employee');
+                                setCurrentUserId(empData.id);
+                                localStorage.setItem('julinemart_logged_in', 'true');
+                                localStorage.setItem('julinemart_user_role', 'employee');
+                                localStorage.setItem('julinemart_user_id', empData.id);
+                                setLoginForm({ username: '', password: '' });
+                            } else {
+                                setLoginError('Invalid email or password');
+                            }
                         } else {
-                            setLoginError('Invalid credentials');
+                            setLoginError('Invalid email or password');
                         }
                     }
-                } catch (err) {
+} catch (err) {
                     setLoginError('Login failed. Please check your credentials.');
                 }
 
