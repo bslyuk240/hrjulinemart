@@ -602,64 +602,92 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
 };
 
             const handleAddPayroll = async () => {
-                const employee = employees.find(e => e.id === parseInt(payrollForm.employeeId));
-                if (!employee) return;
+    // Validate required fields
+    if (!payrollForm.employeeId) {
+        alert('Please select an employee');
+        return;
+    }
+    
+    if (!payrollForm.month) {
+        alert('Please select a month');
+        return;
+    }
+    
+    if (!payrollForm.year) {
+        alert('Please enter a year');
+        return;
+    }
 
-                const basicSalary = parseFloat(payrollForm.basicSalary) || employee.salary;
-                const allowances = parseFloat(payrollForm.allowances) || 0;
-                const overtimePay = parseFloat(payrollForm.overtimePay) || 0;
-                const holidayPay = parseFloat(payrollForm.holidayPay) || 0;
-                const bonus = parseFloat(payrollForm.bonus) || 0;
-                
-                const grossSalary = basicSalary + allowances + overtimePay + holidayPay + bonus;
-                
-                const tax = parseFloat(payrollForm.tax) || ((grossSalary * parseFloat(payrollForm.taxRate)) / 100);
-                const pension = parseFloat(payrollForm.pension) || 0;
-                const nhf = parseFloat(payrollForm.nhf) || 0;
-                const loanDeduction = parseFloat(payrollForm.loanDeduction) || 0;
-                const otherDeductions = parseFloat(payrollForm.otherDeductions) || 0;
+    const employee = employees.find(e => e.id === parseInt(payrollForm.employeeId));
+    if (!employee) {
+        alert('Employee not found');
+        return;
+    }
 
-                const totalDeductions = tax + pension + nhf + loanDeduction + otherDeductions;
-                const netSalary = grossSalary - totalDeductions;
+    setLoading(true);
+    try {
+        const basicSalary = parseFloat(payrollForm.basicSalary) || employee.salary;
+        const allowances = parseFloat(payrollForm.allowances) || 0;
+        const overtimePay = parseFloat(payrollForm.overtimePay) || 0;
+        const holidayPay = parseFloat(payrollForm.holidayPay) || 0;
+        const bonus = parseFloat(payrollForm.bonus) || 0;
+        
+        const grossSalary = basicSalary + allowances + overtimePay + holidayPay + bonus;
+        
+        const tax = parseFloat(payrollForm.tax) || ((grossSalary * parseFloat(payrollForm.taxRate)) / 100);
+        const pension = parseFloat(payrollForm.pension) || 0;
+        const nhf = parseFloat(payrollForm.nhf) || 0;
+        const loanDeduction = parseFloat(payrollForm.loanDeduction) || 0;
+        const otherDeductions = parseFloat(payrollForm.otherDeductions) || 0;
 
-                // Generate unique payslip number (format: PY0001, PY0002, etc.)
-const currentYear = payrollForm.year || new Date().getFullYear();
-const currentMonth = payrollForm.month || 'JAN';
-const payslipCount = payrolls.length + 1;
-const payslipNo = `PY${currentYear}-${currentMonth.substring(0,3)}-${String(payslipCount).padStart(3, '0')}`;
+        const totalDeductions = tax + pension + nhf + loanDeduction + otherDeductions;
+        const netSalary = grossSalary - totalDeductions;
 
-setLoading(true);
-try {
-                    await supabase.from('payrolls').insert([{
-                        employee_id: employee.id,
-                        employee_name: employee.name,
-                        month: payrollForm.month,
-                        year: payrollForm.year,
-                        basic_salary: basicSalary,
-                        allowances,
-                        overtime_pay: overtimePay,
-                        holiday_pay: holidayPay,
-                        bonus,
-                        tax,
-                        pension,
-                        nhf,
-                        loan_deduction: loanDeduction,
-                        other_deductions: otherDeductions,
-                        gross_salary: grossSalary,
-                        net_salary: netSalary,
-                        payslip_no: payslipNo,
-                        working_days: payrollForm.workingDays,
-                        pay_period_start: payrollForm.payPeriodStart,
-                        pay_period_end: payrollForm.payPeriodEnd,
-                        comments: payrollForm.comments
-                    }]);
-                    await loadAllData();
-                    closeModal();
-                } catch (error) {
-                    alert('Error generating payroll: ' + error.message);
-                }
-                setLoading(false);
-            };
+        const payslipNo = `PY${String(payrolls.length + 1).padStart(4, '0')}`;
+
+        const payrollData = {
+            employee_id: employee.id,
+            employee_name: employee.name,
+            month: payrollForm.month,
+            year: parseInt(payrollForm.year),
+            basic_salary: basicSalary,
+            allowances: allowances,
+            overtime_pay: overtimePay,
+            holiday_pay: holidayPay,
+            bonus: bonus,
+            tax: tax,
+            pension: pension,
+            nhf: nhf,
+            loan_deduction: loanDeduction,
+            other_deductions: otherDeductions,
+            gross_salary: grossSalary,
+            net_salary: netSalary,
+            payslip_no: payslipNo,
+            working_days: parseInt(payrollForm.workingDays) || 30,
+            pay_period_start: payrollForm.payPeriodStart || null,
+            pay_period_end: payrollForm.payPeriodEnd || null,
+            comments: payrollForm.comments || ''
+        };
+
+        console.log('Attempting to save payroll:', payrollData);
+
+        const { data, error } = await supabase.from('payrolls').insert([payrollData]);
+
+        if (error) {
+            console.error('Payroll save error:', error);
+            throw error;
+        }
+
+        console.log('Payroll saved successfully:', data);
+        alert('Payroll generated successfully!');
+        await loadAllData();
+        closeModal();
+    } catch (error) {
+        console.error('Full payroll error:', error);
+        alert('Error generating payroll: ' + error.message);
+    }
+    setLoading(false);
+};
 
             const handleAddLeave = async () => {
                 const empId = userRole === 'employee' ? currentUserId : parseInt(leaveForm.employeeId);
@@ -1665,6 +1693,7 @@ try {
     </script>
 </body>
 </html>
+
 
 
 
