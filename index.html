@@ -50,11 +50,8 @@
         };
 
         const generatePDFPayslip = (payroll, employee, settings) => {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-doc.setFont("helvetica");
-
-const pageWidth = doc.internal.pageSize.width;
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
             
             const pageWidth = doc.internal.pageSize.width;
             const margin = 20;
@@ -86,9 +83,9 @@ const pageWidth = doc.internal.pageSize.width;
 
             doc.setTextColor(44, 62, 80);
             yPos = 58;
-            doc.setFontSize(20);
-doc.setFont("helvetica", 'bold');
-doc.text('PAYSLIP', pageWidth / 2, yPos, { align: 'center' });
+            doc.setFontSize(18);
+            doc.setFont(undefined, 'bold');
+            doc.text('PAYSLIP', pageWidth / 2, yPos, { align: 'center' });
             
             yPos += 3;
             doc.setLineWidth(1.5);
@@ -247,58 +244,37 @@ doc.text('PAYSLIP', pageWidth / 2, yPos, { align: 'center' });
             yPos += 12;
 
             doc.setFillColor(46, 204, 113);
-doc.rect(margin, yPos - 4, pageWidth - 2 * margin, 16, 'F');  // Even taller box
-
-doc.setTextColor(255, 255, 255);
-doc.setFontSize(14);
-doc.setFont(undefined, 'bold');
-doc.text('NET PAY', margin + 5, yPos + 7);
-doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 7, { align: 'right' });
+            doc.rect(margin, yPos - 3, pageWidth - 2 * margin, 12, 'F');
+            
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('NET PAY', margin + 5, yPos + 5);
+            doc.text('₦ ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidth - margin - 5, yPos + 5, { align: 'right' });
 
             if (payroll.comments) {
-    yPos += 20;
-    doc.setTextColor(52, 73, 94);
-    doc.setFontSize(9);
-    doc.setFont("helvetica", 'bold');
-    doc.text('Comments:', margin, yPos);
-    doc.setFont("helvetica", 'normal');
-    const splitComments = doc.splitTextToSize(payroll.comments, pageWidth - 2 * margin - 10);
-    doc.text(splitComments, margin + 5, yPos + 5);
-    yPos += splitComments.length * 5 + 10;
-}
+                yPos += 20;
+                doc.setTextColor(52, 73, 94);
+                doc.setFontSize(9);
+                doc.setFont(undefined, 'bold');
+                doc.text('Comments:', margin, yPos);
+                doc.setFont(undefined, 'normal');
+                const splitComments = doc.splitTextToSize(payroll.comments, pageWidth - 2 * margin - 10);
+                doc.text(splitComments, margin + 5, yPos + 5);
+            }
 
-// Signature Section - Right after NET PAY/Comments
-yPos += 15;
-
-if (settings.signature_url) {
-    // If pre-signed signature exists
-    try {
-        doc.addImage(settings.signature_url, 'PNG', pageWidth - margin - 50, yPos, 45, 20);
-        yPos += 22;
-    } catch (e) {
-        console.log('Signature image failed to load');
-        doc.line(pageWidth - margin - 50, yPos, pageWidth - margin - 5, yPos);
-        yPos += 2;
-    }
-} else {
-    // No signature - just show line
-    doc.line(pageWidth - margin - 50, yPos, pageWidth - margin - 5, yPos);
-    yPos += 2;
-}
-
-doc.setTextColor(52, 73, 94);
-doc.setFontSize(9);
-doc.setFont("helvetica", 'bold');
-doc.text('Authorized Signature', pageWidth - margin, yPos + 5, { align: 'right' });
-
-// Footer at bottom
-const footerY = doc.internal.pageSize.height - 20;
-doc.setTextColor(120, 120, 120);
-doc.setFontSize(8);
-doc.setFont("helvetica", 'italic');
-const footerText = settings.payslip_footer || 'This is a computer-generated payslip and does not require a signature.';
-const splitFooter = doc.splitTextToSize(footerText, pageWidth - 40);
-doc.text(splitFooter, pageWidth / 2, footerY, { align: 'center' });
+            const footerY = doc.internal.pageSize.height - 35;
+            doc.setTextColor(120, 120, 120);
+            doc.setFontSize(8);
+            doc.setFont(undefined, 'italic');
+            const footerText = settings.payslip_footer || 'This is a computer-generated payslip and does not require a signature.';
+            const splitFooter = doc.splitTextToSize(footerText, pageWidth - 40);
+            doc.text(splitFooter, pageWidth / 2, footerY, { align: 'center' });
+            
+            doc.setFont(undefined, 'normal');
+            doc.line(pageWidth - margin - 50, footerY + 20, pageWidth - margin - 5, footerY + 20);
+            doc.setFontSize(9);
+            doc.text('Authorized Signature', pageWidth - margin, footerY + 25, { align: 'right' });
 
             doc.save(`Payslip_${payroll.employee_name}_${payroll.month}_${payroll.year}.pdf`);
         };
@@ -1577,37 +1553,15 @@ doc.text(splitFooter, pageWidth / 2, footerY, { align: 'center' });
                                     </div>
 
                                     <div className="bg-blue-50 p-6 rounded-lg">
-    <h4 className="font-semibold mb-4 text-lg">Payslip Footer & Signature</h4>
-    <div className="space-y-4">
-        <div>
-            <label className="block text-sm font-medium mb-2">Footer Text</label>
-            <textarea 
-                value={settingsForm.payslip_footer || ''} 
-                onChange={(e) => setSettingsForm({ ...settingsForm, payslip_footer: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                rows="2"
-                placeholder="This is a computer-generated payslip and does not require a signature."
-            />
-        </div>
-        <div>
-            <label className="block text-sm font-medium mb-2">Signature Image URL (Base64 or Direct URL)</label>
-            <textarea 
-                value={settingsForm.signature_url || ''} 
-                onChange={(e) => setSettingsForm({ ...settingsForm, signature_url: e.target.value })}
-                className="w-full px-4 py-2 border rounded-lg"
-                rows="3"
-                placeholder="Paste base64 or direct URL of signature image"
-            />
-            <p className="text-xs text-gray-500 mt-1">Convert your signature to base64 at base64.guru</p>
-            {settingsForm.signature_url && (
-                <div className="mt-2">
-                    <p className="text-xs font-medium mb-1">Preview:</p>
-                    <img src={settingsForm.signature_url} alt="Signature" className="h-12 border rounded bg-white p-1" onError={(e) => e.target.style.display = 'none'} />
-                </div>
-            )}
-        </div>
-    </div>
-</div>
+                                        <h4 className="font-semibold mb-4 text-lg">Payslip Footer</h4>
+                                        <textarea 
+                                            value={settingsForm.payslip_footer || ''} 
+                                            onChange={(e) => setSettingsForm({ ...settingsForm, payslip_footer: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg"
+                                            rows="2"
+                                            placeholder="This is a computer-generated payslip and does not require a signature."
+                                        />
+                                    </div>
                                 </div>
 
                                 <div className="flex space-x-3 mt-8">
@@ -1674,6 +1628,4 @@ doc.text(splitFooter, pageWidth / 2, footerY, { align: 'center' });
     </script>
 </body>
 </html>
-
-
 
