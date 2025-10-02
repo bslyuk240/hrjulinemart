@@ -1,15 +1,4 @@
-[build]
-  publish = "."
-  
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"headersOrigin = "config"
+headersOrigin = "config"
 redirectsOrigin = "config"
 plugins = []
 
@@ -56,5 +45,3 @@ force = false
   [redirects.conditions]
 
   [redirects.headers]
-    X-Content-Type-Options = "nosniff"
-    Referrer-Policy = "no-referrer"
