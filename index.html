@@ -349,6 +349,9 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             const [editingItem, setEditingItem] = useState(null);
             const [showSettings, setShowSettings] = useState(false);
             const [showChangePassword, setShowChangePassword] = useState(false);
+            const [showResetPassword, setShowResetPassword] = useState(false);
+            const [resetPasswordForm, setResetPasswordForm] = useState({ email: '' });
+            const [resetPasswordMessage, setResetPasswordMessage] = useState('');
 
             const [employeeForm, setEmployeeForm] = useState({
     name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20,
@@ -500,6 +503,64 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                 } catch (error) {
                     alert('Error changing password: ' + error.message);
                 }
+                setLoading(false);
+            };
+
+            const handleResetPassword = async () => {
+                if (!resetPasswordForm.email) {
+                    alert('Please enter your email address');
+                    return;
+                }
+
+                setLoading(true);
+                setResetPasswordMessage('');
+                
+                try {
+                    // Check if email exists in admin_users table
+                    const { data: adminData } = await supabase
+                        .from('admin_users')
+                        .select('*')
+                        .eq('username', resetPasswordForm.email)
+                        .single();
+
+                    if (adminData) {
+                        // Generate a temporary password
+                        const tempPassword = 'temp' + Math.random().toString(36).substring(2, 8);
+                        
+                        // Update the password in database
+                        await supabase
+                            .from('admin_users')
+                            .update({ password: tempPassword })
+                            .eq('id', adminData.id);
+                        
+                        setResetPasswordMessage(`Password reset successful! Your temporary password is: ${tempPassword}. Please login and change your password immediately.`);
+                    } else {
+                        // Check if email exists in employees table
+                        const { data: empData } = await supabase
+                            .from('employees')
+                            .select('*')
+                            .eq('email', resetPasswordForm.email)
+                            .single();
+
+                        if (empData) {
+                            // Reset employee password to default
+                            const newPassword = 'employee123';
+                            
+                            await supabase
+                                .from('employees')
+                                .update({ password: newPassword })
+                                .eq('id', empData.id);
+                            
+                            setResetPasswordMessage(`Password reset successful! Your password has been reset to: ${newPassword}. Please login and ask your admin to change it.`);
+                        } else {
+                            setResetPasswordMessage('No account found with this email address.');
+                        }
+                    }
+                } catch (error) {
+                    setResetPasswordMessage('Error resetting password. Please try again.');
+                    console.error('Reset password error:', error);
+                }
+                
                 setLoading(false);
             };
 
@@ -905,6 +966,14 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                     className="w-full bg-brand-purple hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold disabled:bg-gray-300"
                                 >
                                     {loading ? 'Logging in...' : 'Login'}
+                                </button>
+                                
+                                <button
+                                    type="button"
+                                    onClick={() => setShowResetPassword(true)}
+                                    className="w-full text-brand-purple hover:text-purple-700 text-sm font-medium mt-2"
+                                >
+                                    Forgot Password?
                                 </button>
                             </div>
 
@@ -1827,6 +1896,61 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                             Change Password
                                         </button>
                                         <button onClick={() => setShowChangePassword(false)} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {showResetPassword && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Reset Password</h3>
+                                
+                                {resetPasswordMessage && (
+                                    <div className={`mb-4 p-4 rounded-lg ${
+                                        resetPasswordMessage.includes('successful') 
+                                            ? 'bg-green-100 border border-green-400 text-green-700'
+                                            : 'bg-red-100 border border-red-400 text-red-700'
+                                    }`}>
+                                        {resetPasswordMessage}
+                                    </div>
+                                )}
+                                
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Email Address</label>
+                                        <input 
+                                            type="email" 
+                                            placeholder="Enter your email address"
+                                            value={resetPasswordForm.email} 
+                                            onChange={(e) => setResetPasswordForm({ email: e.target.value })}
+                                            className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            onKeyPress={(e) => e.key === 'Enter' && handleResetPassword()}
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Enter the email address associated with your account
+                                        </p>
+                                    </div>
+                                    
+                                    <div className="flex space-x-3 mt-6">
+                                        <button 
+                                            onClick={handleResetPassword} 
+                                            disabled={loading}
+                                            className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold disabled:bg-gray-300"
+                                        >
+                                            {loading ? 'Resetting...' : 'Reset Password'}
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                setShowResetPassword(false);
+                                                setResetPasswordForm({ email: '' });
+                                                setResetPasswordMessage('');
+                                            }} 
+                                            className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold"
+                                        >
                                             Cancel
                                         </button>
                                     </div>
