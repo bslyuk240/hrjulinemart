@@ -9,7 +9,7 @@ plugins = []
 [build]
 publish = "/opt/build/repo/dist"
 publishOrigin = "config"
-commandOrigin = "ui"
+commandOrigin = "config"
 command = "npm run build"
 
   [build.environment]
