@@ -301,21 +301,21 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             // Add digital signature/stamp if available
             if (settings.digital_signature_url) {
                 try {
-                    // Add the signature image
-                    const signatureY = footerY + 8;
+                    // Add the signature image - moved higher for better visibility
+                    const signatureY = footerY - 18;
                     doc.addImage(settings.digital_signature_url, 'PNG', pageWidth - margin - 60, signatureY, 50, 15);
                 } catch (e) {
                     console.log('Digital signature loading skipped:', e);
                     // Fallback: draw signature line if image fails
-                    doc.line(pageWidth - margin - 50, footerY + 20, pageWidth - margin - 5, footerY + 20);
+                    doc.line(pageWidth - margin - 50, footerY - 8, pageWidth - margin - 5, footerY - 8);
                 }
             } else {
-                // Default signature line
-                doc.line(pageWidth - margin - 50, footerY + 20, pageWidth - margin - 5, footerY + 20);
+                // Default signature line - moved higher
+                doc.line(pageWidth - margin - 50, footerY - 8, pageWidth - margin - 5, footerY - 8);
             }
             
             doc.setFontSize(9);
-            doc.text('Authorized Signature', pageWidth - margin, footerY + 25, { align: 'right' });
+            doc.text('Authorized Signature', pageWidth - margin, footerY - 3, { align: 'right' });
 
             doc.save(`Payslip_${payroll.employee_name}_${payroll.month}_${payroll.year}.pdf`);
             
