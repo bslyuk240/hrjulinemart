@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
     <title>JulineMart HR System</title>
     
+    <!-- PWA Primary Meta Tags -->
+    <meta name="title" content="JulineMart HR System">
+    <meta name="description" content="HR Management System for JulineMart - Manage employees, payroll, leave and attendance">
+    
     <!-- PWA Configuration -->
     <meta name="theme-color" content="#7c3aed">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,24 +17,28 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="application-name" content="JulineMart HR">
     
-    <!-- Manifest -->
+    <!-- Manifest - MUST be in root directory -->
     <link rel="manifest" href="/manifest.json">
     
-    <!-- Icons -->
-    <link rel="icon" href="/assets/logo-D8ESBWEr.png" type="image/png">
-    <link rel="apple-touch-icon" href="/assets/logo-D8ESBWEr.png">
-    <link rel="apple-touch-icon" sizes="152x152" href="/assets/logo-D8ESBWEr.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/logo-D8ESBWEr.png">
-    <link rel="apple-touch-icon" sizes="167x167" href="/assets/logo-D8ESBWEr.png">
+    <!-- Favicons and Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
+    <link rel="shortcut icon" href="/icons/icon-192x192.png">
     
-    <!-- iOS Splash Screens -->
-    <link rel="apple-touch-startup-image" href="/assets/logo-D8ESBWEr.png">
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.png">
     
-    <!-- Additional PWA meta tags -->
+    <!-- iOS Splash Screen -->
+    <link rel="apple-touch-startup-image" href="/icons/icon-512x512.png">
+    
+    <!-- Microsoft Tiles -->
     <meta name="msapplication-TileColor" content="#7c3aed">
-    <meta name="msapplication-TileImage" content="/assets/logo-D8ESBWEr.png">
-    <meta name="description" content="HR Management System for JulineMart - Manage employees, payroll, leave requests and attendance">
+    <meta name="msapplication-TileImage" content="/icons/icon-192x192.png">
     
+    <!-- External Dependencies -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -49,62 +57,59 @@
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    
-    <!-- Enhanced Service Worker Registration -->
-    <script>
+</head>
+<body>
+    <div id="root"></div>
+ <script>
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
-                    .then((registration) => {
-                        console.log('SW registered successfully:', registration.scope);
+                    .then(registration => {
+                        console.log('✅ Service Worker registered:', registration.scope);
                         
-                        // Check for updates
                         registration.addEventListener('updatefound', () => {
                             const newWorker = registration.installing;
-                            console.log('New service worker found');
+                            console.log('🔄 Service Worker update found');
                             
                             newWorker.addEventListener('statechange', () => {
                                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    console.log('New service worker installed, refresh to update');
+                                    console.log('✨ New version available - please refresh');
                                 }
                             });
                         });
                     })
-                    .catch((error) => {
-                        console.log('SW registration failed:', error);
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
                     });
             });
-            
-            // Handle controller change (new SW activated)
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-                console.log('Service Worker controller changed');
-            });
         } else {
-            console.log('Service Workers not supported');
+            console.warn('⚠️ Service Workers not supported');
         }
-        
-        // Add to home screen prompt handling
+
+        // PWA Install Prompt
         let deferredPrompt;
-        window.addEventListener('beforeinstallprompt', (e) => {
-            console.log('beforeinstallprompt fired');
-            // Prevent the mini-infobar from appearing on mobile
-            e.preventDefault();
-            // Stash the event so it can be triggered later
-            deferredPrompt = e;
-            
-            // Optionally show your own install button
-            // You can add UI here to prompt user to install
-        });
         
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('📱 PWA Install Available!');
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
         window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
+            console.log('✅ PWA Installed Successfully!');
             deferredPrompt = null;
         });
-    </script>
-</head>
-<body>
-    <div id="root"></div>
 
+        // Check if running as PWA
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('🚀 Running as installed PWA');
+        }
+    </script>
+
+    <!-- YOUR EXISTING REACT CODE STAYS HERE - DON'T TOUCH IT -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
     <script type="text/babel">
         const { useState, useEffect } = React;
 
@@ -2481,6 +2486,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
     </script>
 </body>
 </html>
+
 
 
 
