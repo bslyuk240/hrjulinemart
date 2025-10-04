@@ -1182,6 +1182,81 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                 </div>
                             </div>
 
+                            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xl font-bold">My Profile</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="flex items-center space-x-4">
+                                        {currentEmployee.profile_pic ? (
+                                            <img src={currentEmployee.profile_pic} alt={currentEmployee.name} className="w-20 h-20 rounded-full object-cover border-2 border-brand-purple" onError={(e) => e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentEmployee.name) + '&background=7c3aed&color=fff'} />
+                                        ) : (
+                                            <div className="w-20 h-20 rounded-full bg-brand-purple text-white flex items-center justify-center font-bold text-2xl border-2 border-brand-purple">
+                                                {currentEmployee.name ? currentEmployee.name.charAt(0).toUpperCase() : 'U'}
+                                            </div>
+                                        )}
+                                        <div>
+                                            <h4 className="text-2xl font-bold text-gray-800">{currentEmployee.name || 'N/A'}</h4>
+                                            <p className="text-brand-purple font-medium">{currentEmployee.position || 'N/A'}</p>
+                                            <p className="text-gray-600 text-sm">{currentEmployee.employee_code ? `ID: ${currentEmployee.employee_code}` : 'No ID assigned'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex justify-between">
+                                            <span className="font-medium text-gray-700">Department:</span>
+                                            <span className="text-gray-900">{currentEmployee.department || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium text-gray-700">Join Date:</span>
+                                            <span className="text-gray-900">{currentEmployee.join_date || 'N/A'}</span>
+                                        </div>
+                                        <div className="flex justify-between">
+                                            <span className="font-medium text-gray-700">Leave Balance:</span>
+                                            <span className="text-green-600 font-bold">{currentEmployee.leave_balance || 0} days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t">
+                                    <div>
+                                        <h5 className="font-semibold text-gray-800 mb-3">Contact Information</h5>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Email:</span>
+                                                <span className="text-gray-900">{currentEmployee.email || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Phone:</span>
+                                                <span className="text-gray-900">{currentEmployee.phone || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h5 className="font-semibold text-gray-800 mb-3">Banking Details</h5>
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Bank:</span>
+                                                <span className="text-gray-900">{currentEmployee.bank_name || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Account:</span>
+                                                <span className="text-gray-900">{currentEmployee.bank_account ? `****${currentEmployee.bank_account.slice(-4)}` : 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span className="text-gray-600">Payment Mode:</span>
+                                                <span className="text-gray-900">{currentEmployee.payment_mode || 'N/A'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="mt-6 pt-6 border-t bg-blue-50 p-4 rounded-lg">
+                                    <p className="text-sm text-blue-700">
+                                        <strong>Note:</strong> If you need to update any of this information, please contact your HR administrator or supervisor.
+                                    </p>
+                                </div>
+                            </div>
+
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 <div className="bg-white p-6 rounded-lg shadow-md">
                                     <div className="flex justify-between items-center mb-4">
