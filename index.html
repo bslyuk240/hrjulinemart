@@ -391,11 +391,11 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             }, []);
 
             useEffect(() => {
-                if (isLoggedIn) {
+                if (isLoggedIn && userRole && currentUserId) {
                     loadAllData();
                     loadSettings();
                 }
-            }, [isLoggedIn]);
+            }, [isLoggedIn, userRole, currentUserId]);
 
             useEffect(() => {
                 const handleClickOutside = (event) => {
