@@ -1,30 +1,31 @@
-const CACHE_NAME = 'julinemart-hr-v1';
+const CACHE_NAME = 'julinemart-hr-v1.0.0';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/assets/logo-D8ESBWEr.png',
-  '/assets/manifest-no-zzsae.json'
+  '/manifest.json',
+  '/icons/icon-192x192.png',
+  '/icons/icon-512x512.png'
 ];
 
-// Install event - cache resources
+// Install event
 self.addEventListener('install', event => {
-  console.log('Service Worker installing...');
+  console.log('[SW] Installing...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache');
+        console.log('[SW] Caching app shell');
         return cache.addAll(urlsToCache).catch(err => {
-          console.log('Cache addAll error:', err);
-          // Don't fail if some resources aren't available
+          console.error('[SW] Cache failed for:', err);
+          // Don't fail the install if some resources are unavailable
           return Promise.resolve();
         });
       })
   );
-  // Force the waiting service worker to become the active service worker
+  // Activate immediately
   self.skipWaiting();
 });
 
-// Fetch event - serve from cache when offline, with network fallback
+// Fetch event
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
@@ -33,48 +34,52 @@ self.addEventListener('fetch', event => {
         if (response) {
           return response;
         }
-        return fetch(event.request).then(response => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
+        
+        return fetch(event.request).then(fetchResponse => {
+          // Don't cache non-OK responses
+          if (!fetchResponse || fetchResponse.status !== 200 || fetchResponse.type === 'error') {
+            return fetchResponse;
           }
           
-          // Clone the response
-          const responseToCache = response.clone();
+          // Clone and cache the response
+          const responseToCache = fetchResponse.clone();
           
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-          
-          return response;
-        }).catch(err => {
-          console.log('Fetch failed:', err);
-          // Return a custom offline page or response here if needed
-          return new Response('Offline - Please check your connection', {
-            status: 503,
-            statusText: 'Service Unavailable'
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseToCache);
           });
+          
+          return fetchResponse;
+        }).catch(error => {
+          console.error('[SW] Fetch failed:', error);
+          // Return offline page if available
+          return new Response(
+            '<html><body><h1>Offline</h1><p>Please check your internet connection</p></body></html>',
+            { 
+              status: 503,
+              statusText: 'Service Unavailable',
+              headers: new Headers({ 'Content-Type': 'text/html' })
+            }
+          );
         });
       })
   );
 });
 
-// Activate event - clean up old caches
+// Activate event
 self.addEventListener('activate', event => {
-  console.log('Service Worker activating...');
+  console.log('[SW] Activating...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
+            console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
-  // Take control of all pages immediately
+  // Take control immediately
   return self.clients.claim();
 });
