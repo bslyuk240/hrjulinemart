@@ -356,6 +356,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             const [selectedEmployeeForPassword, setSelectedEmployeeForPassword] = useState(null);
             const [adminPasswordForm, setAdminPasswordForm] = useState({ newPassword: '', confirmPassword: '' });
             const [passwordManagementMessage, setPasswordManagementMessage] = useState('');
+            const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
             const [employeeForm, setEmployeeForm] = useState({
     name: '', email: '', position: '', department: '', salary: '', joinDate: '', leaveBalance: 20,
@@ -395,6 +396,18 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                     loadSettings();
                 }
             }, [isLoggedIn]);
+
+            useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (showProfileDropdown && !event.target.closest('.profile-dropdown-container')) {
+                        setShowProfileDropdown(false);
+                    }
+                };
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                };
+            }, [showProfileDropdown]);
 
             const loadSettings = async () => {
                 try {
@@ -1142,26 +1155,103 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                 const currentEmployee = employees[0] || {};
                 return (
                     <div className="min-h-screen bg-gray-50">
-                        <div className="bg-brand-purple text-white p-6 shadow-lg">
-                            <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
-                                <div className="flex items-center space-x-4">
+                        <div className="bg-brand-purple text-white p-4 sm:p-6 shadow-lg">
+                            <div className="container mx-auto flex justify-between items-center">
+                                <div className="flex items-center space-x-3 sm:space-x-4">
                                     {settings.logo_url && (
-                                        <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
+                                        <img src={settings.logo_url} alt="Logo" className="h-10 sm:h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
                                     )}
                                     <div>
-                                        <h1 className="text-sm sm:text-lg md:text-xl font-bold">{settings.company_name || 'JulineMart'}</h1>
-                                        <p className="text-purple-100 text-xs sm:text-sm">Employee Portal</p>
+                                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{settings.company_name || 'JulineMart'}</h1>
+                                        <p className="text-purple-100 text-sm">Employee Portal</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center space-x-2 sm:space-x-3">
-                                    <span className="text-xs sm:text-sm">Welcome, {currentEmployee.name}</span>
-                                    <button
-                                        onClick={handleLogout}
-                                        className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm"
-                                    >
-                                        <Icons.Logout />
-                                        <span className="hidden sm:inline">Logout</span>
-                                    </button>
+                                <div className="flex items-center space-x-3 sm:space-x-4">
+                                    <span className="hidden md:inline text-sm font-medium">Welcome, {currentEmployee.name}</span>
+                                    <div className="relative profile-dropdown-container">
+                                        <button
+                                            onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+                                            className="flex items-center space-x-2 hover:bg-purple-600 rounded-lg p-2 transition-colors duration-200"
+                                        >
+                                            {currentEmployee.profile_pic ? (
+                                                <img 
+                                                    src={currentEmployee.profile_pic} 
+                                                    alt={currentEmployee.name} 
+                                                    className="w-10 h-10 rounded-full object-cover border-2 border-white" 
+                                                    onError={(e) => e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentEmployee.name || 'User') + '&background=7c3aed&color=fff'} 
+                                                />
+                                            ) : (
+                                                <div className="w-10 h-10 rounded-full bg-purple-600 border-2 border-white text-white flex items-center justify-center font-bold">
+                                                    {currentEmployee.name ? currentEmployee.name.charAt(0).toUpperCase() : 'U'}
+                                                </div>
+                                            )}
+                                            <svg className={`w-4 h-4 transition-transform duration-200 ${showProfileDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                            </svg>
+                                        </button>
+
+                                        {showProfileDropdown && (
+                                            <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-xl border z-50 text-gray-800">
+                                                <div className="p-6">
+                                                    <div className="flex items-center space-x-4 mb-6">
+                                                        {currentEmployee.profile_pic ? (
+                                                            <img 
+                                                                src={currentEmployee.profile_pic} 
+                                                                alt={currentEmployee.name} 
+                                                                className="w-16 h-16 rounded-full object-cover border-2 border-brand-purple" 
+                                                                onError={(e) => e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentEmployee.name || 'User') + '&background=7c3aed&color=fff'} 
+                                                            />
+                                                        ) : (
+                                                            <div className="w-16 h-16 rounded-full bg-brand-purple text-white flex items-center justify-center font-bold text-xl border-2 border-brand-purple">
+                                                                {currentEmployee.name ? currentEmployee.name.charAt(0).toUpperCase() : 'U'}
+                                                            </div>
+                                                        )}
+                                                        <div>
+                                                            <h3 className="text-xl font-bold text-gray-800">{currentEmployee.name || 'N/A'}</h3>
+                                                            <p className="text-brand-purple font-medium">{currentEmployee.position || 'N/A'}</p>
+                                                            <p className="text-sm text-gray-600">{currentEmployee.employee_code ? `ID: ${currentEmployee.employee_code}` : 'No ID assigned'}</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-3 mb-6">
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">Department:</span>
+                                                            <span className="font-medium">{currentEmployee.department || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">Email:</span>
+                                                            <span className="font-medium">{currentEmployee.email || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">Phone:</span>
+                                                            <span className="font-medium">{currentEmployee.phone || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">Join Date:</span>
+                                                            <span className="font-medium">{currentEmployee.join_date || 'N/A'}</span>
+                                                        </div>
+                                                        <div className="flex justify-between text-sm">
+                                                            <span className="text-gray-600">Leave Balance:</span>
+                                                            <span className="font-bold text-green-600">{currentEmployee.leave_balance || 0} days</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="border-t pt-4">
+                                                        <button
+                                                            onClick={() => {
+                                                                setShowProfileDropdown(false);
+                                                                handleLogout();
+                                                            }}
+                                                            className="w-full flex items-center justify-center space-x-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                                                        >
+                                                            <Icons.Logout />
+                                                            <span>Logout</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1179,81 +1269,6 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                 <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-brand-orange">
                                     <p className="text-gray-500 text-sm">Pending Leaves</p>
                                     <p className="text-3xl font-bold text-brand-orange">{leaveRequests.filter(l => l.status === 'Pending').length}</p>
-                                </div>
-                            </div>
-
-                            <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h3 className="text-xl font-bold">My Profile</h3>
-                                </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div className="flex items-center space-x-4">
-                                        {currentEmployee.profile_pic ? (
-                                            <img src={currentEmployee.profile_pic} alt={currentEmployee.name} className="w-20 h-20 rounded-full object-cover border-2 border-brand-purple" onError={(e) => e.target.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(currentEmployee.name) + '&background=7c3aed&color=fff'} />
-                                        ) : (
-                                            <div className="w-20 h-20 rounded-full bg-brand-purple text-white flex items-center justify-center font-bold text-2xl border-2 border-brand-purple">
-                                                {currentEmployee.name ? currentEmployee.name.charAt(0).toUpperCase() : 'U'}
-                                            </div>
-                                        )}
-                                        <div>
-                                            <h4 className="text-2xl font-bold text-gray-800">{currentEmployee.name || 'N/A'}</h4>
-                                            <p className="text-brand-purple font-medium">{currentEmployee.position || 'N/A'}</p>
-                                            <p className="text-gray-600 text-sm">{currentEmployee.employee_code ? `ID: ${currentEmployee.employee_code}` : 'No ID assigned'}</p>
-                                        </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-gray-700">Department:</span>
-                                            <span className="text-gray-900">{currentEmployee.department || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-gray-700">Join Date:</span>
-                                            <span className="text-gray-900">{currentEmployee.join_date || 'N/A'}</span>
-                                        </div>
-                                        <div className="flex justify-between">
-                                            <span className="font-medium text-gray-700">Leave Balance:</span>
-                                            <span className="text-green-600 font-bold">{currentEmployee.leave_balance || 0} days</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t">
-                                    <div>
-                                        <h5 className="font-semibold text-gray-800 mb-3">Contact Information</h5>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Email:</span>
-                                                <span className="text-gray-900">{currentEmployee.email || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Phone:</span>
-                                                <span className="text-gray-900">{currentEmployee.phone || 'N/A'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h5 className="font-semibold text-gray-800 mb-3">Banking Details</h5>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Bank:</span>
-                                                <span className="text-gray-900">{currentEmployee.bank_name || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Account:</span>
-                                                <span className="text-gray-900">{currentEmployee.bank_account ? `****${currentEmployee.bank_account.slice(-4)}` : 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-600">Payment Mode:</span>
-                                                <span className="text-gray-900">{currentEmployee.payment_mode || 'N/A'}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div className="mt-6 pt-6 border-t bg-blue-50 p-4 rounded-lg">
-                                    <p className="text-sm text-blue-700">
-                                        <strong>Note:</strong> If you need to update any of this information, please contact your HR administrator or supervisor.
-                                    </p>
                                 </div>
                             </div>
 
@@ -1360,42 +1375,48 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
 
             return (
                 <div className="min-h-screen bg-gray-50">
-                    <div className="bg-brand-purple text-white p-6 shadow-lg">
-                        <div className="container mx-auto flex justify-between items-center flex-wrap gap-4">
-                            <div className="flex items-center space-x-4">
+                    <div className="bg-brand-purple text-white p-4 sm:p-6 shadow-lg">
+                        <div className="container mx-auto flex justify-between items-center">
+                            <div className="flex items-center space-x-3 sm:space-x-4">
                                 {settings.logo_url && (
-                                    <img src={settings.logo_url} alt="Logo" className="h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
+                                    <img src={settings.logo_url} alt="Logo" className="h-10 sm:h-12 object-contain" onError={(e) => e.target.style.display = 'none'} />
                                 )}
                                 <div>
-                                    <h1 className="text-sm sm:text-lg md:text-xl font-bold">{settings.company_name || 'JulineMart'}</h1>
-                                    <p className="text-purple-100 text-xs sm:text-sm">HR Management System</p>
+                                    <h1 className="text-lg sm:text-xl md:text-2xl font-bold">{settings.company_name || 'JulineMart'}</h1>
+                                    <p className="text-purple-100 text-sm">HR Management System</p>
                                 </div>
                             </div>
-                            <div className="flex items-center space-x-1 sm:space-x-3">
+                            <div className="flex items-center space-x-2 sm:space-x-3">
                                 <button
                                     onClick={openAdminPasswordManagement}
-                                    className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm"
+                                    className="flex items-center space-x-1 sm:space-x-2 bg-purple-700 hover:bg-purple-800 px-2 py-2 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
+                                    title="Password Management"
                                 >
                                     <Icons.Lock />
-                                    <span className="hidden sm:inline">Password Management</span>
+                                    <span className="hidden lg:inline">Password Management</span>
+                                    <span className="hidden sm:inline lg:hidden">Passwords</span>
                                 </button>
                                 <button
                                     onClick={() => setShowChangePassword(true)}
-                                    className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm"
+                                    className="flex items-center space-x-1 sm:space-x-2 bg-purple-700 hover:bg-purple-800 px-2 py-2 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
+                                    title="Change Password"
                                 >
                                     <Icons.Lock />
-                                    <span className="hidden sm:inline">Change Password</span>
+                                    <span className="hidden lg:inline">Change Password</span>
+                                    <span className="hidden sm:inline lg:hidden">Password</span>
                                 </button>
                                 <button
                                     onClick={() => setShowSettings(true)}
-                                    className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm"
+                                    className="flex items-center space-x-1 sm:space-x-2 bg-purple-700 hover:bg-purple-800 px-2 py-2 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
+                                    title="Settings"
                                 >
                                     <Icons.Settings />
                                     <span className="hidden sm:inline">Settings</span>
                                 </button>
                                 <button
                                     onClick={handleLogout}
-                                    className="flex items-center space-x-1 bg-purple-700 hover:bg-purple-800 px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm"
+                                    className="flex items-center space-x-1 sm:space-x-2 bg-red-600 hover:bg-red-700 px-2 py-2 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm transition-colors duration-200"
+                                    title="Logout"
                                 >
                                     <Icons.Logout />
                                     <span className="hidden sm:inline">Logout</span>
