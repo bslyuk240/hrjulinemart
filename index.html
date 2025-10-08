@@ -565,7 +565,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             }
         };
 
-        const BlogBannerCarousel = () => {
+        const BlogBannerCarousel = ({ blogBanners }) => {
             const [currentSlide, setCurrentSlide] = useState(0);
 
             useEffect(() => {
@@ -1868,7 +1868,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                         <p className="text-sm text-gray-600">Approved Leaves</p>
                                     </div>
                                 </div>
-                                <BlogBannerCarousel />
+                                <BlogBannerCarousel blogBanners={blogBanners} />
                             </div>
 
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
