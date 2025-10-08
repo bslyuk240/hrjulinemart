@@ -600,15 +600,27 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                 src={banner.image_url}
                                 alt={banner.title}
                                 className="w-full h-full object-cover"
+                                style={{display: 'block'}}
+                                onLoad={(e) => {
+                                    e.target.style.display = 'block';
+                                    const fallback = e.target.nextElementSibling;
+                                    if (fallback) {
+                                        fallback.style.display = 'none';
+                                    }
+                                }}
                                 onError={(e) => {
                                     e.target.style.display = 'none';
-                                    e.target.nextElementSibling.style.display = 'flex';
+                                    const fallback = e.target.nextElementSibling;
+                                    if (fallback) {
+                                        fallback.style.display = 'flex';
+                                    }
                                 }}
                             />
                             <div className="hidden absolute inset-0 bg-gradient-to-r from-purple-500 to-orange-500 items-center justify-center">
                                 <div className="text-white text-center p-8">
                                     <div className="text-6xl mb-4">📰</div>
-                                    <h3 className="text-2xl font-bold">{banner.title}</h3>
+                                    <h3 className="text-2xl font-bold mb-2">{banner.title}</h3>
+                                    <p className="text-sm opacity-90">Image failed to load</p>
                                 </div>
                             </div>
                             
@@ -772,13 +784,28 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                     return;
                 }
 
+                // Clean and validate image URL
+                const cleanImageUrl = blogBannerForm.image_url.trim();
+                const cleanLinkUrl = blogBannerForm.link_url.trim();
+                
+                if (!cleanImageUrl.match(/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp|svg)(\?.*)?$/i)) {
+                    if (!confirm('The image URL doesn\'t appear to be a direct link to an image file. This might cause display issues. Continue anyway?')) {
+                        return;
+                    }
+                }
+
+                if (!cleanLinkUrl.match(/^https?:\/\/.+/i)) {
+                    alert('Please enter a valid link URL starting with http:// or https://');
+                    return;
+                }
+
                 setLoading(true);
                 try {
                     const bannerData = {
-                        title: blogBannerForm.title,
-                        image_url: blogBannerForm.image_url,
-                        link_url: blogBannerForm.link_url,
-                        description: blogBannerForm.description || '',
+                        title: blogBannerForm.title.trim(),
+                        image_url: cleanImageUrl,
+                        link_url: cleanLinkUrl,
+                        description: blogBannerForm.description.trim() || '',
                         created_at: new Date().toISOString()
                     };
 
@@ -3375,23 +3402,52 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                             type="text" 
                                             placeholder="https://example.com/banner-image.jpg" 
                                             value={blogBannerForm.image_url} 
-                                            onChange={(e) => setBlogBannerForm({ ...blogBannerForm, image_url: e.target.value })}
+                                            onChange={(e) => {
+                                                const cleanUrl = e.target.value.trim();
+                                                setBlogBannerForm({ ...blogBannerForm, image_url: cleanUrl });
+                                            }}
+                                            onPaste={(e) => {
+                                                setTimeout(() => {
+                                                    const pastedValue = e.target.value.trim();
+                                                    if (pastedValue !== blogBannerForm.image_url) {
+                                                        setBlogBannerForm({ ...blogBannerForm, image_url: pastedValue });
+                                                    }
+                                                }, 10);
+                                            }}
                                             className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
                                         />
-                                        <p className="text-xs text-gray-600 mt-2">Upload your image to GitHub or use a direct image URL (recommended size: 800x200px)</p>
+                                        <p className="text-xs text-gray-600 mt-2">
+                                            Upload your image to GitHub or use a direct image URL (recommended size: 800x200px)<br />
+                                            <strong>Tips:</strong> Try pasting the URL directly, or use Ctrl+V/Cmd+V to paste
+                                        </p>
                                         {blogBannerForm.image_url && (
                                             <div className="mt-3">
                                                 <p className="text-sm font-medium mb-2">Image Preview:</p>
-                                                <img 
-                                                    src={blogBannerForm.image_url} 
-                                                    alt="Preview" 
-                                                    className="h-20 w-auto border rounded object-cover" 
-                                                    onError={(e) => {
-                                                        e.target.style.display = 'none';
-                                                        e.target.nextElementSibling.style.display = 'block';
-                                                    }} 
-                                                />
-                                                <p className="text-red-500 text-sm mt-2" style={{display: 'none'}}>Failed to load image. Please check the URL.</p>
+                                                <div className="relative">
+                                                    <img 
+                                                        src={blogBannerForm.image_url} 
+                                                        alt="Preview" 
+                                                        className="h-20 w-auto border rounded object-cover" 
+                                                        onLoad={(e) => {
+                                                            e.target.style.display = 'block';
+                                                            if (e.target.nextElementSibling) {
+                                                                e.target.nextElementSibling.style.display = 'none';
+                                                            }
+                                                        }}
+                                                        onError={(e) => {
+                                                            e.target.style.display = 'none';
+                                                            if (e.target.nextElementSibling) {
+                                                                e.target.nextElementSibling.style.display = 'block';
+                                                            }
+                                                        }} 
+                                                    />
+                                                    <p className="text-red-500 text-sm mt-2" style={{display: 'none'}}>
+                                                        Failed to load image. Please check the URL format and ensure it's a direct link to an image file.
+                                                    </p>
+                                                </div>
+                                                <div className="mt-2 text-xs text-gray-500">
+                                                    URL: <span className="font-mono bg-gray-100 px-1 py-0.5 rounded">{blogBannerForm.image_url}</span>
+                                                </div>
                                             </div>
                                         )}
                                     </div>
