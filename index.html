@@ -2013,6 +2013,72 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                 </div>
                             </div>
                         )}
+
+                        {showModal && modalType === 'resignation' && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-lg p-8 max-w-md w-full max-h-screen overflow-y-auto">
+                                    <h3 className="text-2xl font-bold mb-6 text-brand-purple">Submit Resignation</h3>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Resignation Date *</label>
+                                            <input 
+                                                type="date" 
+                                                value={resignationForm.resignationDate} 
+                                                onChange={(e) => setResignationForm({ ...resignationForm, resignationDate: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Last Working Date *</label>
+                                            <input 
+                                                type="date" 
+                                                value={resignationForm.lastWorkingDate} 
+                                                onChange={(e) => setResignationForm({ ...resignationForm, lastWorkingDate: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Reason for Resignation</label>
+                                            <select 
+                                                value={resignationForm.reason} 
+                                                onChange={(e) => setResignationForm({ ...resignationForm, reason: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg"
+                                            >
+                                                <option value="">Select a reason</option>
+                                                <option value="Career Growth">Career Growth</option>
+                                                <option value="Better Opportunity">Better Opportunity</option>
+                                                <option value="Personal Reasons">Personal Reasons</option>
+                                                <option value="Health Issues">Health Issues</option>
+                                                <option value="Relocation">Relocation</option>
+                                                <option value="Job Dissatisfaction">Job Dissatisfaction</option>
+                                                <option value="Retirement">Retirement</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Additional Comments</label>
+                                            <textarea 
+                                                placeholder="Please provide any additional details..." 
+                                                value={resignationForm.comments} 
+                                                onChange={(e) => setResignationForm({ ...resignationForm, comments: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg" 
+                                                rows="4"
+                                            />
+                                        </div>
+                                        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                                            <p className="text-sm text-yellow-800">
+                                                <strong>Note:</strong> Once submitted, this resignation request will be reviewed by HR/Admin. 
+                                                Please ensure all details are correct before submitting.
+                                            </p>
+                                        </div>
+                                        <div className="flex space-x-3">
+                                            <button onClick={handleAddResignation} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Submit Resignation</button>
+                                            <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 );
             }
