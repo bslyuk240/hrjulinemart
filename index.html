@@ -690,6 +690,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             const [attendance, setAttendance] = useState([]);
             const [resignations, setResignations] = useState([]);
             const [archivedEmployees, setArchivedEmployees] = useState([]);
+            const [performanceRecords, setPerformanceRecords] = useState([]);
             const [settings, setSettings] = useState({});
             const [loading, setLoading] = useState(false);
             const [showModal, setShowModal] = useState(false);
@@ -730,6 +731,11 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             });
             const [resignationForm, setResignationForm] = useState({
                 employeeId: '', resignationDate: '', lastWorkingDate: '', reason: '', comments: ''
+            });
+            const [performanceForm, setPerformanceForm] = useState({
+                employeeId: '', date: '', overall_rating: 5, quality_rating: 5, productivity_rating: 5, 
+                teamwork_rating: 5, communication_rating: 5, punctuality_rating: 5, goals_met: 'Yes',
+                notes: '', period_type: 'Weekly'
             });
             const [settingsForm, setSettingsForm] = useState({});
             const [passwordForm, setPasswordForm] = useState({
@@ -1145,12 +1151,13 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                 setLoading(true);
                 try {
                     if (userRole === 'employee') {
-                        const [empData, payData, leaveData, attData, resData] = await Promise.all([
+                        const [empData, payData, leaveData, attData, resData, perfData] = await Promise.all([
                             supabase.from('employees').select('*').eq('id', currentUserId).single(),
                             supabase.from('payrolls').select('*').eq('employee_id', currentUserId).order('id', { ascending: false }),
                             supabase.from('leave_requests').select('*').eq('employee_id', currentUserId).order('id', { ascending: false }),
                             supabase.from('attendance').select('*').eq('employee_id', currentUserId).order('date', { ascending: false }),
-                            supabase.from('resignations').select('*').eq('employee_id', currentUserId).order('id', { ascending: false })
+                            supabase.from('resignations').select('*').eq('employee_id', currentUserId).order('id', { ascending: false }),
+                            supabase.from('performance_records').select('*').eq('employee_id', currentUserId).order('date', { ascending: false })
                         ]);
 
                         if (empData.data) setEmployees([empData.data]);
@@ -1158,14 +1165,16 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         if (leaveData.data) setLeaveRequests(leaveData.data);
                         if (attData.data) setAttendance(attData.data);
                         if (resData.data) setResignations(resData.data);
+                        if (perfData.data) setPerformanceRecords(perfData.data);
                     } else {
-                        const [empData, payData, leaveData, attData, resData, archData] = await Promise.all([
+                        const [empData, payData, leaveData, attData, resData, archData, perfData] = await Promise.all([
                             supabase.from('employees').select('*').order('id', { ascending: true }),
                             supabase.from('payrolls').select('*').order('id', { ascending: false }),
                             supabase.from('leave_requests').select('*').order('id', { ascending: false }),
                             supabase.from('attendance').select('*').order('date', { ascending: false }),
                             supabase.from('resignations').select('*').order('id', { ascending: false }),
-                            supabase.from('archived_employees').select('*').order('archived_at', { ascending: false })
+                            supabase.from('archived_employees').select('*').order('archived_at', { ascending: false }),
+                            supabase.from('performance_records').select('*').order('date', { ascending: false })
                         ]);
 
                         if (empData.data) setEmployees(empData.data);
@@ -1174,6 +1183,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         if (attData.data) setAttendance(attData.data);
                         if (resData.data) setResignations(resData.data);
                         if (archData.data) setArchivedEmployees(archData.data);
+                        if (perfData.data) setPerformanceRecords(perfData.data);
                     }
                 } catch (error) {
                     console.error('Error loading data:', error);
@@ -1212,6 +1222,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
     setLeaveForm({ employeeId: '', startDate: '', endDate: '', reason: '', type: 'Annual' });
     setAttendanceForm({ employeeId: '', date: '', status: 'Present' });
     setResignationForm({ employeeId: '', resignationDate: '', lastWorkingDate: '', reason: '', comments: '' });
+    setPerformanceForm({ employeeId: '', date: '', overall_rating: 5, quality_rating: 5, productivity_rating: 5, teamwork_rating: 5, communication_rating: 5, punctuality_rating: 5, goals_met: 'Yes', notes: '', period_type: 'Weekly' });
 };
             const handleAddEmployee = async () => {
     // Validate required fields
@@ -1632,6 +1643,83 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                     }
                     setLoading(false);
                 }
+            };
+
+            const handleAddPerformance = async () => {
+                const employee = employees.find(e => e.id === parseInt(performanceForm.employeeId));
+                if (!employee) {
+                    alert('Please select an employee');
+                    return;
+                }
+
+                if (!performanceForm.date) {
+                    alert('Please select a date');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const performanceData = {
+                        employee_id: employee.id,
+                        employee_name: employee.name,
+                        date: performanceForm.date,
+                        period_type: performanceForm.period_type,
+                        overall_rating: parseInt(performanceForm.overall_rating),
+                        quality_rating: parseInt(performanceForm.quality_rating),
+                        productivity_rating: parseInt(performanceForm.productivity_rating),
+                        teamwork_rating: parseInt(performanceForm.teamwork_rating),
+                        communication_rating: parseInt(performanceForm.communication_rating),
+                        punctuality_rating: parseInt(performanceForm.punctuality_rating),
+                        goals_met: performanceForm.goals_met,
+                        notes: performanceForm.notes || '',
+                        created_at: new Date().toISOString()
+                    };
+
+                    await supabase.from('performance_records').insert([performanceData]);
+                    alert('Performance record added successfully!');
+                    await loadAllData();
+                    closeModal();
+                } catch (error) {
+                    alert('Error adding performance record: ' + error.message);
+                }
+                setLoading(false);
+            };
+
+            const handleDeletePerformance = async (id) => {
+                if (confirm('Are you sure you want to delete this performance record? This action cannot be undone.')) {
+                    setLoading(true);
+                    try {
+                        const { error } = await supabase.from('performance_records').delete().eq('id', id);
+                        if (error) throw error;
+                        alert('Performance record deleted successfully');
+                        await loadAllData();
+                    } catch (error) {
+                        alert('Error deleting performance record: ' + error.message);
+                    }
+                    setLoading(false);
+                }
+            };
+
+            const getPerformanceStats = () => {
+                const thisWeek = new Date();
+                thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay());
+                const weekString = thisWeek.toISOString().split('T')[0];
+                
+                const thisMonth = new Date().toISOString().slice(0, 7);
+                
+                const weeklyRecords = performanceRecords.filter(p => p.date >= weekString && p.period_type === 'Weekly');
+                const monthlyRecords = performanceRecords.filter(p => p.date.startsWith(thisMonth) && p.period_type === 'Monthly');
+                
+                const avgRating = performanceRecords.length > 0 
+                    ? performanceRecords.reduce((sum, p) => sum + p.overall_rating, 0) / performanceRecords.length 
+                    : 0;
+                
+                return {
+                    weeklyRecords: weeklyRecords.length,
+                    monthlyRecords: monthlyRecords.length,
+                    averageRating: avgRating.toFixed(1),
+                    totalRecords: performanceRecords.length
+                };
             };
 
             const totalSalary = payrolls.reduce((sum, p) => sum + parseFloat(p.net_salary || 0), 0);
@@ -2170,6 +2258,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                     { id: 'employees', icon: Icons.Users, label: 'Employees' },
                                     { id: 'payroll', icon: Icons.Dollar, label: 'Payroll' },
                                     { id: 'leave', icon: Icons.Calendar, label: 'Leave' },
+                                    { id: 'performance', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>, label: 'Staff Performance' },
                                     { id: 'resignation', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>, label: 'Resignations' },
                                     { id: 'archive', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6 6-6" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v0" /></svg>, label: 'Archive' },
                                     { id: 'attendance', icon: Icons.Clock, label: 'Attendance' },
@@ -2468,6 +2557,234 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                     </table>
                                     {leaveRequests.length === 0 && <p className="text-center py-8 text-gray-500">No leave requests yet</p>}
                                 </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'performance' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold">Staff Performance Management</h2>
+                                    <button
+                                        onClick={() => openModal('performance')}
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                                    >
+                                        <Icons.Plus />
+                                        <span>Add Performance Record</span>
+                                    </button>
+                                </div>
+
+                                {/* Performance Statistics */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                    {(() => {
+                                        const stats = getPerformanceStats();
+                                        return (
+                                            <>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">Total Records</p>
+                                                            <p className="text-3xl font-bold text-blue-500">{stats.totalRecords}</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">Average Rating</p>
+                                                            <p className="text-3xl font-bold text-green-500">{stats.averageRating}/5</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">This Week</p>
+                                                            <p className="text-3xl font-bold text-yellow-500">{stats.weeklyRecords}</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">This Month</p>
+                                                            <p className="text-3xl font-bold text-purple-500">{stats.monthlyRecords}</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Performance Records Table */}
+                                <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Overall Rating</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quality</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Productivity</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teamwork</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Goals Met</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {performanceRecords.map(record => {
+                                                const getRatingColor = (rating) => {
+                                                    if (rating >= 4) return 'text-green-600 bg-green-100';
+                                                    if (rating >= 3) return 'text-yellow-600 bg-yellow-100';
+                                                    return 'text-red-600 bg-red-100';
+                                                };
+                                                
+                                                const getRatingStars = (rating) => {
+                                                    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+                                                };
+                                                
+                                                return (
+                                                    <tr key={record.id}>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center">
+                                                                <div>
+                                                                    <div className="font-semibold">{record.employee_name}</div>
+                                                                    <div className="text-sm text-gray-500">ID: {record.employee_id}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm">{record.date}</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                                record.period_type === 'Weekly' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                                                            }`}>
+                                                                {record.period_type}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getRatingColor(record.overall_rating)}`}>
+                                                                {getRatingStars(record.overall_rating)} ({record.overall_rating}/5)
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm">{getRatingStars(record.quality_rating)} ({record.quality_rating}/5)</td>
+                                                        <td className="px-6 py-4 text-sm">{getRatingStars(record.productivity_rating)} ({record.productivity_rating}/5)</td>
+                                                        <td className="px-6 py-4 text-sm">{getRatingStars(record.teamwork_rating)} ({record.teamwork_rating}/5)</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                                record.goals_met === 'Yes' ? 'bg-green-100 text-green-700' : 
+                                                                record.goals_met === 'Partially' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                            }`}>
+                                                                {record.goals_met}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex space-x-2">
+                                                                <button 
+                                                                    onClick={() => alert(`Performance Notes:\n${record.notes || 'No notes available'}\n\nDetailed Ratings:\nQuality: ${record.quality_rating}/5\nProductivity: ${record.productivity_rating}/5\nTeamwork: ${record.teamwork_rating}/5\nCommunication: ${record.communication_rating}/5\nPunctuality: ${record.punctuality_rating}/5`)}
+                                                                    className="text-blue-600 hover:text-blue-800 p-1"
+                                                                    title="View Details"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDeletePerformance(record.id)} 
+                                                                    className="text-red-600 hover:text-red-800 p-1"
+                                                                    title="Delete Record"
+                                                                >
+                                                                    <Icons.Trash />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {performanceRecords.length === 0 && <p className="text-center py-8 text-gray-500">No performance records yet</p>}
+                                </div>
+
+                                {/* Performance Analytics Section */}
+                                {performanceRecords.length > 0 && (
+                                    <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+                                        <h3 className="text-xl font-bold mb-4">📊 Performance Analytics</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {/* Top Performers */}
+                                            <div className="bg-green-50 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-green-800 mb-3">🏆 Top Performers (4.5+ Rating)</h4>
+                                                <div className="space-y-2">
+                                                    {performanceRecords
+                                                        .filter(p => p.overall_rating >= 4.5)
+                                                        .slice(0, 5)
+                                                        .map(p => (
+                                                            <div key={p.id} className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium">{p.employee_name}</span>
+                                                                <span className="text-sm text-green-600">{p.overall_rating}/5</span>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    {performanceRecords.filter(p => p.overall_rating >= 4.5).length === 0 && (
+                                                        <p className="text-sm text-gray-500">No top performers yet</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Needs Improvement */}
+                                            <div className="bg-yellow-50 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-yellow-800 mb-3">⚠️ Needs Improvement (Below 3.0)</h4>
+                                                <div className="space-y-2">
+                                                    {performanceRecords
+                                                        .filter(p => p.overall_rating < 3.0)
+                                                        .slice(0, 5)
+                                                        .map(p => (
+                                                            <div key={p.id} className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium">{p.employee_name}</span>
+                                                                <span className="text-sm text-yellow-600">{p.overall_rating}/5</span>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    {performanceRecords.filter(p => p.overall_rating < 3.0).length === 0 && (
+                                                        <p className="text-sm text-gray-500">All performers above 3.0</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Recent Activity */}
+                                            <div className="bg-blue-50 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-blue-800 mb-3">🕒 Recent Reviews</h4>
+                                                <div className="space-y-2">
+                                                    {performanceRecords
+                                                        .slice(0, 5)
+                                                        .map(p => (
+                                                            <div key={p.id} className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium">{p.employee_name}</span>
+                                                                <div className="flex items-center space-x-1">
+                                                                    <span className="text-xs text-blue-600">{p.date}</span>
+                                                                    <span className="text-sm text-blue-600">{p.overall_rating}/5</span>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -3486,6 +3803,152 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                     <button 
                                         onClick={closeBlogBannerModal} 
                                         className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    
+                    {showModal && modalType === 'performance' && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-screen overflow-y-auto">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Add Performance Record</h3>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Employee and Basic Info */}
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Select Employee *</label>
+                                            <select 
+                                                value={performanceForm.employeeId} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, employeeId: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            >
+                                                <option value="">Choose Employee</option>
+                                                {employees.map(emp => (
+                                                    <option key={emp.id} value={emp.id}>{emp.name} - {emp.position}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Review Date *</label>
+                                            <input 
+                                                type="date" 
+                                                value={performanceForm.date} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, date: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Review Period</label>
+                                            <select 
+                                                value={performanceForm.period_type} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, period_type: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            >
+                                                <option value="Weekly">Weekly Review</option>
+                                                <option value="Monthly">Monthly Review</option>
+                                                <option value="Quarterly">Quarterly Review</option>
+                                                <option value="Annual">Annual Review</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Goals Achievement</label>
+                                            <select 
+                                                value={performanceForm.goals_met} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, goals_met: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            >
+                                                <option value="Yes">Yes - Goals Met</option>
+                                                <option value="Partially">Partially - Some Goals Met</option>
+                                                <option value="No">No - Goals Not Met</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {/* Rating Categories */}
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold text-lg text-gray-700 mb-4">Performance Ratings (1-5 Scale)</h4>
+                                        
+                                        {[
+                                            { key: 'overall_rating', label: 'Overall Performance', desc: 'General performance assessment' },
+                                            { key: 'quality_rating', label: 'Work Quality', desc: 'Quality of work delivered' },
+                                            { key: 'productivity_rating', label: 'Productivity', desc: 'Efficiency and output' },
+                                            { key: 'teamwork_rating', label: 'Teamwork & Collaboration', desc: 'Works well with team' },
+                                            { key: 'communication_rating', label: 'Communication', desc: 'Communication skills' },
+                                            { key: 'punctuality_rating', label: 'Punctuality & Reliability', desc: 'Timeliness and dependability' }
+                                        ].map(rating => (
+                                            <div key={rating.key} className="bg-gray-50 p-4 rounded-lg">
+                                                <label className="block text-sm font-medium mb-2">{rating.label}</label>
+                                                <p className="text-xs text-gray-500 mb-3">{rating.desc}</p>
+                                                <div className="flex items-center space-x-4">
+                                                    <input 
+                                                        type="range" 
+                                                        min="1" 
+                                                        max="5" 
+                                                        value={performanceForm[rating.key]} 
+                                                        onChange={(e) => setPerformanceForm({ ...performanceForm, [rating.key]: parseInt(e.target.value) })} 
+                                                        className="flex-1"
+                                                    />
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className="text-sm font-medium text-gray-600">
+                                                            {'★'.repeat(parseInt(performanceForm[rating.key]))}{'☆'.repeat(5 - parseInt(performanceForm[rating.key]))}
+                                                        </span>
+                                                        <span className="text-lg font-bold text-brand-purple w-8">
+                                                            {performanceForm[rating.key]}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                                    <span>Poor</span>
+                                                    <span>Excellent</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Performance Notes */}
+                                <div className="mt-6">
+                                    <label className="block text-sm font-medium mb-2">Performance Notes & Comments</label>
+                                    <textarea 
+                                        placeholder="Add detailed feedback, achievements, areas for improvement, and specific examples..."
+                                        value={performanceForm.notes} 
+                                        onChange={(e) => setPerformanceForm({ ...performanceForm, notes: e.target.value })} 
+                                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" 
+                                        rows="5"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">Include specific examples, achievements, and constructive feedback</p>
+                                </div>
+
+                                {/* Rating Guide */}
+                                <div className="mt-6 bg-blue-50 p-4 rounded-lg">
+                                    <h5 className="font-semibold text-blue-800 mb-2">📋 Rating Scale Guide</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                                        <div className="text-center"><strong>1 Star</strong><br/>Poor</div>
+                                        <div className="text-center"><strong>2 Stars</strong><br/>Below Average</div>
+                                        <div className="text-center"><strong>3 Stars</strong><br/>Meets Expectations</div>
+                                        <div className="text-center"><strong>4 Stars</strong><br/>Above Average</div>
+                                        <div className="text-center"><strong>5 Stars</strong><br/>Outstanding</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex space-x-3 mt-8">
+                                    <button 
+                                        onClick={handleAddPerformance} 
+                                        disabled={loading}
+                                        className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold disabled:bg-gray-300"
+                                    >
+                                        {loading ? 'Saving...' : 'Save Performance Record'}
+                                    </button>
+                                    <button 
+                                        onClick={closeModal} 
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-3 rounded-lg font-semibold"
                                     >
                                         Cancel
                                     </button>
