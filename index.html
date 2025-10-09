@@ -692,6 +692,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             const [archivedEmployees, setArchivedEmployees] = useState([]);
             const [performanceRecords, setPerformanceRecords] = useState([]);
             const [settings, setSettings] = useState({});
+            const [managers, setManagers] = useState([]);
             const [loading, setLoading] = useState(false);
             const [showModal, setShowModal] = useState(false);
             const [modalType, setModalType] = useState('');
@@ -736,6 +737,9 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                 employeeId: '', date: '', overall_rating: 5, quality_rating: 5, productivity_rating: 5, 
                 teamwork_rating: 5, communication_rating: 5, punctuality_rating: 5, goals_met: 'Yes',
                 notes: '', period_type: 'Weekly'
+            });
+            const [managerForm, setManagerForm] = useState({
+                name: '', email: '', username: '', password: '', permissions: []
             });
             const [settingsForm, setSettingsForm] = useState({});
             const [passwordForm, setPasswordForm] = useState({
@@ -916,9 +920,10 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
 
                     if (adminData) {
                         setIsLoggedIn(true);
-                        setUserRole('admin');
+                        const role = adminData.role || 'admin'; // Default to admin for backward compatibility
+                        setUserRole(role);
                         localStorage.setItem('julinemart_logged_in', 'true');
-                        localStorage.setItem('julinemart_user_role', 'admin');
+                        localStorage.setItem('julinemart_user_role', role);
                         localStorage.setItem('julinemart_user_id', adminData.id);
                         setCurrentUserId(adminData.id);
                         setLoginForm({ username: '', password: '' });
@@ -1166,15 +1171,31 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         if (attData.data) setAttendance(attData.data);
                         if (resData.data) setResignations(resData.data);
                         if (perfData.data) setPerformanceRecords(perfData.data);
+                    } else if (userRole === 'manager') {
+                        // Managers can see all employee data but limited functions
+                        const [empData, attData, perfData] = await Promise.all([
+                            supabase.from('employees').select('*').order('id', { ascending: true }),
+                            supabase.from('attendance').select('*').order('date', { ascending: false }),
+                            supabase.from('performance_records').select('*').order('date', { ascending: false })
+                        ]);
+
+                        if (empData.data) setEmployees(empData.data);
+                        if (attData.data) setAttendance(attData.data);
+                        if (perfData.data) setPerformanceRecords(perfData.data);
+                        setPayrolls([]);
+                        setLeaveRequests([]);
+                        setResignations([]);
+                        setArchivedEmployees([]);
                     } else {
-                        const [empData, payData, leaveData, attData, resData, archData, perfData] = await Promise.all([
+                        const [empData, payData, leaveData, attData, resData, archData, perfData, managerData] = await Promise.all([
                             supabase.from('employees').select('*').order('id', { ascending: true }),
                             supabase.from('payrolls').select('*').order('id', { ascending: false }),
                             supabase.from('leave_requests').select('*').order('id', { ascending: false }),
                             supabase.from('attendance').select('*').order('date', { ascending: false }),
                             supabase.from('resignations').select('*').order('id', { ascending: false }),
                             supabase.from('archived_employees').select('*').order('archived_at', { ascending: false }),
-                            supabase.from('performance_records').select('*').order('date', { ascending: false })
+                            supabase.from('performance_records').select('*').order('date', { ascending: false }),
+                            supabase.from('admin_users').select('*').eq('role', 'manager').order('id', { ascending: true })
                         ]);
 
                         if (empData.data) setEmployees(empData.data);
@@ -1184,6 +1205,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         if (resData.data) setResignations(resData.data);
                         if (archData.data) setArchivedEmployees(archData.data);
                         if (perfData.data) setPerformanceRecords(perfData.data);
+                        if (managerData.data) setManagers(managerData.data);
                     }
                 } catch (error) {
                     console.error('Error loading data:', error);
@@ -1223,6 +1245,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
     setAttendanceForm({ employeeId: '', date: '', status: 'Present' });
     setResignationForm({ employeeId: '', resignationDate: '', lastWorkingDate: '', reason: '', comments: '' });
     setPerformanceForm({ employeeId: '', date: '', overall_rating: 5, quality_rating: 5, productivity_rating: 5, teamwork_rating: 5, communication_rating: 5, punctuality_rating: 5, goals_met: 'Yes', notes: '', period_type: 'Weekly' });
+    setManagerForm({ name: '', email: '', username: '', password: '', permissions: [] });
 };
             const handleAddEmployee = async () => {
     // Validate required fields
@@ -1720,6 +1743,90 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                     averageRating: avgRating.toFixed(1),
                     totalRecords: performanceRecords.length
                 };
+            };
+
+            // Manager Management Functions
+            const handleAddManager = async () => {
+                if (!managerForm.name || !managerForm.email || !managerForm.username) {
+                    alert('Please fill in all required fields (Name, Email, Username)');
+                    return;
+                }
+
+                if (!editingItem && !managerForm.password) {
+                    alert('Password is required for new managers');
+                    return;
+                }
+
+                setLoading(true);
+                try {
+                    const managerData = {
+                        name: managerForm.name,
+                        email: managerForm.email,
+                        username: managerForm.username,
+                        role: 'manager',
+                        permissions: managerForm.permissions.join(',') || 'staff_performance,attendance'
+                    };
+
+                    // Only add password if it's provided (for updates) or required (for new managers)
+                    if (managerForm.password) {
+                        managerData.password = managerForm.password;
+                    }
+
+                    let result;
+                    if (editingItem) {
+                        result = await supabase.from('admin_users').update(managerData).eq('id', editingItem.id);
+                    } else {
+                        result = await supabase.from('admin_users').insert([managerData]);
+                    }
+
+                    if (result.error) throw result.error;
+                    
+                    alert('Manager saved successfully!');
+                    await loadAllData();
+                    closeModal();
+                } catch (error) {
+                    alert('Error saving manager: ' + error.message);
+                }
+                setLoading(false);
+            };
+
+            const handleDeleteManager = async (id) => {
+                if (confirm('Are you sure you want to delete this manager? This action cannot be undone.')) {
+                    setLoading(true);
+                    try {
+                        const { error } = await supabase.from('admin_users').delete().eq('id', id);
+                        if (error) throw error;
+                        alert('Manager deleted successfully');
+                        await loadAllData();
+                    } catch (error) {
+                        alert('Error deleting manager: ' + error.message);
+                    }
+                    setLoading(false);
+                }
+            };
+
+            const handleEditManager = (manager) => {
+                setEditingItem(manager);
+                setManagerForm({
+                    name: manager.name || '',
+                    email: manager.email || '',
+                    username: manager.username || '',
+                    password: '',
+                    permissions: manager.permissions ? manager.permissions.split(',') : ['staff_performance', 'attendance']
+                });
+                openModal('manager');
+            };
+
+            const hasPermission = (permission) => {
+                if (userRole === 'admin') return true;
+                if (userRole === 'employee') return false;
+                if (userRole === 'manager') {
+                    // Check specific permissions for managers
+                    // For managers, we need to get their data from admin_users table where role = 'manager'
+                    // Since managers are stored in admin_users table with role 'manager', we need to check differently
+                    return ['staff_performance', 'attendance'].includes(permission);
+                }
+                return false;
             };
 
             const totalSalary = payrolls.reduce((sum, p) => sum + parseFloat(p.net_salary || 0), 0);
@@ -2254,16 +2361,25 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         <div className="container mx-auto px-6">
                             <div className="flex space-x-1 overflow-x-auto">
                                 {[
-                                    { id: 'dashboard', icon: Icons.Chart, label: 'Dashboard' },
-                                    { id: 'employees', icon: Icons.Users, label: 'Employees' },
-                                    { id: 'payroll', icon: Icons.Dollar, label: 'Payroll' },
-                                    { id: 'leave', icon: Icons.Calendar, label: 'Leave' },
-                                    { id: 'performance', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>, label: 'Staff Performance' },
-                                    { id: 'resignation', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>, label: 'Resignations' },
-                                    { id: 'archive', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6 6-6" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v0" /></svg>, label: 'Archive' },
-                                    { id: 'attendance', icon: Icons.Clock, label: 'Attendance' },
-                                    { id: 'blog-banners', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>, label: 'Blog Banners' }
-                                ].map(tab => (
+                                    { id: 'dashboard', icon: Icons.Chart, label: 'Dashboard', roles: ['admin', 'manager', 'employee'] },
+                                    { id: 'employees', icon: Icons.Users, label: 'Employees', roles: ['admin'] },
+                                    { id: 'payroll', icon: Icons.Dollar, label: 'Payroll', roles: ['admin'] },
+                                    { id: 'leave', icon: Icons.Calendar, label: 'Leave', roles: ['admin'] },
+                                    { id: 'performance', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>, label: 'Staff Performance', roles: ['admin', 'manager'] },
+                                    { id: 'resignation', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" /></svg>, label: 'Resignations', roles: ['admin'] },
+                                    { id: 'archive', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8l6 6 6-6" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2 2v0" /></svg>, label: 'Archive', roles: ['admin'] },
+                                    { id: 'attendance', icon: Icons.Clock, label: 'Attendance', roles: ['admin', 'manager'] },
+                                    { id: 'managers', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>, label: 'Role Management', roles: ['admin'] },
+                                    { id: 'blog-banners', icon: () => <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" /></svg>, label: 'Blog Banners', roles: ['admin'] }
+                                ].filter(tab => {
+                                    // Show tab if user role is in allowed roles, or if user is manager with specific permissions
+                                    if (tab.roles.includes(userRole)) return true;
+                                    if (userRole === 'manager') {
+                                        if (tab.id === 'performance') return hasPermission('staff_performance');
+                                        if (tab.id === 'attendance') return hasPermission('attendance');
+                                    }
+                                    return false;
+                                }).map(tab => (
                                     <button
                                         key={tab.id}
                                         onClick={() => setActiveTab(tab.id)}
@@ -2984,6 +3100,74 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                         </tbody>
                                     </table>
                                     {archivedEmployees.length === 0 && <p className="text-center py-8 text-gray-500">No archived employees yet</p>}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'managers' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold">Role Management</h2>
+                                    <button
+                                        onClick={() => openModal('manager')}
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                                    >
+                                        <Icons.Plus />
+                                        <span>Add Manager</span>
+                                    </button>
+                                </div>
+
+                                <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Username</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Permissions</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-gray-200">
+                                            {managers.map(manager => (
+                                                <tr key={manager.id}>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{manager.name}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{manager.email}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{manager.username}</td>
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                                                            Manager
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                                        {manager.permissions ? manager.permissions.split(',').map(perm => (
+                                                            <span key={perm} className="inline-flex items-center px-2 py-1 mr-1 text-xs font-medium bg-blue-100 text-blue-800 rounded">
+                                                                {perm === 'staff_performance' ? 'Performance' : perm === 'attendance' ? 'Attendance' : perm}
+                                                            </span>
+                                                        )) : 'No permissions'}
+                                                    </td>
+                                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                                        <button 
+                                                            onClick={() => handleEditManager(manager)} 
+                                                            className="text-indigo-600 hover:text-indigo-900"
+                                                            title="Edit Manager"
+                                                        >
+                                                            <Icons.Edit />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDeleteManager(manager.id)} 
+                                                            className="text-red-600 hover:text-red-900"
+                                                            title="Delete Manager"
+                                                        >
+                                                            <Icons.Trash />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {managers.length === 0 && <p className="text-center py-8 text-gray-500">No managers yet</p>}
                                 </div>
                             </div>
                         )}
@@ -3957,6 +4141,128 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         </div>
                     )}
                     
+                    {showModal && modalType === 'manager' && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-screen overflow-y-auto">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">
+                                    {editingItem ? 'Edit Manager' : 'Add Manager'}
+                                </h3>
+                                
+                                <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Full Name *</label>
+                                            <input 
+                                                type="text"
+                                                value={managerForm.name} 
+                                                onChange={(e) => setManagerForm({ ...managerForm, name: e.target.value })} 
+                                                placeholder="Enter full name"
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Email *</label>
+                                            <input 
+                                                type="email"
+                                                value={managerForm.email} 
+                                                onChange={(e) => setManagerForm({ ...managerForm, email: e.target.value })} 
+                                                placeholder="Enter email address"
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Username *</label>
+                                            <input 
+                                                type="text"
+                                                value={managerForm.username} 
+                                                onChange={(e) => setManagerForm({ ...managerForm, username: e.target.value })} 
+                                                placeholder="Enter username for login"
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">
+                                                {editingItem ? 'New Password (leave blank to keep current)' : 'Password *'}
+                                            </label>
+                                            <input 
+                                                type="password"
+                                                value={managerForm.password} 
+                                                onChange={(e) => setManagerForm({ ...managerForm, password: e.target.value })} 
+                                                placeholder={editingItem ? "Enter new password or leave blank" : "Enter password"}
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-2">Permissions</label>
+                                        <div className="space-y-2">
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={managerForm.permissions.includes('staff_performance')}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setManagerForm({ 
+                                                                ...managerForm, 
+                                                                permissions: [...managerForm.permissions, 'staff_performance'] 
+                                                            });
+                                                        } else {
+                                                            setManagerForm({ 
+                                                                ...managerForm, 
+                                                                permissions: managerForm.permissions.filter(p => p !== 'staff_performance') 
+                                                            });
+                                                        }
+                                                    }}
+                                                    className="mr-2 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                                />
+                                                <span>Staff Performance Management</span>
+                                            </label>
+                                            <label className="flex items-center">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={managerForm.permissions.includes('attendance')}
+                                                    onChange={(e) => {
+                                                        if (e.target.checked) {
+                                                            setManagerForm({ 
+                                                                ...managerForm, 
+                                                                permissions: [...managerForm.permissions, 'attendance'] 
+                                                            });
+                                                        } else {
+                                                            setManagerForm({ 
+                                                                ...managerForm, 
+                                                                permissions: managerForm.permissions.filter(p => p !== 'attendance') 
+                                                            });
+                                                        }
+                                                    }}
+                                                    className="mr-2 h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                                />
+                                                <span>Attendance Management</span>
+                                            </label>
+                                        </div>
+                                        <p className="text-sm text-gray-500 mt-1">Select the features this manager can access</p>
+                                    </div>
+
+                                    <div className="flex space-x-3 mt-8">
+                                        <button 
+                                            onClick={handleAddManager} 
+                                            disabled={loading}
+                                            className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold disabled:bg-gray-300"
+                                        >
+                                            {loading ? 'Saving...' : editingItem ? 'Update Manager' : 'Add Manager'}
+                                        </button>
+                                        <button 
+                                            onClick={closeModal} 
+                                            className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-3 rounded-lg font-semibold"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             );
         }
