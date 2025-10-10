@@ -684,6 +684,7 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
             const [loginForm, setLoginForm] = useState({ username: '', password: '' });
             const [loginError, setLoginError] = useState('');
             const [activeTab, setActiveTab] = useState('dashboard');
+            const [managerActiveTab, setManagerActiveTab] = useState('dashboard');
             const [employees, setEmployees] = useState([]);
             const [payrolls, setPayrolls] = useState([]);
             const [leaveRequests, setLeaveRequests] = useState([]);
@@ -2076,7 +2077,34 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                             </div>
                         </div>
 
-                        <div className="container mx-auto px-6 py-8">
+                        {/* Manager Tab Navigation */}
+                        {userRole === 'manager' && (
+                            <div className="bg-white border-b shadow-sm">
+                                <div className="container mx-auto px-6">
+                                    <div className="flex space-x-8 overflow-x-auto">
+                                        {[
+                                            { id: 'dashboard', label: 'Dashboard' },
+                                            { id: 'staff-performance', label: 'Staff Performance' },
+                                            { id: 'attendance', label: 'Attendance' }
+                                        ].map(tab => (
+                                            <button
+                                                key={tab.id}
+                                                onClick={() => setManagerActiveTab(tab.id)}
+                                                className={`flex items-center space-x-2 px-6 py-4 border-b-2 transition ${
+                                                    managerActiveTab === tab.id
+                                                        ? 'border-brand-purple text-brand-purple'
+                                                        : 'border-transparent text-gray-600 hover:text-brand-purple hover:border-gray-300'
+                                                }`}
+                                            >
+                                                <span className="font-medium">{tab.label}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="container mx-auto px-6 py-8">{managerActiveTab === 'dashboard' && (
                             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                                 <h3 className="text-xl font-bold mb-4">📊 My Stats Overview</h3>
                                 <div className="flex flex-wrap justify-center gap-4 mb-6">
@@ -2205,6 +2233,289 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                                     </a>
                                 </div>
                             </div>
+                        </div>
+                        )}
+
+                        {userRole === 'manager' && managerActiveTab === 'staff-performance' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold">Staff Performance Management</h2>
+                                    <button
+                                        onClick={() => openModal('performance')}
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                                    >
+                                        <Icons.Plus />
+                                        <span>Add Performance Record</span>
+                                    </button>
+                                </div>
+
+                                {/* Performance Statistics */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                                    {(() => {
+                                        const stats = getPerformanceStats();
+                                        return (
+                                            <>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-blue-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">Total Records</p>
+                                                            <p className="text-3xl font-bold text-blue-500">{stats.totalRecords}</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-green-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">Average Rating</p>
+                                                            <p className="text-3xl font-bold text-green-500">{stats.averageRating}/5</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-yellow-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">This Week</p>
+                                                            <p className="text-3xl font-bold text-yellow-500">{stats.weeklyRecords}</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                                <div className="bg-white p-6 rounded-lg shadow-md border-l-4 border-purple-500">
+                                                    <div className="flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-gray-500 text-sm">This Month</p>
+                                                            <p className="text-3xl font-bold text-purple-500">{stats.monthlyRecords}</p>
+                                                        </div>
+                                                        <svg className="w-8 h-8 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                        </svg>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* Performance Records Table */}
+                                <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Period</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Overall Rating</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quality</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Productivity</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Teamwork</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Goals Met</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {performanceRecords.map(record => {
+                                                const getRatingColor = (rating) => {
+                                                    if (rating >= 4) return 'text-green-600 bg-green-100';
+                                                    if (rating >= 3) return 'text-yellow-600 bg-yellow-100';
+                                                    return 'text-red-600 bg-red-100';
+                                                };
+                                                
+                                                const getRatingStars = (rating) => {
+                                                    return '★'.repeat(rating) + '☆'.repeat(5 - rating);
+                                                };
+                                                
+                                                return (
+                                                    <tr key={record.id}>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex items-center">
+                                                                <div>
+                                                                    <div className="font-semibold">{record.employee_name}</div>
+                                                                    <div className="text-sm text-gray-500">ID: {record.employee_id}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm">{record.date}</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                                record.period_type === 'Weekly' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                                                            }`}>
+                                                                {record.period_type}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className={`inline-flex px-3 py-1 rounded-full text-sm font-medium ${getRatingColor(record.overall_rating)}`}>
+                                                                {getRatingStars(record.overall_rating)} ({record.overall_rating}/5)
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-sm">{getRatingStars(record.quality_rating)} ({record.quality_rating}/5)</td>
+                                                        <td className="px-6 py-4 text-sm">{getRatingStars(record.productivity_rating)} ({record.productivity_rating}/5)</td>
+                                                        <td className="px-6 py-4 text-sm">{getRatingStars(record.teamwork_rating)} ({record.teamwork_rating}/5)</td>
+                                                        <td className="px-6 py-4">
+                                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                                record.goals_met === 'Yes' ? 'bg-green-100 text-green-700' : 
+                                                                record.goals_met === 'Partially' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'
+                                                            }`}>
+                                                                {record.goals_met}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex space-x-2">
+                                                                <button 
+                                                                    onClick={() => alert(`Performance Notes:\n${record.notes || 'No notes available'}\n\nDetailed Ratings:\nQuality: ${record.quality_rating}/5\nProductivity: ${record.productivity_rating}/5\nTeamwork: ${record.teamwork_rating}/5\nCommunication: ${record.communication_rating}/5\nPunctuality: ${record.punctuality_rating}/5`)}
+                                                                    className="text-blue-600 hover:text-blue-800 p-1"
+                                                                    title="View Details"
+                                                                >
+                                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                                    </svg>
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleDeletePerformance(record.id)} 
+                                                                    className="text-red-600 hover:text-red-800 p-1"
+                                                                    title="Delete Record"
+                                                                >
+                                                                    <Icons.Trash />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                    {performanceRecords.length === 0 && <p className="text-center py-8 text-gray-500">No performance records yet</p>}
+                                </div>
+
+                                {/* Performance Analytics Section */}
+                                {performanceRecords.length > 0 && (
+                                    <div className="mt-8 bg-white p-6 rounded-lg shadow-md">
+                                        <h3 className="text-xl font-bold mb-4">📊 Performance Analytics</h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {/* Top Performers */}
+                                            <div className="bg-green-50 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-green-800 mb-3">🏆 Top Performers (4.5+ Rating)</h4>
+                                                <div className="space-y-2">
+                                                    {performanceRecords
+                                                        .filter(p => p.overall_rating >= 4.5)
+                                                        .slice(0, 5)
+                                                        .map(p => (
+                                                            <div key={p.id} className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium">{p.employee_name}</span>
+                                                                <span className="text-sm text-green-600">{p.overall_rating}/5</span>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    {performanceRecords.filter(p => p.overall_rating >= 4.5).length === 0 && (
+                                                        <p className="text-sm text-gray-500">No top performers yet</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Needs Improvement */}
+                                            <div className="bg-yellow-50 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-yellow-800 mb-3">⚠️ Needs Improvement (Below 3.0)</h4>
+                                                <div className="space-y-2">
+                                                    {performanceRecords
+                                                        .filter(p => p.overall_rating < 3.0)
+                                                        .slice(0, 5)
+                                                        .map(p => (
+                                                            <div key={p.id} className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium">{p.employee_name}</span>
+                                                                <span className="text-sm text-yellow-600">{p.overall_rating}/5</span>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                    {performanceRecords.filter(p => p.overall_rating < 3.0).length === 0 && (
+                                                        <p className="text-sm text-gray-500">All performers above 3.0</p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Recent Activity */}
+                                            <div className="bg-blue-50 p-4 rounded-lg">
+                                                <h4 className="font-semibold text-blue-800 mb-3">🕒 Recent Reviews</h4>
+                                                <div className="space-y-2">
+                                                    {performanceRecords
+                                                        .slice(0, 5)
+                                                        .map(p => (
+                                                            <div key={p.id} className="flex justify-between items-center">
+                                                                <span className="text-sm font-medium">{p.employee_name}</span>
+                                                                <div className="flex items-center space-x-1">
+                                                                    <span className="text-xs text-blue-600">{p.date}</span>
+                                                                    <span className="text-sm text-blue-600">{p.overall_rating}/5</span>
+                                                                </div>
+                                                            </div>
+                                                        ))
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {userRole === 'manager' && managerActiveTab === 'attendance' && (
+                            <div>
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-2xl font-bold">Attendance</h2>
+                                    <button
+                                        onClick={() => openModal('attendance')}
+                                        className="bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2"
+                                    >
+                                        <Icons.Plus />
+                                        <span>Mark Attendance</span>
+                                    </button>
+                                </div>
+                                <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Employee</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200">
+                                            {attendance.map(att => (
+                                                <tr key={att.id}>
+                                                    <td className="px-6 py-4 font-semibold">{att.employee_name}</td>
+                                                    <td className="px-6 py-4">{att.date}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                                            att.status === 'Present' ? 'bg-green-100 text-green-700' :
+                                                            att.status === 'Absent' ? 'bg-red-100 text-red-700' :
+                                                            'bg-yellow-100 text-yellow-700'
+                                                        }`}>
+                                                            {att.status}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <button 
+                                                            onClick={() => handleDeleteAttendance(att.id)} 
+                                                            className="text-red-600 hover:text-red-800 p-1"
+                                                        >
+                                                            <Icons.Trash />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {attendance.length === 0 && <p className="text-center py-8 text-gray-500">No attendance records yet</p>}
+                                </div>
+                            </div>
+                        )}
                         </div>
 
                         {showModal && modalType === 'leave' && (
