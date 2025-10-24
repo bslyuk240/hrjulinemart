@@ -1174,25 +1174,33 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                         if (resData.data) setResignations(resData.data);
                         if (perfData.data) setPerformanceRecords(perfData.data);
                     } else if (userRole === 'manager') {
-                        // Managers have access to all data including employee data, performance, attendance
-                        // Plus their own employee data for personal access
-                        const [empData, payData, leaveData, attData, perfData, managerData] = await Promise.all([
-                            supabase.from('employees').select('*').order('id', { ascending: true }),
-                            supabase.from('payrolls').select('*').order('id', { ascending: false }),
-                            supabase.from('leave_requests').select('*').order('id', { ascending: false }),
-                            supabase.from('attendance').select('*').order('date', { ascending: false }),
-                            supabase.from('performance_records').select('*').order('date', { ascending: false }),
-                            supabase.from('employees').select('*').eq('is_manager', true).order('id', { ascending: true })
-                        ]);
+    // Managers load their OWN data like regular employees
+    // BUT they can access ALL performance and attendance records
+    const [empData, payData, leaveData, attData, perfData, allEmployees] = await Promise.all([
+        supabase.from('employees').select('*').eq('id', currentUserId).single(),
+        supabase.from('payrolls').select('*').eq('employee_id', currentUserId).order('id', { ascending: false }),
+        supabase.from('leave_requests').select('*').eq('employee_id', currentUserId).order('id', { ascending: false }),
+        supabase.from('attendance').select('*').order('date', { ascending: false }),
+        supabase.from('performance_records').select('*').order('date', { ascending: false }),
+        supabase.from('employees').select('*').order('id', { ascending: true })
+    ]);
 
-                        if (empData.data) setEmployees(empData.data);
-                        if (payData.data) setPayrolls(payData.data);
-                        if (leaveData.data) setLeaveRequests(leaveData.data);
-                        if (attData.data) setAttendance(attData.data);
-                        if (perfData.data) setPerformanceRecords(perfData.data);
-                        if (managerData.data) setManagers(managerData.data);
-                        setResignations([]);
-                        setArchivedEmployees([]);
+    // Set manager's own data + all employees for management purposes
+    if (empData.data) {
+        setEmployees([empData.data]); // Just the manager's own employee record for display
+        // But we'll need all employees for the performance/attendance dropdowns
+    }
+    if (payData.data) setPayrolls(payData.data);
+    if (leaveData.data) setLeaveRequests(leaveData.data);
+    if (attData.data) setAttendance(attData.data);
+    if (perfData.data) setPerformanceRecords(perfData.data);
+    if (allEmployees.data) {
+        // Store all employees separately for dropdowns but don't display in "my stats"
+        window.allEmployeesForManager = allEmployees.data;
+    }
+    setResignations([]);
+    setArchivedEmployees([]);
+    setManagers([]);
                     } else {
                         const [empData, payData, leaveData, attData, resData, archData, perfData, managerData] = await Promise.all([
                             supabase.from('employees').select('*').order('id', { ascending: true }),
@@ -2076,6 +2084,23 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                             </div>
                         </div>
 
+                        {userRole === 'manager' && (
+    <div className="bg-white shadow-md border-b">
+        <div className="container mx-auto px-6">
+            <div className="flex space-x-1 overflow-x-auto">
+                <button onClick={() => alert('Dashboard clicked')} className="px-6 py-4 border-b-2 border-brand-purple text-brand-purple">
+                    Dashboard
+                </button>
+                <button onClick={() => alert('Performance clicked')} className="px-6 py-4 border-b-2 border-transparent text-gray-600">
+                    Staff Performance
+                </button>
+                <button onClick={() => alert('Attendance clicked')} className="px-6 py-4 border-b-2 border-transparent text-gray-600">
+                    Attendance
+                </button>
+            </div>
+        </div>
+    </div>
+)}
                         <div className="container mx-auto px-6 py-8">
                             <div className="bg-white p-6 rounded-lg shadow-md mb-8">
                                 <h3 className="text-xl font-bold mb-4">📊 My Stats Overview</h3>
@@ -4255,7 +4280,6 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
     </script>
 </body>
 </html>
-
 
 
 
