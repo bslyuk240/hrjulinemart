@@ -2452,9 +2452,175 @@ doc.text('NGN ' + parseFloat(payroll.net_salary || 0).toLocaleString(), pageWidt
                             </div>
                         )}
                     </div>
-                );
-            }
+                    )}
 
+                    {showModal && modalType === 'attendance' && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-md w-full">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Mark Attendance</h3>
+                                <div className="space-y-4">
+                                    <select value={attendanceForm.employeeId} onChange={(e) => setAttendanceForm({ ...attendanceForm, employeeId: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="">Select Employee *</option>
+                                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                                    </select>
+                                    <input type="date" value={attendanceForm.date} onChange={(e) => setAttendanceForm({ ...attendanceForm, date: e.target.value })} className="w-full px-4 py-2 border rounded-lg" />
+                                    <select value={attendanceForm.status} onChange={(e) => setAttendanceForm({ ...attendanceForm, status: e.target.value })} className="w-full px-4 py-2 border rounded-lg">
+                                        <option value="Present">Present</option>
+                                        <option value="Absent">Absent</option>
+                                        <option value="Half Day">Half Day</option>
+                                        <option value="Late">Late</option>
+                                    </select>
+                                    <div className="flex space-x-3">
+                                        <button onClick={handleAddAttendance} className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-semibold">Mark</button>
+                                        <button onClick={closeModal} className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded-lg font-semibold">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showModal && modalType === 'performance' && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                            <div className="bg-white rounded-lg p-8 max-w-4xl w-full max-h-screen overflow-y-auto">
+                                <h3 className="text-2xl font-bold mb-6 text-brand-purple">Add Performance Record</h3>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Select Employee *</label>
+                                            <select 
+                                                value={performanceForm.employeeId} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, employeeId: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            >
+                                                <option value="">Choose Employee</option>
+                                                {employees.map(emp => (
+                                                    <option key={emp.id} value={emp.id}>{emp.name} - {emp.position}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Review Date *</label>
+                                            <input 
+                                                type="date" 
+                                                value={performanceForm.date} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, date: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            />
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Review Period</label>
+                                            <select 
+                                                value={performanceForm.period_type} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, period_type: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            >
+                                                <option value="Weekly">Weekly Review</option>
+                                                <option value="Monthly">Monthly Review</option>
+                                                <option value="Quarterly">Quarterly Review</option>
+                                                <option value="Annual">Annual Review</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label className="block text-sm font-medium mb-2">Goals Achievement</label>
+                                            <select 
+                                                value={performanceForm.goals_met} 
+                                                onChange={(e) => setPerformanceForm({ ...performanceForm, goals_met: e.target.value })} 
+                                                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+                                            >
+                                                <option value="Yes">Yes - Goals Met</option>
+                                                <option value="Partially">Partially - Some Goals Met</option>
+                                                <option value="No">No - Goals Not Met</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <h4 className="font-semibold text-lg text-gray-700 mb-4">Performance Ratings (1-5 Scale)</h4>
+                                        
+                                        {[
+                                            { key: 'overall_rating', label: 'Overall Performance', desc: 'General performance assessment' },
+                                            { key: 'quality_rating', label: 'Work Quality', desc: 'Quality of work delivered' },
+                                            { key: 'productivity_rating', label: 'Productivity', desc: 'Efficiency and output' },
+                                            { key: 'teamwork_rating', label: 'Teamwork & Collaboration', desc: 'Works well with team' },
+                                            { key: 'communication_rating', label: 'Communication', desc: 'Communication skills' },
+                                            { key: 'punctuality_rating', label: 'Punctuality & Reliability', desc: 'Timeliness and dependability' }
+                                        ].map(rating => (
+                                            <div key={rating.key} className="bg-gray-50 p-4 rounded-lg">
+                                                <label className="block text-sm font-medium mb-2">{rating.label}</label>
+                                                <p className="text-xs text-gray-500 mb-3">{rating.desc}</p>
+                                                <div className="flex items-center space-x-4">
+                                                    <input 
+                                                        type="range" 
+                                                        min="1" 
+                                                        max="5" 
+                                                        value={performanceForm[rating.key]} 
+                                                        onChange={(e) => setPerformanceForm({ ...performanceForm, [rating.key]: parseInt(e.target.value) })} 
+                                                        className="flex-1"
+                                                    />
+                                                    <div className="flex items-center space-x-2">
+                                                        <span className="text-sm font-medium text-gray-600">
+                                                            {'★'.repeat(parseInt(performanceForm[rating.key]))}{'☆'.repeat(5 - parseInt(performanceForm[rating.key]))}
+                                                        </span>
+                                                        <span className="text-lg font-bold text-brand-purple w-8">
+                                                            {performanceForm[rating.key]}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                                                    <span>Poor</span>
+                                                    <span>Excellent</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div className="mt-6">
+                                    <label className="block text-sm font-medium mb-2">Performance Notes & Comments</label>
+                                    <textarea 
+                                        placeholder="Add detailed feedback, achievements, areas for improvement, and specific examples..."
+                                        value={performanceForm.notes} 
+                                        onChange={(e) => setPerformanceForm({ ...performanceForm, notes: e.target.value })} 
+                                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" 
+                                        rows="5"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">Include specific examples, achievements, and constructive feedback</p>
+                                </div>
+
+                                <div className="mt-6 bg-blue-50 p-4 rounded-lg">
+                                    <h5 className="font-semibold text-blue-800 mb-2">📋 Rating Scale Guide</h5>
+                                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-sm">
+                                        <div className="text-center"><strong>1 Star</strong><br/>Poor</div>
+                                        <div className="text-center"><strong>2 Stars</strong><br/>Below Average</div>
+                                        <div className="text-center"><strong>3 Stars</strong><br/>Meets Expectations</div>
+                                        <div className="text-center"><strong>4 Stars</strong><br/>Above Average</div>
+                                        <div className="text-center"><strong>5 Stars</strong><br/>Outstanding</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex space-x-3 mt-8">
+                                    <button 
+                                        onClick={handleAddPerformance} 
+                                        disabled={loading}
+                                        className="flex-1 bg-brand-purple hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-semibold disabled:bg-gray-300"
+                                    >
+                                        {loading ? 'Saving...' : 'Save Performance Record'}
+                                    </button>
+                                    <button 
+                                        onClick={closeModal} 
+                                        className="flex-1 bg-gray-300 hover:bg-gray-400 px-4 py-3 rounded-lg font-semibold"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+            
             return (
                 <div className="min-h-screen bg-gray-50">
                     <div className="bg-brand-purple text-white p-4 sm:p-6 shadow-lg">
