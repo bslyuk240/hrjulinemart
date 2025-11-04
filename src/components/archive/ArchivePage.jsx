@@ -7,7 +7,7 @@ import {
   deleteArchivedEmployee,
   getArchiveStats,
   exportArchivedToCSV
-} from '../../services/archiveservice';
+} from '../../services/archiveService';
 import { 
   Archive,
   Search,
