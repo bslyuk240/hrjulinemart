@@ -217,8 +217,8 @@ export default function Sidebar() {
               >
                 {({ isActive }) => (
                   <>
-                    <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
-                    <span className="font-medium">{item.name}</span>
+                    <Icon className={`w-4 h-4 md:w-5 md:h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
+                    <span className="text-sm md:text-base font-medium">{item.name}</span>
                   </>
                 )}
               </NavLink>
@@ -244,8 +244,8 @@ export default function Sidebar() {
               }`
             }
           >
-            <Settings className="w-5 h-5" />
-            <span className="font-medium">Settings</span>
+            <Settings className="w-4 h-4 md:w-5 md:h-5" />
+            <span className="text-sm md:text-base font-medium">Settings</span>
           </NavLink>
 
           <div className="mt-4 p-3 bg-purple-50 rounded-lg">
