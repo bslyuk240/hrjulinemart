@@ -16,7 +16,6 @@ import {
 } from 'lucide-react';
 import Loading from '../common/Loading';
 import StatsCard from './StatsCard';
-import RecentActivity from './RecentActivity';
 import QuickActions from './QuickActions';
 
 export default function Dashboard() {
@@ -98,7 +97,19 @@ export default function Dashboard() {
     }
   };
 
-  const fetchPayrollStats = async () => {
+    const fetchPendingRequests = async () => {
+    try {
+      const { count, error } = await supabase
+        .from('requests')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'Pending');
+      if (error) throw error;
+      setPendingRequests(count || 0);
+    } catch (e) {
+      console.error('Error fetching pending requests:', e);
+    }
+  };
+const fetchPayrollStats = async () => {
     try {
       // Get all payroll records
       const { data: payrolls, error } = await supabase
@@ -215,7 +226,7 @@ export default function Dashboard() {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -265,8 +276,8 @@ export default function Dashboard() {
       </div>
 
       {/* Secondary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-6">
-        <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Total Payroll (All Time)</p>
@@ -278,7 +289,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Average Salary</p>
@@ -290,12 +301,24 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">New This Month</p>
               <p className="text-2xl font-bold text-gray-900 mt-2">{stats.newEmployeesThisMonth}</p>
             </div>
+        {/* Pending Requests */}
+        <div className=\"bg-white rounded-lg shadow-md p-3 sm:p-6\">
+          <div className=\"flex items-center justify-between\">
+            <div>
+              <p className=\"text-xs sm:text-sm text-gray-600\">Pending Requests</p>
+              <p className=\"text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2\">{pendingRequests}</p>
+            </div>
+            <div className=\"bg-yellow-100 p-2 sm:p-3 rounded-lg\">
+              <Clock className=\"w-5 h-5 sm:w-6 sm:h-6 text-yellow-600\" />
+            </div>
+          </div>
+        </div>
             <div className="bg-blue-100 p-3 rounded-lg">
               <UserCheck className="w-6 h-6 text-blue-600" />
             </div>
@@ -303,25 +326,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Department Stats & Recent Activity */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3 md:gap-6">
-        {/* Department Statistics */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Department Overview</h2>
-          <div className="space-y-4">
-            {departmentStats.length === 0 ? (
-              <p className="text-gray-500 text-center py-8">No department data available</p>
-            ) : (
-              departmentStats.map((dept, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-purple-100 p-2 rounded-lg">
-                      <Building className="w-5 h-5 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{dept.name}</p>
-                      <p className="text-sm text-gray-600">{dept.count} employees</p>
-                    </div>
+      
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">{formatCurrency(dept.totalSalary)}</p>
@@ -450,3 +455,11 @@ export default function Dashboard() {
     </div>
   );
 }
+
+
+
+
+
+
+
+
