@@ -33,6 +33,7 @@ export default function Dashboard() {
   const [recentPayrolls, setRecentPayrolls] = useState([]);
   const [recentEmployees, setRecentEmployees] = useState([]);
   const [departmentStats, setDepartmentStats] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
@@ -47,6 +48,7 @@ export default function Dashboard() {
         fetchRecentPayrolls(),
         fetchRecentEmployees(),
         fetchDepartmentStats(),
+        fetchPendingRequests(),
       ]);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -97,7 +99,7 @@ export default function Dashboard() {
     }
   };
 
-    const fetchPendingRequests = async () => {
+  const fetchPendingRequests = async () => {
     try {
       const { count, error } = await supabase
         .from('requests')
@@ -307,48 +309,30 @@ const fetchPayrollStats = async () => {
               <p className="text-sm text-gray-600">New This Month</p>
               <p className="text-2xl font-bold text-gray-900 mt-2">{stats.newEmployeesThisMonth}</p>
             </div>
-        {/* Pending Requests */}
-        <div className=\"bg-white rounded-lg shadow-md p-3 sm:p-6\">
-          <div className=\"flex items-center justify-between\">
-            <div>
-              <p className=\"text-xs sm:text-sm text-gray-600\">Pending Requests</p>
-              <p className=\"text-xl sm:text-2xl font-bold text-gray-900 mt-1 sm:mt-2\">{pendingRequests}</p>
-            </div>
-            <div className=\"bg-yellow-100 p-2 sm:p-3 rounded-lg\">
-              <Clock className=\"w-5 h-5 sm:w-6 sm:h-6 text-yellow-600\" />
-            </div>
-          </div>
-        </div>
+
             <div className="bg-blue-100 p-3 rounded-lg">
               <UserCheck className="w-6 h-6 text-blue-600" />
             </div>
           </div>
         </div>
-      </div>
 
-      
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold text-gray-900">{formatCurrency(dept.totalSalary)}</p>
-                    <p className="text-xs text-gray-500">Total salary</p>
-                  </div>
-                </div>
-              ))
-            )}
+        {/* Pending Requests */}
+        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600">Pending Requests</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">{pendingRequests}</p>
+            </div>
+            <div className="bg-yellow-100 p-3 rounded-lg">
+              <Clock className="w-6 h-6 text-yellow-600" />
+            </div>
           </div>
         </div>
-
-        {/* Recent Activity */}
-        <RecentActivity 
-          recentPayrolls={recentPayrolls}
-          recentEmployees={recentEmployees}
-          formatCurrency={formatCurrency}
-          formatDate={formatDate}
-        />
       </div>
 
+
       {/* Recent Payrolls Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recent Payroll Records</h2>
         </div>
@@ -398,7 +382,7 @@ const fetchPayrollStats = async () => {
       </div>
 
       {/* Recent Employees */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recently Added Employees</h2>
         </div>
