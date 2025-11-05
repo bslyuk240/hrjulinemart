@@ -171,7 +171,7 @@ export default function NotificationDropdown() {
             className="fixed inset-0 z-40" 
             onClick={() => setShowNotifications(false)}
           />
-          <div className="absolute right-0 mt-2 w-[90vw] max-w-sm sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+          <div className="absolute mt-2 left-1/2 -translate-x-1/2 sm:left-auto sm:right-0 sm:translate-x-0 w-[92vw] max-w-sm sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 mx-2">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-semibold text-gray-800">Notifications</h3>
