@@ -186,18 +186,18 @@ export default function AttendanceList({ employees }) {
           </p>
         </div>
         {(isAdmin() || isManager()) && (
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 flex-nowrap">
             <button
               onClick={() => setShowReport(true)}
-              className="flex items-center px-4 md:px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md"
+              className="flex items-center px-3 md:px-5 py-2 md:py-2 bg-purple-600 text-white text-xs md:text-sm whitespace-nowrap rounded-lg hover:bg-purple-700 transition-colors shadow-md"
             >
-              <BarChart3 className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Generate Report
+              <BarChart3 className="w-4 h-4 md:w-5 md:h-5 mr-1" /> Generate Report
             </button>
             <button
               onClick={() => setShowForm(true)}
-              className="flex items-center px-5 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
+              className="flex items-center px-3 md:px-5 py-2 md:py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-xs md:text-sm whitespace-nowrap rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg"
             >
-              <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" /> Mark Attendance
+              <Plus className="w-4 h-4 md:w-5 md:h-5 mr-1" /> Mark Attendance
             </button>
           </div>
         )}
