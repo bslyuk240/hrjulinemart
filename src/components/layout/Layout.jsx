@@ -1,12 +1,34 @@
-import React from 'react';
-import { Outlet } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export default function Layout() {
-  const { sidebarOpen, notifications, removeNotification } = useApp();
+  const { sidebarOpen, notifications, removeNotification, setSidebarOpen } = useApp();
+  const location = useLocation();
+
+  // Ensure sidebar is closed by default on mobile and closes on route change
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Close on mount for small screens
+      if (window.innerWidth < 1024) setSidebarOpen(false);
+
+      const handleResize = () => {
+        if (window.innerWidth < 1024) setSidebarOpen(false);
+      };
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }
+  }, [setSidebarOpen]);
+
+  // Close sidebar on navigation for small screens
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }, [location, setSidebarOpen]);
 
   const getNotificationIcon = (type) => {
     switch (type) {
@@ -46,11 +68,7 @@ export default function Layout() {
         <Sidebar />
 
         {/* Main Content */}
-        <main
-          className={`flex-1 transition-all duration-300 ${
-            sidebarOpen ? 'lg:ml-64' : 'ml-0'
-          }`}
-        >
+        <main className="flex-1 transition-all duration-300 ml-0 lg:ml-64">
           <div className="p-6">
             <Outlet />
           </div>

@@ -179,7 +179,7 @@ export default function LeaveList({ employees }) {
       </div>
 
       {/* Stats Grid — Responsive same as Dashboard */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 md:p-5 lg:p-6 text-white shadow-md">
           <div className="flex items-center justify-between">
             <div>

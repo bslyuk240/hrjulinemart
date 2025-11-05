@@ -27,7 +27,8 @@ export const AppProvider = ({ children }) => {
   });
   const [loading, setLoading] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
 
   // Fetch initial data
   useEffect(() => {

@@ -22,6 +22,7 @@ export default function Sidebar() {
   const { user, isAdmin, isManager } = useAuth();
   const { sidebarOpen, toggleSidebar } = useApp();
 
+
   const navigationItems = [
     {
       name: 'Dashboard',
@@ -127,8 +128,8 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40 flex flex-col transition-transform duration-300 ease-in-out
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-          lg:translate-x-0
+          ${sidebarOpen ? 'block translate-x-0' : 'hidden -translate-x-full'}
+          lg:block lg:translate-x-0
         `}
       >
         {/* Sidebar Header */}

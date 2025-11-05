@@ -244,7 +244,8 @@ doc.setFont('helvetica', 'italic');
 doc.text('www.julinemart.com', pageWidth / 2, pageHeight - 25, { align: 'center' });
 
 // Signature section
-const digitalSignature = import.meta.env.VITE_DIGITAL_SIGNATURE='https://res.cloudinary.com/dupgdbwrt/image/upload/v1761916694/Untitled_design_wr36a2.png';
+// Use env value if provided; otherwise fallback to default URL
+const digitalSignature = import.meta.env.VITE_DIGITAL_SIGNATURE || 'https://res.cloudinary.com/dupgdbwrt/image/upload/v1761916694/Untitled_design_wr36a2.png';
 
 // Signature box background
 doc.setDrawColor(240, 240, 240);

@@ -85,7 +85,7 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
     const loanDeduction = parseFloat(formData.loan_deduction) || 0;
 
     const totalDeductions = deductions + tax + pension + loanRepayment + insurance + otherDeductions + nhf + loanDeduction;
-    const netSalary = grossSalary - totalDeductions;
+    const netSalary = grossSalary - (grossSalary * (tax / 100));
 
     setCalculatedTotals({
       grossSalary,
@@ -406,15 +406,17 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Tax
                 </label>
-                <input
-                  type="number"
-                  name="tax"
-                  value={formData.tax}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+<input
+  type="number"
+  name="tax"
+  value={formData.tax}
+  onChange={handleChange}
+  min="0"
+  max="100"
+  step="0.01"
+  placeholder="Tax (%)"
+  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+/>
               </div>
 
               <div>

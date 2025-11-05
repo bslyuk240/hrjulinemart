@@ -217,7 +217,7 @@ export default function AttendanceList({ employees }) {
               </p>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
             <button
               onClick={handleClockIn}
               disabled={todayAttendance && todayAttendance.clock_in}
@@ -248,7 +248,7 @@ export default function AttendanceList({ employees }) {
 
       {/* Stats Cards (responsive same as dashboard) */}
       {(isAdmin() || isManager()) && (
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
           {[
             { label: 'Total Records', value: stats.total, color: 'from-blue-500 to-blue-600', icon: <Users className="w-5 h-5 md:w-6 md:h-6" /> },
             { label: 'Present', value: stats.present, color: 'from-green-500 to-green-600', icon: <CheckCircle className="w-5 h-5 md:w-6 md:h-6" /> },

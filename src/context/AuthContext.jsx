@@ -34,9 +34,21 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // Check for existing user session on mount
-  useEffect(() => {
-    checkUserSession();
-  }, []);
+  // Replace your checkUserSession() call with this version:
+useEffect(() => {
+  try {
+    const stored = localStorage.getItem("user");
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      setUser(parsed);
+    }
+  } catch (error) {
+    console.warn("Auth load error, resetting storage:", error);
+    localStorage.clear();
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   const checkUserSession = () => {
     try {
