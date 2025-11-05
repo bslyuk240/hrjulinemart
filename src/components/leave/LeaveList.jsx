@@ -332,6 +332,31 @@ export default function LeaveList({ employees }) {
                 >
                   View
                 </button>
+                {/* Admin quick actions on mobile */}
+                {isAdmin() && leave.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => handleQuickApprove(leave.id)}
+                      className="ml-2 px-3 py-1.5 text-sm border border-green-600 text-green-700 rounded-lg hover:bg-green-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleQuickReject(leave.id)}
+                      className="ml-2 px-3 py-1.5 text-sm border border-yellow-600 text-yellow-700 rounded-lg hover:bg-yellow-50"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                {(leave.employee_id === user.id || isAdmin()) && (
+                  <button
+                    onClick={() => setDeleteModal({ show: true, id: leave.id, name: leave.employee_name })}
+                    className="ml-2 px-3 py-1.5 text-sm border border-red-600 text-red-700 rounded-lg hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           ))

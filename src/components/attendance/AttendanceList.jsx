@@ -353,6 +353,14 @@ export default function AttendanceList({ employees }) {
                 >
                   View
                 </button>
+                {isAdmin() && (
+                  <button
+                    onClick={() => setDeleteModal({ show: true, id: record.id, name: record.employee_name })}
+                    className="ml-2 px-3 py-1.5 text-sm border border-red-600 text-red-700 rounded-lg hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
+                )}
               </div>
             </div>
           ))

@@ -188,7 +188,7 @@ export default function ResignationList({ employees }) {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
@@ -245,7 +245,7 @@ export default function ResignationList({ employees }) {
           <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4">
           {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -282,8 +282,69 @@ export default function ResignationList({ employees }) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Mobile List (cards) */}
+      <div className="md:hidden space-y-3">
+        {filteredResignations.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No resignations found</div>
+        ) : (
+          filteredResignations.map((r) => (
+            <div key={r.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-base font-semibold text-gray-900">{r.employee_name}</p>
+                  <p className="text-sm text-gray-500">Notice: {calculateNoticePeriod(r.notice_period_start, r.notice_period_end)} days</p>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusColor(r.status)}`}>
+                  {r.status}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                <div>
+                  <p className="text-gray-500">Start</p>
+                  <p className="font-medium">{new Date(r.notice_period_start).toLocaleDateString('en-GB')}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">End</p>
+                  <p className="font-medium">{new Date(r.notice_period_end).toLocaleDateString('en-GB')}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  onClick={() => { setSelectedResignation(r); setShowApproval(true); }}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  View
+                </button>
+                {r.status === 'Pending' && (
+                  <>
+                    <button
+                      onClick={() => handleApprove(r)}
+                      className="px-3 py-1.5 text-sm border border-green-600 text-green-700 rounded-lg hover:bg-green-50"
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => handleReject(r)}
+                      className="px-3 py-1.5 text-sm border border-yellow-600 text-yellow-700 rounded-lg hover:bg-yellow-50"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                <button
+                  onClick={() => setDeleteModal({ show: true, id: r.id, name: r.employee_name })}
+                  className="px-3 py-1.5 text-sm border border-red-600 text-red-700 rounded-lg hover:bg-red-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-red-600 to-orange-600 text-white">

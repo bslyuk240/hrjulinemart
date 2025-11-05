@@ -285,8 +285,57 @@ export default function EmployeeList() {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Mobile List (cards) */}
+      <div className="md:hidden space-y-3">
+        {filteredEmployees.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No employees found</div>
+        ) : (
+          filteredEmployees.map((emp) => (
+            <div key={emp.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-base font-semibold text-gray-900">{emp.name}</p>
+                  <p className="text-sm text-gray-500">{emp.employee_code}</p>
+                </div>
+                <span className="text-xs text-gray-500">{emp.department || '—'}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+                <div>
+                  <p className="text-gray-500">Position</p>
+                  <p className="font-medium">{emp.position || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Salary</p>
+                  <p className="font-medium">{formatCurrency(emp.salary)}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end gap-2">
+                <button
+                  onClick={() => { setSelectedEmployee(emp); setShowDetailsModal(true); }}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  View
+                </button>
+                <button
+                  onClick={() => { setEditingEmployee(emp); setShowForm(true); }}
+                  className="px-3 py-1.5 text-sm border border-green-600 text-green-700 rounded-lg hover:bg-green-50"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setDeleteModal({ show: true, id: emp.id, name: emp.name })}
+                  className="px-3 py-1.5 text-sm border border-red-600 text-red-700 rounded-lg hover:bg-red-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
