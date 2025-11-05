@@ -170,7 +170,7 @@ export default function LeaveList({ employees }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Leave Management</h1>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900">Leave Management</h1>
           <p className="text-gray-600 mt-1 text-sm md:text-base">
             {isAdmin() || isManager() ? 'Manage employee leave requests and approvals' : 'Request and track your leave'}
           </p>
@@ -185,12 +185,12 @@ export default function LeaveList({ employees }) {
       </div>
 
       {/* Stats Grid — Responsive same as Dashboard */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 md:p-5 lg:p-6 text-white shadow-md">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-xs md:text-sm">Total Requests</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{stats.total}</p>
+              <p className="text-xl md:text-3xl font-bold mt-2">{stats.total}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
               <Calendar className="w-5 h-5 md:w-6 md:h-6" />
@@ -198,11 +198,11 @@ export default function LeaveList({ employees }) {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-3 md:p-5 lg:p-6 text-white shadow-md">
+        <div className="bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-yellow-100 text-xs md:text-sm">Pending</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{stats.pending}</p>
+              <p className="text-xl md:text-3xl font-bold mt-2">{stats.pending}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
               <Clock className="w-5 h-5 md:w-6 md:h-6" />
@@ -210,11 +210,11 @@ export default function LeaveList({ employees }) {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 md:p-5 lg:p-6 text-white shadow-md">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-100 text-xs md:text-sm">Approved</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{stats.approved}</p>
+              <p className="text-xl md:text-3xl font-bold mt-2">{stats.approved}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
               <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
@@ -222,11 +222,11 @@ export default function LeaveList({ employees }) {
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-3 md:p-5 lg:p-6 text-white shadow-md">
+        <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-md">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-red-100 text-xs md:text-sm">Rejected</p>
-              <p className="text-2xl md:text-3xl font-bold mt-2">{stats.rejected}</p>
+              <p className="text-xl md:text-3xl font-bold mt-2">{stats.rejected}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
               <XCircle className="w-5 h-5 md:w-6 md:h-6" />
@@ -561,3 +561,6 @@ export default function LeaveList({ employees }) {
     </div>
   );
 }
+
+
+

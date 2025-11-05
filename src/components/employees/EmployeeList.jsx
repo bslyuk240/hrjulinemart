@@ -161,7 +161,7 @@ export default function EmployeeList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Employee Management</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Employee Management</h1>
           <p className="text-gray-600 mt-1">Manage your workforce and employee records</p>
         </div>
         <button
@@ -178,50 +178,47 @@ export default function EmployeeList() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm">Total Employees</p>
-              <p className="text-3xl font-bold mt-2">{stats.totalEmployees}</p>
+              <p className="text-purple-100 text-xs sm:text-sm">Total Employees</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 sm:mt-2">{stats.totalEmployees}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Users className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <Users className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>
-
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Total Salary</p>
-              <p className="text-2xl font-bold mt-2">{formatCurrency(stats.totalSalary)}</p>
+              <p className="text-green-100 text-xs sm:text-sm">Total Salary</p>
+              <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{formatCurrency(stats.totalSalary)}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <DollarSign className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <DollarSign className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>
-
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm">Departments</p>
-              <p className="text-3xl font-bold mt-2">{stats.departments}</p>
+              <p className="text-blue-100 text-xs sm:text-sm">Departments</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 sm:mt-2">{stats.departments}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Building className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <Building className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>
-
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm">Positions</p>
-              <p className="text-3xl font-bold mt-2">{stats.positions}</p>
+              <p className="text-orange-100 text-xs sm:text-sm">Positions</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 sm:mt-2">{stats.positions}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Users className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <Users className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>

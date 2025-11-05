@@ -176,50 +176,50 @@ export default function PayrollList({ employees }) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm">Total Payrolls</p>
-              <p className="text-3xl font-bold mt-2">{stats.totalPayrolls}</p>
+              <p className="text-purple-100 text-xs sm:text-sm">Total Payrolls</p>
+              <p className="text-xl sm:text-3xl font-bold mt-1 sm:mt-2">{stats.totalPayrolls}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Users className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <Users className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Current Month Total</p>
-              <p className="text-2xl font-bold mt-2">{formatCurrency(stats.currentMonthTotal)}</p>
+              <p className="text-green-100 text-xs sm:text-sm">Current Month Total</p>
+              <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{formatCurrency(stats.currentMonthTotal)}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Calendar className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <Calendar className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm">Total Paid Out</p>
-              <p className="text-2xl font-bold mt-2">{formatCurrency(stats.totalPaid)}</p>
+              <p className="text-blue-100 text-xs sm:text-sm">Total Paid Out</p>
+              <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{formatCurrency(stats.totalPaid)}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <DollarSign className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <DollarSign className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-orange-100 text-sm">Total Gross</p>
-              <p className="text-2xl font-bold mt-2">{formatCurrency(stats.totalGross)}</p>
+              <p className="text-orange-100 text-xs sm:text-sm">Total Gross</p>
+              <p className="text-xl sm:text-2xl font-bold mt-1 sm:mt-2">{formatCurrency(stats.totalGross)}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <TrendingUp className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <TrendingUp className="w-5 h-5 sm:w-8 sm:h-8" />
             </div>
           </div>
         </div>
