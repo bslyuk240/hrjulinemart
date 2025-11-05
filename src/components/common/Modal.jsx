@@ -19,8 +19,8 @@ export default function Modal({
         }
       }}
     >
-      <div className="bg-white rounded-lg max-w-md w-full">
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+      <div className="bg-white rounded-lg w-full max-w-md sm:max-w-lg max-h-[90vh] flex flex-col">
+        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button
             onClick={onClose}
@@ -30,11 +30,11 @@ export default function Modal({
           </button>
         </div>
         
-        <div className="px-6 py-4">
+        <div className="px-6 py-4 overflow-y-auto">
           {children}
         </div>
         
-        <div className="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3">
+        <div className="border-t border-gray-200 px-6 py-4 flex justify-end space-x-3 shrink-0">
           <button
             onClick={onClose}
             className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
