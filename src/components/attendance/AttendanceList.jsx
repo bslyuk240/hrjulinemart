@@ -174,7 +174,7 @@ export default function AttendanceList({ employees }) {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -186,7 +186,7 @@ export default function AttendanceList({ employees }) {
           </p>
         </div>
         {(isAdmin() || isManager()) && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setShowReport(true)}
               className="flex items-center px-4 md:px-5 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-md"
@@ -204,14 +204,14 @@ export default function AttendanceList({ employees }) {
       </div>
 
       {/* Clock In/Out Card */}
-      <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-4 md:p-6 text-white shadow-lg">
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-3 sm:p-6 text-white shadow-lg">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center space-x-4">
-            <div className="bg-white bg-opacity-20 p-3 md:p-4 rounded-lg">
-              <Clock className="w-6 h-6 md:w-8 md:h-8" />
+            <div className="bg-white bg-opacity-20 p-2 sm:p-3 rounded-lg">
+              <Clock className="w-5 h-5 md:w-8 md:h-8" />
             </div>
             <div>
-              <h3 className="text-lg md:text-xl font-bold">Quick Clock In/Out</h3>
+              <h3 className="text-base md:text-xl font-bold">Quick Clock In/Out</h3>
               <p className="text-purple-100 text-xs md:text-sm">
                 {todayAttendance && todayAttendance.clock_in
                   ? `Clocked in at ${formatTime(todayAttendance.clock_in)}`
@@ -250,18 +250,18 @@ export default function AttendanceList({ employees }) {
 
       {/* Stats Cards (responsive same as dashboard) */}
       {(isAdmin() || isManager()) && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
           {[
             { label: 'Total Records', value: stats.total, color: 'from-blue-500 to-blue-600', icon: <Users className="w-5 h-5 md:w-6 md:h-6" /> },
             { label: 'Present', value: stats.present, color: 'from-green-500 to-green-600', icon: <CheckCircle className="w-5 h-5 md:w-6 md:h-6" /> },
             { label: 'Absent', value: stats.absent, color: 'from-red-500 to-red-600', icon: <XCircle className="w-5 h-5 md:w-6 md:h-6" /> },
             { label: 'Late', value: stats.late, color: 'from-yellow-500 to-yellow-600', icon: <AlertCircle className="w-5 h-5 md:w-6 md:h-6" /> },
           ].map((card, i) => (
-            <div key={i} className={`bg-gradient-to-br ${card.color} rounded-lg p-3 md:p-5 lg:p-6 text-white shadow-md`}>
+            <div key={i} className={`bg-gradient-to-br ${card.color} rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-md`}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-white/80">{card.label}</p>
-                  <p className="text-2xl md:text-3xl font-bold mt-2">{card.value}</p>
+                  <p className="text-xl md:text-3xl font-bold mt-2">{card.value}</p>
                 </div>
                 <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">{card.icon}</div>
               </div>

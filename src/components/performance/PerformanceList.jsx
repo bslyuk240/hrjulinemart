@@ -154,93 +154,93 @@ export default function PerformanceList({ employees }) {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Performance Management</h1>
-          <p className="text-gray-600 mt-1">Track and manage employee performance reviews</p>
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900">Performance Management</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">Track and manage employee performance reviews</p>
         </div>
         <button
           onClick={() => {
             setSelectedRecord(null);
             setShowForm(true);
           }}
-          className="flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
+          className="flex items-center px-5 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl"
         >
-          <Plus className="w-5 h-5 mr-2" />
+          <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
           New Review
         </button>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-blue-100 text-sm">Total Reviews</p>
-              <p className="text-3xl font-bold mt-2">{stats.total}</p>
+              <p className="text-blue-100 text-xs md:text-sm">Total Reviews</p>
+              <p className="text-xl md:text-3xl font-bold mt-2">{stats.total}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Users className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
+              <Users className="w-5 h-5 md:w-6 md:h-6" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm">Average Rating</p>
-              <p className="text-3xl font-bold mt-2">{stats.averageOverall}</p>
+              <p className="text-green-100 text-xs md:text-sm">Average Rating</p>
+              <p className="text-xl md:text-3xl font-bold mt-2">{stats.averageOverall}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Star className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
+              <Star className="w-5 h-5 md:w-6 md:h-6" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-purple-100 text-sm">Excellent (5★)</p>
               <p className="text-3xl font-bold mt-2">{stats.excellent}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <Award className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
+              <Award className="w-5 h-5 md:w-6 md:h-6" />
             </div>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-lg">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-orange-100 text-sm">Good (4★)</p>
               <p className="text-3xl font-bold mt-2">{stats.good}</p>
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-              <TrendingUp className="w-8 h-8" />
+            <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
+              <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="flex items-center gap-2 mb-4">
+      <div className="bg-white rounded-lg shadow-md p-3 md:p-5">
+        <div className="flex items-center gap-2 mb-3 md:mb-4">
           <Filter className="w-5 h-5 text-gray-600" />
-          <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+          <h3 className="text-base md:text-lg font-semibold text-gray-900">Filters</h3>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 md:gap-4">
           {/* Search */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Search by employee name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-9 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
             />
           </div>
 
@@ -248,7 +248,7 @@ export default function PerformanceList({ employees }) {
           <select
             value={filterPeriod}
             onChange={(e) => setFilterPeriod(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
           >
             <option value="">All Periods</option>
             {periodTypes.map((period) => (
@@ -262,7 +262,7 @@ export default function PerformanceList({ employees }) {
           <select
             value={filterRating}
             onChange={(e) => setFilterRating(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm md:text-base"
           >
             <option value="">All Ratings</option>
             {ratingOptions.map((rating) => (
@@ -275,7 +275,7 @@ export default function PerformanceList({ employees }) {
           {/* Clear Filters */}
           <button
             onClick={clearFilters}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm md:text-base"
           >
             Clear Filters
           </button>
