@@ -39,17 +39,21 @@ export default function NotificationDropdown() {
         setUnreadCount(prev => prev + 1);
         
         // Optional: Show browser notification
-        if (Notification.permission === 'granted') {
-          new Notification(newNotification.title, {
-            body: newNotification.message,
-            icon: '/logo.png',
-          });
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          try {
+            new Notification(newNotification.title, {
+              body: newNotification.message,
+              icon: '/logo.png',
+            });
+          } catch (_) {
+            // Ignore Notification errors (unsupported on some iOS versions)
+          }
         }
       });
 
       // Request notification permission
-      if (Notification.permission === 'default') {
-        Notification.requestPermission();
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+        try { Notification.requestPermission(); } catch (_) { /* noop */ }
       }
 
       return () => {

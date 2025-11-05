@@ -42,6 +42,7 @@ export default function LeaveList({ employees }) {
     rejected: 0,
   });
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
+  const [showDetails, setShowDetails] = useState(false);
 
   const leaveTypes = [
     'annual', 'sick', 'casual', 'maternity', 'paternity', 'unpaid', 'emergency'
@@ -99,6 +100,11 @@ export default function LeaveList({ employees }) {
     if (filterType) filtered = filtered.filter(leave => leave.type === filterType);
 
     setFilteredLeaves(filtered);
+  };
+
+  const handleViewDetails = (leave) => {
+    setSelectedLeave(leave);
+    setShowDetails(true);
   };
 
   const handleDelete = async () => {
@@ -287,8 +293,81 @@ export default function LeaveList({ employees }) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Mobile List (cards) */}
+      <div className="md:hidden space-y-3">
+        {filteredLeaves.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No leave requests found</div>
+        ) : (
+          filteredLeaves.map((leave) => (
+            <div key={leave.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  {(isAdmin() || isManager()) && (
+                    <p className="text-base font-semibold text-gray-900">{leave.employee_name}</p>
+                  )}
+                  <p className="text-sm text-gray-500">{getTypeLabel(leave.type)}</p>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadge(leave.status)}`}>
+                  {leave.status}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
+                <div>
+                  <p className="text-gray-500">Start</p>
+                  <p className="font-medium">{formatDate(leave.start_date)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">End</p>
+                  <p className="font-medium">{formatDate(leave.end_date)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Days</p>
+                  <p className="font-medium">{leave.days}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={() => handleViewDetails(leave)}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  View
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Details Modal */}
+      {showDetails && selectedLeave && (
+        <Modal
+          title="Leave Details"
+          onClose={() => { setShowDetails(false); setSelectedLeave(null); }}
+          onConfirm={() => { setShowDetails(false); setSelectedLeave(null); }}
+          confirmText="Close"
+          cancelText="Back"
+        >
+          <div className="space-y-2 text-sm">
+            {(isAdmin() || isManager()) && (
+              <p><span className="text-gray-500">Employee:</span> <span className="font-medium">{selectedLeave.employee_name}</span></p>
+            )}
+            <p><span className="text-gray-500">Type:</span> <span className="font-medium">{getTypeLabel(selectedLeave.type)}</span></p>
+            <p><span className="text-gray-500">Start:</span> <span className="font-medium">{formatDate(selectedLeave.start_date)}</span></p>
+            <p><span className="text-gray-500">End:</span> <span className="font-medium">{formatDate(selectedLeave.end_date)}</span></p>
+            <p><span className="text-gray-500">Days:</span> <span className="font-medium">{selectedLeave.days}</span></p>
+            <p><span className="text-gray-500">Reason:</span> <span className="font-medium">{selectedLeave.reason}</span></p>
+            <p>
+              <span className="text-gray-500">Status:</span>{' '}
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadge(selectedLeave.status)}`}>
+                {selectedLeave.status}
+              </span>
+            </p>
+          </div>
+        </Modal>
+      )}
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">

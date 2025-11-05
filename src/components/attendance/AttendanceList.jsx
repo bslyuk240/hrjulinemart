@@ -49,6 +49,8 @@ export default function AttendanceList({ employees }) {
     late: 0,
   });
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
+  const [showDetails, setShowDetails] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
   const statusOptions = ['present', 'absent', 'late', 'half_day', 'on_leave'];
 
@@ -312,8 +314,53 @@ export default function AttendanceList({ employees }) {
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      {/* Mobile List (cards) */}
+      <div className="md:hidden space-y-3">
+        {filteredAttendance.length === 0 ? (
+          <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No attendance records found</div>
+        ) : (
+          filteredAttendance.map((record) => (
+            <div key={record.id} className="bg-white rounded-lg shadow p-4">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">{formatDate(record.date)}</p>
+                  {(isAdmin() || isManager()) && (
+                    <p className="text-base font-semibold text-gray-900">{record.employee_name}</p>
+                  )}
+                </div>
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadge(record.status)}`}>
+                  {record.status}
+                </span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mt-3 text-sm">
+                <div>
+                  <p className="text-gray-500">Clock In</p>
+                  <p className="font-medium">{formatTime(record.clock_in)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Clock Out</p>
+                  <p className="font-medium">{formatTime(record.clock_out)}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Hours</p>
+                  <p className="font-medium">{calculateWorkHours(record.clock_in, record.clock_out)}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex justify-end">
+                <button
+                  onClick={() => { setSelectedRecord(record); setShowDetails(true); }}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  View
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
@@ -408,6 +455,33 @@ export default function AttendanceList({ employees }) {
           </div>
         )}
       </div>
+
+      {/* Details Modal */}
+      {showDetails && selectedRecord && (
+        <Modal
+          title="Attendance Details"
+          onClose={() => { setShowDetails(false); setSelectedRecord(null); }}
+          onConfirm={() => { setShowDetails(false); setSelectedRecord(null); }}
+          confirmText="Close"
+          cancelText="Back"
+        >
+          <div className="space-y-2 text-sm">
+            <p><span className="text-gray-500">Date:</span> <span className="font-medium">{formatDate(selectedRecord.date)}</span></p>
+            {(isAdmin() || isManager()) && (
+              <p><span className="text-gray-500">Employee:</span> <span className="font-medium">{selectedRecord.employee_name}</span></p>
+            )}
+            <p><span className="text-gray-500">Clock In:</span> <span className="font-medium">{formatTime(selectedRecord.clock_in)}</span></p>
+            <p><span className="text-gray-500">Clock Out:</span> <span className="font-medium">{formatTime(selectedRecord.clock_out)}</span></p>
+            <p><span className="text-gray-500">Hours:</span> <span className="font-medium">{calculateWorkHours(selectedRecord.clock_in, selectedRecord.clock_out)}</span></p>
+            <p>
+              <span className="text-gray-500">Status:</span>{' '}
+              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadge(selectedRecord.status)}`}>
+                {selectedRecord.status}
+              </span>
+            </p>
+          </div>
+        </Modal>
+      )}
 
       {/* Attendance Form Modal */}
       {showForm && (
