@@ -65,13 +65,14 @@ export default function EmployeePayslip() {
       (sum, p) =>
         sum +
         (parseFloat(p.basic_salary) || 0) +
-        (parseFloat(p.allowances) || 0),
+        (parseFloat(p.allowances) || 0) +
+        (parseFloat(p.overtime_pay) || 0) +
+        (parseFloat(p.bonus) || 0) +
+        (parseFloat(p.holiday_pay) || 0) +
+        (parseFloat(p.other_earnings) || 0),
       0
     );
-    const totalDeductions = data.reduce(
-      (sum, p) => sum + (parseFloat(p.deductions) || 0),
-      0
-    );
+    const totalDeductions = data.reduce((sum, p) => sum + getTotalDeductions(p), 0);
     const averageNetSalary =
       data.length > 0
         ? data.reduce((sum, p) => sum + (parseFloat(p.net_salary) || 0), 0) /
@@ -120,6 +121,17 @@ export default function EmployeePayslip() {
           year: "numeric",
         })
       : "N/A";
+
+  // Compute total deductions across all components
+  const getTotalDeductions = (p) =>
+    (parseFloat(p?.deductions) || 0) +
+    (parseFloat(p?.tax) || 0) +
+    (parseFloat(p?.pension) || 0) +
+    (parseFloat(p?.loan_repayment) || 0) +
+    (parseFloat(p?.insurance) || 0) +
+    (parseFloat(p?.other_deductions) || 0) +
+    (parseFloat(p?.nhf) || 0) +
+    (parseFloat(p?.loan_deduction) || 0);
 
   const downloadPayslip = async (p) => {
     try {
@@ -311,7 +323,7 @@ export default function EmployeePayslip() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Deductions</span>
                   <span className="font-semibold text-red-600">
-                    -{formatCurrency(p.deductions)}
+                    -{formatCurrency(getTotalDeductions(p))}
                   </span>
                 </div>
                 <div className="border-t pt-2 mt-2 flex justify-between font-semibold">
@@ -429,16 +441,30 @@ export default function EmployeePayslip() {
               <div>
                 <h3 className="font-semibold text-gray-700 mb-2">Deductions</h3>
                 <div className="space-y-2">
-                  {selectedPayslip.tax > 0 && (
-                    <div className="flex justify-between bg-red-50 rounded-lg p-2 md:p-3">
-                      <span>Tax</span>
-                      <span>{formatCurrency(selectedPayslip.tax)}</span>
-                    </div>
+                  {[
+                    { label: 'Tax', value: selectedPayslip.tax },
+                    { label: 'Pension', value: selectedPayslip.pension },
+                    { label: 'Loan Repayment', value: selectedPayslip.loan_repayment },
+                    { label: 'Insurance', value: selectedPayslip.insurance },
+                    { label: 'NHF', value: selectedPayslip.nhf },
+                    { label: 'Loan Deduction', value: selectedPayslip.loan_deduction },
+                    { label: 'Other Deductions', value: selectedPayslip.other_deductions },
+                    { label: 'General Deductions', value: selectedPayslip.deductions },
+                  ].map((item) =>
+                    parseFloat(item.value) > 0 ? (
+                      <div
+                        key={item.label}
+                        className="flex justify-between bg-red-50 rounded-lg p-2 md:p-3"
+                      >
+                        <span>{item.label}</span>
+                        <span>{formatCurrency(item.value)}</span>
+                      </div>
+                    ) : null
                   )}
                   <div className="flex justify-between bg-red-100 rounded-lg p-2 md:p-3 font-semibold">
                     <span>Total Deductions</span>
                     <span className="text-red-700">
-                      {formatCurrency(selectedPayslip.deductions)}
+                      {formatCurrency(getTotalDeductions(selectedPayslip))}
                     </span>
                   </div>
                 </div>
@@ -476,3 +502,4 @@ export default function EmployeePayslip() {
     </div>
   );
 }
+

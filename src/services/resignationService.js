@@ -1,4 +1,5 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
+import { notifyNewResignation } from './notificationAPI';
 
 /**
  * Get all resignations
@@ -96,8 +97,20 @@ export const submitResignation = async (resignationData) => {
     if (error) {
       return handleSupabaseError(error);
     }
-
-    return handleSupabaseSuccess(data[0]);
+    const created = data[0];
+    // Notify admins about new resignation (non-blocking)
+    try {
+      const { data: admins } = await supabase
+        .from(TABLES.ADMIN_USERS)
+        .select('id');
+      const adminIds = (admins || []).map((a) => a.id);
+      if (adminIds.length > 0) {
+        await notifyNewResignation(adminIds, created);
+      }
+    } catch (e) {
+      console.warn('Notification error (resignation submit):', e);
+    }
+    return handleSupabaseSuccess(created);
   } catch (error) {
     return handleSupabaseError(error);
   }

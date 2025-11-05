@@ -8,6 +8,7 @@ import {
   getRequestNotes,
   getReceiptUrl,
   getRequestStats,
+  addRequestNote,
 } from '../services/requisitionService';
 import {
   Search,
@@ -42,6 +43,9 @@ export default function RequisitionManagement() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [comment, setComment] = useState('');
   const [updating, setUpdating] = useState(false);
+  const [replyOpen, setReplyOpen] = useState(false);
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     pending: 0,
@@ -179,6 +183,29 @@ useEffect(() => {
     if (notesResult.success) {
       setSelectedRequest(prev => ({ ...prev, notes: notesResult.data }));
     }
+  };
+
+  const sendReply = async () => {
+    if (!selectedRequest || !replyText.trim()) return;
+    setSendingReply(true);
+    const authorId = user.employee_id || (user.username === 'admin' ? 8 : user.id);
+    const res = await addRequestNote(selectedRequest.id, replyText.trim(), authorId);
+    if (res.success) {
+      setReplyText('');
+      setReplyOpen(false);
+      const notesResult = await getRequestNotes(selectedRequest.id);
+      if (notesResult.success) {
+        setSelectedRequest(prev => ({ ...prev, notes: notesResult.data }));
+      }
+      showSuccess('Reply sent');
+      // scroll to bottom after next paint
+      setTimeout(() => {
+        if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
+      }, 0);
+    } else {
+      showError(res.error || 'Failed to send reply');
+    }
+    setSendingReply(false);
   };
 
   const exportToCSV = () => {
@@ -682,10 +709,18 @@ useEffect(() => {
               {/* Comments/Notes */}
               {selectedRequest.notes && selectedRequest.notes.length > 0 && (
   <div className="border-t pt-6">
-    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-      <MessageSquare className="w-5 h-5" />
-      Conversation Thread
-    </h3>
+    <div className="mb-4 flex items-center justify-between">
+      <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+        <MessageSquare className="w-5 h-5" />
+        Conversation Thread
+      </h3>
+      <button
+        onClick={() => setReplyOpen(!replyOpen)}
+        className="px-3 py-1.5 text-sm border border-blue-600 text-blue-700 rounded-lg hover:bg-blue-50"
+      >
+        {replyOpen ? 'Cancel' : 'Reply'}
+      </button>
+    </div>
 
     <div
       ref={chatRef}
@@ -725,6 +760,27 @@ useEffect(() => {
           );
         })}
     </div>
+
+    {replyOpen && (
+      <div className="mt-3 space-y-2">
+        <textarea
+          value={replyText}
+          onChange={(e) => setReplyText(e.target.value)}
+          rows="2"
+          placeholder="Write a reply..."
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+        />
+        <div className="flex justify-end">
+          <button
+            onClick={sendReply}
+            disabled={sendingReply || !replyText.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {sendingReply ? 'Sending...' : 'Send Reply'}
+          </button>
+        </div>
+      </div>
+    )}
   </div>
 )}
 

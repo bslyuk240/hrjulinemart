@@ -76,7 +76,7 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
     const grossSalary = basic + allowances + overtime + bonus + holiday + otherEarnings;
 
     const deductions = parseFloat(formData.deductions) || 0;
-    const tax = parseFloat(formData.tax) || 0;
+    const taxPercent = parseFloat(formData.tax) || 0;
     const pension = parseFloat(formData.pension) || 0;
     const loanRepayment = parseFloat(formData.loan_repayment) || 0;
     const insurance = parseFloat(formData.insurance) || 0;
@@ -84,8 +84,9 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
     const nhf = parseFloat(formData.nhf) || 0;
     const loanDeduction = parseFloat(formData.loan_deduction) || 0;
 
-    const totalDeductions = deductions + tax + pension + loanRepayment + insurance + otherDeductions + nhf + loanDeduction;
-    const netSalary = grossSalary - (grossSalary * (tax / 100));
+    const taxAmount = (grossSalary * (taxPercent || 0)) / 100;
+    const totalDeductions = deductions + taxAmount + pension + loanRepayment + insurance + otherDeductions + nhf + loanDeduction;
+    const netSalary = grossSalary - totalDeductions;
 
     setCalculatedTotals({
       grossSalary,

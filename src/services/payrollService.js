@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { notifyPayrollGenerated } from './notificationAPI';
 
 const TABLES = {
   PAYROLL: 'payrolls',
@@ -18,7 +19,8 @@ export const getAllPayroll = async () => {
     const { data, error } = await supabase
       .from(TABLES.PAYROLL)
       .select('*')
-      .order('created_at', { ascending: false });
+      // Order by primary key to ensure newest on top even if created_at is missing
+      .order('id', { ascending: false });
 
     if (error) return handleSupabaseError(error);
 
@@ -62,7 +64,7 @@ export const createPayroll = async (payrollData) => {
     const grossSalary = basicSalary + allowances + overtimePay + bonus + holidayPay + otherEarnings;
 
     const deductions = parseFloat(payrollData.deductions || 0);
-    const tax = parseFloat(payrollData.tax || 0);
+    const taxPercent = parseFloat(payrollData.tax || 0);
     const pension = parseFloat(payrollData.pension || 0);
     const loanRepayment = parseFloat(payrollData.loan_repayment || 0);
     const insurance = parseFloat(payrollData.insurance || 0);
@@ -70,7 +72,8 @@ export const createPayroll = async (payrollData) => {
     const nhf = parseFloat(payrollData.nhf || 0);
     const loanDeduction = parseFloat(payrollData.loan_deduction || 0);
 
-    const totalDeductions = deductions + tax + pension + loanRepayment + insurance + otherDeductions + nhf + loanDeduction;
+    const taxAmount = (grossSalary * (taxPercent || 0)) / 100;
+    const totalDeductions = deductions + taxAmount + pension + loanRepayment + insurance + otherDeductions + nhf + loanDeduction;
     const netSalary = grossSalary - totalDeductions;
 
     const payslipNo = await generatePayslipNumber();
@@ -87,7 +90,8 @@ export const createPayroll = async (payrollData) => {
       holiday_pay: holidayPay,
       other_earnings: otherEarnings,
       deductions: deductions,
-      tax: tax,
+      // Store computed tax amount in `tax` column
+      tax: taxAmount,
       pension: pension,
       loan_repayment: loanRepayment,
       insurance: insurance,
@@ -111,6 +115,14 @@ export const createPayroll = async (payrollData) => {
       .single();
 
     if (error) return handleSupabaseError(error);
+
+    // Notify the employee about the generated payslip
+    try {
+      await notifyPayrollGenerated([payroll.employee_id], payroll.month, payroll.year);
+    } catch (e) {
+      // Non-blocking: log and continue
+      console.warn('Notification error (payroll):', e);
+    }
 
     return {
       success: true,

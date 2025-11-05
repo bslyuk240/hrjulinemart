@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { notifyNewRequisition, notifyRequisitionStatus, notifyRequisitionMessage, createNotification } from './notificationAPI';
 
 // 🔹 Get employee ID by email
 export const getEmployeeIdByEmail = async (email) => {
@@ -64,7 +65,31 @@ export const createRequest = async (requestData, employeeId) => {
 
     if (error) throw error;
 
-    return { success: true, data };
+    const created = data;
+    // Notify approvers and requester
+    try {
+      const { data: managers } = await supabase.from('employees').select('id').eq('is_manager', true);
+      const { data: admins } = await supabase.from('admin_users').select('id');
+      const approverIds = [
+        ...((managers || []).map(m => m.id)),
+        ...((admins || []).map(a => a.id)),
+      ];
+      if (approverIds.length > 0) {
+        await notifyNewRequisition(approverIds, created);
+      }
+      await createNotification({
+        user_id: employeeId,
+        type: 'requisition',
+        title: 'Requisition Submitted',
+        message: `${created.kind} request submitted`,
+        data: { request_id: created.id, status: created.status },
+        link: '/requisitions',
+      });
+    } catch (e) {
+      console.warn('Requisition notify (create) error:', e);
+    }
+
+    return { success: true, data: created };
   } catch (error) {
     console.error('Error creating request:', error);
     return { success: false, error: error.message };
@@ -161,6 +186,15 @@ export const updateRequestStatus = async (requestId, status, comment = null, emp
       });
 
       if (payoutError) throw payoutError;
+    }
+    // Notify requester about status change
+    try {
+      const { data: req } = await supabase.from('requests').select('*').eq('id', requestId).single();
+      if (req) {
+        await notifyRequisitionStatus(req.employee_id, req, status);
+      }
+    } catch (e) {
+      console.warn('Requisition notify (status) error:', e);
     }
 
     return { success: true };
@@ -272,8 +306,29 @@ export const addRequestNote = async (requestId, note, employeeId) => {
       created_at: new Date(),
     });
 
-    if (error) throw error;
-    return { success: true };
+  if (error) throw error;
+  // Notify other party(ies)
+  try {
+    const { data: req } = await supabase.from('requests').select('id, employee_id').eq('id', requestId).single();
+    if (req) {
+      if (employeeId === req.employee_id) {
+        const { data: managers } = await supabase.from('employees').select('id').eq('is_manager', true);
+        const { data: admins } = await supabase.from('admin_users').select('id');
+        const recipients = [
+          ...((managers || []).map(m => m.id)),
+          ...((admins || []).map(a => a.id)),
+        ];
+        if (recipients.length > 0) {
+          await notifyRequisitionMessage(recipients, requestId, 'Employee', note.trim());
+        }
+      } else {
+        await notifyRequisitionMessage([req.employee_id], requestId, 'Approver', note.trim());
+      }
+    }
+  } catch (e) {
+    console.warn('Requisition notify (message) error:', e);
+  }
+  return { success: true };
   } catch (error) {
     console.error("Error adding note:", error.message);
     return { success: false, error: error.message };

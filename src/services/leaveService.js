@@ -1,4 +1,5 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
+import { notifyNewLeaveRequest, notifyLeaveDecision, createNotification } from './notificationAPI';
 
 /**
  * Get all leave requests
@@ -107,8 +108,43 @@ export const createLeaveRequest = async (leaveData) => {
     if (error) {
       return handleSupabaseError(error);
     }
+    const created = data[0];
 
-    return handleSupabaseSuccess(data[0]);
+    // Notify managers and admins about new leave request (non-blocking)
+    try {
+      const { data: managers } = await supabase
+        .from(TABLES.EMPLOYEES)
+        .select('id')
+        .eq('is_manager', true);
+      const { data: admins } = await supabase
+        .from(TABLES.ADMIN_USERS)
+        .select('id');
+      const managerUserIds = [
+        ...(managers || []).map((m) => m.id),
+        ...(admins || []).map((a) => a.id),
+      ];
+      if (managerUserIds.length > 0) {
+        await notifyNewLeaveRequest(managerUserIds, created);
+      }
+    } catch (e) {
+      console.warn('Notification error (leave create):', e);
+    }
+
+    // Also notify the requesting employee for confirmation (visible on their bell)
+    try {
+      await createNotification({
+        user_id: created.employee_id,
+        type: 'leave_request',
+        title: 'Leave Request Submitted',
+        message: `Your leave request from ${created.start_date} to ${created.end_date} has been submitted`,
+        data: { leave_id: created.id, status: created.status },
+        link: '/leave',
+      });
+    } catch (e) {
+      console.warn('Notification error (leave submit self):', e);
+    }
+
+    return handleSupabaseSuccess(created);
   } catch (error) {
     return handleSupabaseError(error);
   }
@@ -158,8 +194,13 @@ export const approveLeaveRequest = async (id) => {
     if (error) {
       return handleSupabaseError(error);
     }
-
-    return handleSupabaseSuccess(data[0]);
+    const updated = data[0];
+    try {
+      await notifyLeaveDecision(updated.employee_id, updated, 'Approved');
+    } catch (e) {
+      console.warn('Notification error (leave approve):', e);
+    }
+    return handleSupabaseSuccess(updated);
   } catch (error) {
     return handleSupabaseError(error);
   }
@@ -179,8 +220,13 @@ export const rejectLeaveRequest = async (id) => {
     if (error) {
       return handleSupabaseError(error);
     }
-
-    return handleSupabaseSuccess(data[0]);
+    const updated = data[0];
+    try {
+      await notifyLeaveDecision(updated.employee_id, updated, 'Rejected');
+    } catch (e) {
+      console.warn('Notification error (leave reject):', e);
+    }
+    return handleSupabaseSuccess(updated);
   } catch (error) {
     return handleSupabaseError(error);
   }

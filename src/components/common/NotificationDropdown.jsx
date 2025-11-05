@@ -7,6 +7,8 @@ import {
   Trash2
 } from 'lucide-react';
 import {
+  getAllNotifications,
+  getUnreadCount,
   getUnreadNotifications,
   markAsRead,
   markAllAsRead,
@@ -63,13 +65,23 @@ export default function NotificationDropdown() {
   }, [user]);
 
   const fetchNotifications = async () => {
-    setLoading(true);
-    const response = await getUnreadNotifications(user.id, 10);
-    if (response.success) {
-      setNotifications(response.data);
-      setUnreadCount(response.data.filter(n => !n.is_read).length);
+    try {
+      setLoading(true);
+      // Load list (all recent)
+      const listRes = await getAllNotifications(user.id);
+      if (listRes.success) {
+        setNotifications(listRes.data || []);
+      }
+      // Badge count
+      const countRes = await getUnreadCount(user.id);
+      if (countRes.success) {
+        setUnreadCount(countRes.data || 0);
+      } else if (listRes.success) {
+        setUnreadCount((listRes.data || []).filter(n => !n.is_read).length);
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleMarkAsRead = async (notificationId) => {
@@ -133,7 +145,14 @@ export default function NotificationDropdown() {
   return (
     <div className="relative">
       <button
-        onClick={() => setShowNotifications(!showNotifications)}
+        onClick={() => {
+          const next = !showNotifications;
+          setShowNotifications(next);
+          if (next && user?.id) {
+            // Refresh list when opening to get latest data
+            fetchNotifications();
+          }
+        }}
         className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
       >
@@ -152,7 +171,7 @@ export default function NotificationDropdown() {
             className="fixed inset-0 z-40" 
             onClick={() => setShowNotifications(false)}
           />
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
+          <div className="absolute right-0 mt-2 w-[90vw] max-w-sm sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50">
             {/* Header */}
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h3 className="font-semibold text-gray-800">Notifications</h3>
@@ -167,7 +186,7 @@ export default function NotificationDropdown() {
             </div>
 
             {/* Notifications List */}
-            <div className="max-h-96 overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto">
               {loading ? (
                 <div className="p-8 text-center text-gray-500">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto"></div>

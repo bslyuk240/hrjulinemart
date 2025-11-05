@@ -11,6 +11,7 @@ export const NOTIFICATION_TYPES = {
   PERFORMANCE: 'performance',
   EMPLOYEE: 'employee',
   SYSTEM: 'system',
+  REQUISITION: 'requisition',
 };
 
 /**
@@ -387,19 +388,91 @@ export const notifyPerformanceDeadline = async (managerUserIds, reviewData) => {
 };
 
 /**
+ * Requisition: new request created (notify approvers)
+ */
+export const notifyNewRequisition = async (recipientUserIds, request) => {
+  try {
+    const notifications = recipientUserIds.map((userId) => ({
+      user_id: userId,
+      type: NOTIFICATION_TYPES.REQUISITION,
+      title: 'New Requisition',
+      message: `${request.kind} request submitted by ${request.employee_name || 'employee'}`,
+      data: { request_id: request.id, amount: request.amount, currency: request.currency },
+      link: '/requisition-management',
+    }));
+    const { data, error } = await supabase
+      .from(TABLES.NOTIFICATIONS)
+      .insert(notifications)
+      .select();
+    if (error) return handleSupabaseError(error);
+    return handleSupabaseSuccess(data);
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
+ * Requisition: status updated (notify requester)
+ */
+export const notifyRequisitionStatus = async (employeeUserId, request, status) => {
+  try {
+    const notification = {
+      user_id: employeeUserId,
+      type: NOTIFICATION_TYPES.REQUISITION,
+      title: `Requisition ${status}`,
+      message: `Your ${request.kind} request has been ${status.toLowerCase()}`,
+      data: { request_id: request.id, status },
+      link: '/requisitions',
+    };
+    const { data, error } = await supabase
+      .from(TABLES.NOTIFICATIONS)
+      .insert([notification])
+      .select();
+    if (error) return handleSupabaseError(error);
+    return handleSupabaseSuccess(data[0]);
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
+ * Requisition: chat message (notify other party)
+ */
+export const notifyRequisitionMessage = async (recipientUserIds, requestId, fromName, snippet) => {
+  try {
+    const notifications = recipientUserIds.map((userId) => ({
+      user_id: userId,
+      type: NOTIFICATION_TYPES.REQUISITION,
+      title: 'New Message on Requisition',
+      message: `${fromName}: ${snippet.substring(0, 80)}`,
+      data: { request_id: requestId },
+      link: '/requisition-management',
+    }));
+    const { data, error } = await supabase
+      .from(TABLES.NOTIFICATIONS)
+      .insert(notifications)
+      .select();
+    if (error) return handleSupabaseError(error);
+    return handleSupabaseSuccess(data);
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
  * Get notification icon based on type
  */
 export const getNotificationIcon = (type) => {
   const icons = {
-    resignation: '👋',
-    leave_request: '🏖️',
-    attendance: '⏰',
-    payroll: '💰',
-    performance: '📊',
-    employee: '👤',
-    system: '🔔',
+    resignation: 'RESIGN',
+    leave_request: 'LEAVE',
+    attendance: 'ATTN',
+    payroll: 'PAY',
+    performance: 'PERF',
+    employee: 'EMP',
+    system: 'SYS',
   };
-  return icons[type] || '🔔';
+  return icons[type] || 'NOTE';
 };
 
 /**
@@ -449,3 +522,4 @@ export const unsubscribeFromNotifications = (subscription) => {
     supabase.removeChannel(subscription);
   }
 };
+
