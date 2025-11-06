@@ -161,7 +161,7 @@ export default function EmployeeList() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Employee Management</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Employee Management</h1>
           <p className="text-gray-600 mt-1">Manage your workforce and employee records</p>
         </div>
         <button
@@ -283,7 +283,7 @@ export default function EmployeeList() {
       </div>
 
       {/* Mobile List (cards) */}
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {filteredEmployees.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No employees found</div>
         ) : (
@@ -332,7 +332,7 @@ export default function EmployeeList() {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">

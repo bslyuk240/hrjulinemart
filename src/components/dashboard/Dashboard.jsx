@@ -231,7 +231,7 @@ const fetchPayrollStats = async () => {
     <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
       </div>
 
@@ -332,7 +332,7 @@ const fetchPayrollStats = async () => {
 
 
       {/* Recent Payrolls Table */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recent Payroll Records</h2>
         </div>
@@ -382,7 +382,7 @@ const fetchPayrollStats = async () => {
       </div>
 
       {/* Recent Employees */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">Recently Added Employees</h2>
         </div>

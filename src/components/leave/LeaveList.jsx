@@ -170,7 +170,7 @@ export default function LeaveList({ employees }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900">Leave Management</h1>
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Leave Management</h1>
           <p className="text-gray-600 mt-1 text-sm md:text-base">
             {isAdmin() || isManager() ? 'Manage employee leave requests and approvals' : 'Request and track your leave'}
           </p>
@@ -190,10 +190,10 @@ export default function LeaveList({ employees }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-xs md:text-sm">Total Requests</p>
-              <p className="text-xl md:text-3xl font-bold mt-2">{stats.total}</p>
+              <p className="text-xl lg:text-3xl font-bold mt-2">{stats.total}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <Calendar className="w-5 h-5 md:w-6 md:h-6" />
+              <Calendar className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -202,10 +202,10 @@ export default function LeaveList({ employees }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-yellow-100 text-xs md:text-sm">Pending</p>
-              <p className="text-xl md:text-3xl font-bold mt-2">{stats.pending}</p>
+              <p className="text-xl lg:text-3xl font-bold mt-2">{stats.pending}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <Clock className="w-5 h-5 md:w-6 md:h-6" />
+              <Clock className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -214,10 +214,10 @@ export default function LeaveList({ employees }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-100 text-xs md:text-sm">Approved</p>
-              <p className="text-xl md:text-3xl font-bold mt-2">{stats.approved}</p>
+              <p className="text-xl lg:text-3xl font-bold mt-2">{stats.approved}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <CheckCircle className="w-5 h-5 md:w-6 md:h-6" />
+              <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -226,10 +226,10 @@ export default function LeaveList({ employees }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-red-100 text-xs md:text-sm">Rejected</p>
-              <p className="text-xl md:text-3xl font-bold mt-2">{stats.rejected}</p>
+              <p className="text-xl lg:text-3xl font-bold mt-2">{stats.rejected}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <XCircle className="w-5 h-5 md:w-6 md:h-6" />
+              <XCircle className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -294,7 +294,7 @@ export default function LeaveList({ employees }) {
       </div>
 
       {/* Mobile List (cards) */}
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {filteredLeaves.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No leave requests found</div>
         ) : (
@@ -392,7 +392,7 @@ export default function LeaveList({ employees }) {
       )}
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">

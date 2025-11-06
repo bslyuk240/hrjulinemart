@@ -178,7 +178,7 @@ export default function AttendanceList({ employees }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Attendance Management</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Attendance Management</h1>
           <p className="text-gray-600 mt-1 text-sm md:text-base">
             {isAdmin() || isManager()
               ? 'Track employee attendance and working hours'
@@ -211,7 +211,7 @@ export default function AttendanceList({ employees }) {
               <Clock className="w-5 h-5 md:w-8 md:h-8" />
             </div>
             <div>
-              <h3 className="text-base md:text-xl font-bold">Quick Clock In/Out</h3>
+              <h3 className="text-base lg:text-xl font-bold">Quick Clock In/Out</h3>
               <p className="text-purple-100 text-xs md:text-sm">
                 {todayAttendance && todayAttendance.clock_in
                   ? `Clocked in at ${formatTime(todayAttendance.clock_in)}`
@@ -252,16 +252,16 @@ export default function AttendanceList({ employees }) {
       {(isAdmin() || isManager()) && (
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
           {[
-            { label: 'Total Records', value: stats.total, color: 'from-blue-500 to-blue-600', icon: <Users className="w-5 h-5 md:w-6 md:h-6" /> },
-            { label: 'Present', value: stats.present, color: 'from-green-500 to-green-600', icon: <CheckCircle className="w-5 h-5 md:w-6 md:h-6" /> },
-            { label: 'Absent', value: stats.absent, color: 'from-red-500 to-red-600', icon: <XCircle className="w-5 h-5 md:w-6 md:h-6" /> },
-            { label: 'Late', value: stats.late, color: 'from-yellow-500 to-yellow-600', icon: <AlertCircle className="w-5 h-5 md:w-6 md:h-6" /> },
+            { label: 'Total Records', value: stats.total, color: 'from-blue-500 to-blue-600', icon: <Users className="w-5 h-5 lg:w-6 lg:h-6" /> },
+            { label: 'Present', value: stats.present, color: 'from-green-500 to-green-600', icon: <CheckCircle className="w-5 h-5 lg:w-6 lg:h-6" /> },
+            { label: 'Absent', value: stats.absent, color: 'from-red-500 to-red-600', icon: <XCircle className="w-5 h-5 lg:w-6 lg:h-6" /> },
+            { label: 'Late', value: stats.late, color: 'from-yellow-500 to-yellow-600', icon: <AlertCircle className="w-5 h-5 lg:w-6 lg:h-6" /> },
           ].map((card, i) => (
             <div key={i} className={`bg-gradient-to-br ${card.color} rounded-lg p-3 sm:p-5 lg:p-6 text-white shadow-md`}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs md:text-sm text-white/80">{card.label}</p>
-                  <p className="text-xl md:text-3xl font-bold mt-2">{card.value}</p>
+                  <p className="text-xl lg:text-3xl font-bold mt-2">{card.value}</p>
                 </div>
                 <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">{card.icon}</div>
               </div>
@@ -315,7 +315,7 @@ export default function AttendanceList({ employees }) {
       </div>
 
       {/* Mobile List (cards) */}
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {filteredAttendance.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No attendance records found</div>
         ) : (
@@ -368,7 +368,7 @@ export default function AttendanceList({ employees }) {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">

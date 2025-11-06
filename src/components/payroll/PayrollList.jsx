@@ -158,18 +158,18 @@ export default function PayrollList({ employees }) {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Payroll Management</h1>
-          <p className="text-gray-600 mt-1">Manage employee payslips and salary records</p>
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Payroll Management</h1>
+          <p className="text-gray-600 mt-1 text-sm md:text-base">Manage employee payslips and salary records</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="flex items-center px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
+          className="flex items-center px-5 md:px-6 py-2.5 md:py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
         >
-          <Plus className="w-5 h-5 mr-2" />
+          <Plus className="w-4 h-4 md:w-5 md:h-5 mr-2" />
           Generate Payslip
         </button>
       </div>
@@ -284,7 +284,7 @@ export default function PayrollList({ employees }) {
       </div>
 
       {/* Mobile List (cards) */}
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {filteredPayrolls.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No payroll records found</div>
         ) : (
@@ -329,7 +329,7 @@ export default function PayrollList({ employees }) {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">

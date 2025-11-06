@@ -158,7 +158,7 @@ export default function PerformanceList({ employees }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl md:text-3xl font-bold text-gray-900">Performance Management</h1>
+          <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Performance Management</h1>
           <p className="text-gray-600 mt-1 text-sm md:text-base">Track and manage employee performance reviews</p>
         </div>
         <button
@@ -179,10 +179,10 @@ export default function PerformanceList({ employees }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-xs md:text-sm">Total Reviews</p>
-              <p className="text-xl md:text-3xl font-bold mt-2">{stats.total}</p>
+              <p className="text-xl lg:text-3xl font-bold mt-2">{stats.total}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <Users className="w-5 h-5 md:w-6 md:h-6" />
+              <Users className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -191,10 +191,10 @@ export default function PerformanceList({ employees }) {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-100 text-xs md:text-sm">Average Rating</p>
-              <p className="text-xl md:text-3xl font-bold mt-2">{stats.averageOverall}</p>
+              <p className="text-xl lg:text-3xl font-bold mt-2">{stats.averageOverall}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <Star className="w-5 h-5 md:w-6 md:h-6" />
+              <Star className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -206,7 +206,7 @@ export default function PerformanceList({ employees }) {
               <p className="text-3xl font-bold mt-2">{stats.excellent}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <Award className="w-5 h-5 md:w-6 md:h-6" />
+              <Award className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -218,7 +218,7 @@ export default function PerformanceList({ employees }) {
               <p className="text-3xl font-bold mt-2">{stats.good}</p>
             </div>
             <div className="bg-white bg-opacity-20 p-2 md:p-3 rounded-lg">
-              <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
+              <TrendingUp className="w-5 h-5 lg:w-6 lg:h-6" />
             </div>
           </div>
         </div>
@@ -283,7 +283,7 @@ export default function PerformanceList({ employees }) {
       </div>
 
       {/* Mobile List (cards) */}
-      <div className="md:hidden space-y-3">
+      <div className="lg:hidden space-y-3">
         {filteredRecords.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-4 text-center text-gray-500">No performance records found</div>
         ) : (
@@ -338,7 +338,7 @@ export default function PerformanceList({ employees }) {
       </div>
 
       {/* Desktop Table */}
-      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="hidden lg:block bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
