@@ -127,7 +127,7 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 z-40 flex flex-col transition-transform duration-300 ease-in-out
+        className={`fixed left-0 top-safe h-full w-64 bg-white border-r border-gray-200 z-40 flex flex-col transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'block translate-x-0' : 'hidden -translate-x-full'}
           lg:block lg:translate-x-0
         `}
