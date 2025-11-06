@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import PullToRefresh from '../common/PullToRefresh';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export default function Layout() {
@@ -69,9 +70,11 @@ export default function Layout() {
 
         {/* Main Content */}
         <main className="flex-1 transition-all duration-300 ml-0 lg:ml-64">
-          <div className="p-6">
-            <Outlet />
-          </div>
+          <PullToRefresh onRefresh={() => window.location.reload()}>
+            <div className="p-6">
+              <Outlet />
+            </div>
+          </PullToRefresh>
         </main>
       </div>
 
