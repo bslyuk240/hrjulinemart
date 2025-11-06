@@ -279,52 +279,52 @@ const fetchPayrollStats = async () => {
 
       {/* Secondary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 md:p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Total Payroll (All Time)</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(stats.totalPayroll)}</p>
+              <p className="text-xs md:text-sm text-gray-600">Total Payroll (All Time)</p>
+              <p className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mt-2">{formatCurrency(stats.totalPayroll)}</p>
             </div>
-            <div className="bg-purple-100 p-3 rounded-lg">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
+            <div className="bg-purple-100 p-2 md:p-3 rounded-lg">
+              <TrendingUp className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-purple-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 md:p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Average Salary</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(stats.averageSalary)}</p>
+              <p className="text-xs md:text-sm text-gray-600">Average Salary</p>
+              <p className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mt-2">{formatCurrency(stats.averageSalary)}</p>
             </div>
-            <div className="bg-green-100 p-3 rounded-lg">
-              <DollarSign className="w-6 h-6 text-green-600" />
+            <div className="bg-green-100 p-2 md:p-3 rounded-lg">
+              <DollarSign className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-green-600" />
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 md:p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">New This Month</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{stats.newEmployeesThisMonth}</p>
+              <p className="text-xs md:text-sm text-gray-600">New This Month</p>
+              <p className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mt-2">{stats.newEmployeesThisMonth}</p>
             </div>
 
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <UserCheck className="w-6 h-6 text-blue-600" />
+            <div className="bg-blue-100 p-2 md:p-3 rounded-lg">
+              <UserCheck className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-blue-600" />
             </div>
           </div>
         </div>
 
         {/* Pending Requests */}
-        <div className="bg-white rounded-lg shadow-md p-3 sm:p-6">
+        <div className="bg-white rounded-lg shadow-md p-3 md:p-4 lg:p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Pending Requests</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{pendingRequests}</p>
+              <p className="text-xs md:text-sm text-gray-600">Pending Requests</p>
+              <p className="text-lg md:text-xl lg:text-2xl font-bold text-gray-900 mt-2">{pendingRequests}</p>
             </div>
-            <div className="bg-yellow-100 p-3 rounded-lg">
-              <Clock className="w-6 h-6 text-yellow-600" />
+            <div className="bg-yellow-100 p-2 md:p-3 rounded-lg">
+              <Clock className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-yellow-600" />
             </div>
           </div>
         </div>
