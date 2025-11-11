@@ -27,6 +27,7 @@ import {
 import AttendanceForm from './AttendanceForm';
 import AttendanceReport from './AttendanceReport';
 import Loading from '../common/Loading';
+import { reverseGeocode } from '../../utils/geocode';
 import Modal from '../common/Modal';
 import { supabase } from '../../services/supabase';
 
@@ -53,6 +54,90 @@ export default function AttendanceList({ employees }) {
   const [selectedRecord, setSelectedRecord] = useState(null);
 
   const statusOptions = ['present', 'absent', 'late', 'half_day', 'on_leave'];
+
+  // Attempt to get precise GPS; fallback to IP-based geolocation
+  const getApproxLocation = async () => {
+    // Try GPS first
+    const gps = await new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          accuracy: pos.coords.accuracy,
+          source: 'GPS',
+        }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    });
+    if (gps) return gps;
+
+    // Fallback: IP-based location (approximate)
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      if (!res.ok) throw new Error('ipapi failed');
+      const data = await res.json();
+      if (data && data.latitude && data.longitude) {
+        return { lat: Number(data.latitude), lon: Number(data.longitude), accuracy: null, source: 'IP' };
+      }
+    } catch (_) {}
+    return null;
+  };
+
+  // Extract Google Maps links from notes (created on clock in/out)
+  const extractLocationLinks = (notes) => {
+    if (!notes) return { inUrl: null, outUrl: null };
+    // Be tolerant of new lines; try to pull explicit links if present
+    const inMatch = notes.match(/Clock In Location:[\s\S]*?Map:\s*(https?:\/\/\S+)/i);
+    const outMatch = notes.match(/Clock Out Location:[\s\S]*?Map:\s*(https?:\/\/\S+)/i);
+    return {
+      inUrl: inMatch ? inMatch[1] : null,
+      outUrl: outMatch ? outMatch[1] : null,
+    };
+  };
+
+  // Extract coordinates from the notes
+  const extractCoords = (notes) => {
+    if (!notes) return { inLat: null, inLon: null, outLat: null, outLon: null };
+    const inCoord = notes.match(/Clock In Location:\s*([\-0-9\.]+),\s*([\-0-9\.]+)/i);
+    const outCoord = notes.match(/Clock Out Location:\s*([\-0-9\.]+),\s*([\-0-9\.]+)/i);
+    return {
+      inLat: inCoord ? Number(inCoord[1]) : null,
+      inLon: inCoord ? Number(inCoord[2]) : null,
+      outLat: outCoord ? Number(outCoord[1]) : null,
+      outLon: outCoord ? Number(outCoord[2]) : null,
+    };
+  };
+
+  const [addrIn, setAddrIn] = useState(null);
+  const [addrOut, setAddrOut] = useState(null);
+  const [addrLoading, setAddrLoading] = useState(false);
+
+  // Resolve addresses when opening details
+  useEffect(() => {
+    const run = async () => {
+      if (!showDetails || !selectedRecord) return;
+      setAddrLoading(true);
+      setAddrIn(null);
+      setAddrOut(null);
+      const { inLat, inLon, outLat, outLon } = extractCoords(selectedRecord.notes || '');
+      try {
+        if (inLat != null && inLon != null) {
+          const a = await reverseGeocode(inLat, inLon);
+          setAddrIn(a);
+        }
+        if (outLat != null && outLon != null) {
+          const b = await reverseGeocode(outLat, outLon);
+          setAddrOut(b);
+        }
+      } finally {
+        setAddrLoading(false);
+      }
+    };
+    run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDetails, selectedRecord?.id]);
 
   useEffect(() => {
     fetchAttendance();
@@ -115,11 +200,20 @@ export default function AttendanceList({ employees }) {
     if (!employee) return showError('Employee data not found');
 
     try {
+      // Try to capture geolocation for clock-in (GPS -> IP fallback)
+      const approx = await getApproxLocation();
+      let notes = '';
+      if (approx?.lat != null && approx?.lon != null) {
+        const mapsUrl = `https://www.google.com/maps?q=${approx.lat},${approx.lon}`;
+        const accText = approx.accuracy ? ` (±${Math.round(approx.accuracy)}m)` : '';
+        const srcText = approx.source ? ` via ${approx.source}` : '';
+        notes = `Clock In Location: ${Number(approx.lat).toFixed(6)},${Number(approx.lon).toFixed(6)}${accText}${srcText} Map: ${mapsUrl}`;
+      }
       const now = new Date();
       const today = now.toISOString().split('T')[0];
       const { data: existing } = await supabase.from('attendance').select('*').eq('employee_id', user.id).eq('date', today).single();
       if (existing) return showError('You have already clocked in today!');
-      const result = await clockIn({ employee_id: employee.id, employee_name: employee.name });
+      const result = await clockIn({ employee_id: employee.id, employee_name: employee.name, notes });
       if (result.success) {
         showSuccess('Clocked in successfully');
         fetchAttendance();
@@ -133,7 +227,16 @@ export default function AttendanceList({ employees }) {
   const handleClockOut = async () => {
     if (!todayAttendance) return showError('No clock-in record found for today');
     try {
-      const result = await clockOut(todayAttendance.id);
+      // Try to capture geolocation for clock-out (GPS -> IP fallback)
+      const approx = await getApproxLocation();
+      let notesAppend = '';
+      if (approx?.lat != null && approx?.lon != null) {
+        const mapsUrl = `https://www.google.com/maps?q=${approx.lat},${approx.lon}`;
+        const accText = approx.accuracy ? ` (±${Math.round(approx.accuracy)}m)` : '';
+        const srcText = approx.source ? ` via ${approx.source}` : '';
+        notesAppend = `Clock Out Location: ${Number(approx.lat).toFixed(6)},${Number(approx.lon).toFixed(6)}${accText}${srcText} Map: ${mapsUrl}`;
+      }
+      const result = await clockOut(todayAttendance.id, notesAppend);
       if (result.success) {
         showSuccess('Clocked out successfully');
         fetchAttendance();
@@ -346,6 +449,19 @@ export default function AttendanceList({ employees }) {
                   <p className="font-medium">{calculateWorkHours(record.clock_in, record.clock_out)}</p>
                 </div>
               </div>
+              {(() => { 
+                const { inUrl, outUrl } = extractLocationLinks(record.notes || '');
+                const { inLat, inLon, outLat, outLon } = extractCoords(record.notes || '');
+                const inHref = inUrl || (inLat != null && inLon != null ? `https://www.google.com/maps?q=${inLat},${inLon}` : null);
+                const outHref = outUrl || (outLat != null && outLon != null ? `https://www.google.com/maps?q=${outLat},${outLon}` : null);
+                return (
+                  <div className="mt-2 text-xs text-blue-600 space-x-2">
+                    {inHref && (<a href={inHref} target="_blank" rel="noreferrer" className="hover:underline">In map</a>)}
+                    {outHref && (<a href={outHref} target="_blank" rel="noreferrer" className="hover:underline">Out map</a>)}
+                    {!inHref && !outHref && (<span className="text-gray-400">Location not captured</span>)}
+                  </div>
+                ); 
+              })()}
               <div className="mt-3 flex justify-end">
                 <button
                   onClick={() => { setSelectedRecord(record); setShowDetails(true); }}
@@ -380,6 +496,7 @@ export default function AttendanceList({ employees }) {
                 <th className="px-6 py-4 text-center text-sm font-semibold">Clock In</th>
                 <th className="px-6 py-4 text-center text-sm font-semibold">Clock Out</th>
                 <th className="px-6 py-4 text-center text-sm font-semibold">Work Hours</th>
+                <th className="px-6 py-4 text-center text-sm font-semibold">Location</th>
                 <th className="px-6 py-4 text-center text-sm font-semibold">Status</th>
                 {isAdmin() && (
                   <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
@@ -389,7 +506,7 @@ export default function AttendanceList({ employees }) {
             <tbody className="divide-y divide-gray-200">
               {filteredAttendance.length === 0 ? (
                 <tr>
-                  <td colSpan={isAdmin() ? "7" : (isAdmin() || isManager()) ? "6" : "5"} className="px-6 py-12 text-center">
+                  <td colSpan={isAdmin() ? "8" : (isManager()) ? "7" : "6"} className="px-6 py-12 text-center">
                     <div className="flex flex-col items-center justify-center text-gray-400">
                       <Calendar className="w-16 h-16 mb-4" />
                       <p className="text-lg font-medium">No attendance records found</p>
@@ -422,6 +539,21 @@ export default function AttendanceList({ employees }) {
                       <span className="font-semibold text-blue-600">
                         {calculateWorkHours(record.clock_in, record.clock_out)}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-center text-sm">
+                      {(() => {
+                        const { inUrl, outUrl } = extractLocationLinks(record.notes || '');
+                        const { inLat, inLon, outLat, outLon } = extractCoords(record.notes || '');
+                        const inHref = inUrl || (inLat != null && inLon != null ? `https://www.google.com/maps?q=${inLat},${inLon}` : null);
+                        const outHref = outUrl || (outLat != null && outLon != null ? `https://www.google.com/maps?q=${outLat},${outLon}` : null);
+                        return (
+                          <div className="space-y-1">
+                            {inHref && (<a href={inHref} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">In map</a>)}
+                            {outHref && (<a href={outHref} target="_blank" rel="noreferrer" className="text-purple-600 hover:underline ml-2">Out map</a>)}
+                            {!inHref && !outHref && (<span className="text-gray-400">—</span>)}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusBadge(record.status)}`}>
@@ -480,6 +612,20 @@ export default function AttendanceList({ employees }) {
             )}
             <p><span className="text-gray-500">Clock In:</span> <span className="font-medium">{formatTime(selectedRecord.clock_in)}</span></p>
             <p><span className="text-gray-500">Clock Out:</span> <span className="font-medium">{formatTime(selectedRecord.clock_out)}</span></p>
+            {(() => { const { inUrl, outUrl } = extractLocationLinks(selectedRecord?.notes || ''); const { inLat, inLon, outLat, outLon } = extractCoords(selectedRecord?.notes || ''); const inHref = inUrl || (inLat != null && inLon != null ? `https://www.google.com/maps?q=${inLat},${inLon}` : null); const outHref = outUrl || (outLat != null && outLon != null ? `https://www.google.com/maps?q=${outLat},${outLon}` : null); return (
+              <div className="mt-2 text-sm">
+                {inHref && (<p><span className="text-gray-500">In location:</span> <a href={inHref} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">View map</a></p>)}
+                {outHref && (<p><span className="text-gray-500">Out location:</span> <a href={outHref} target="_blank" rel="noreferrer" className="text-purple-600 hover:underline">View map</a></p>)}
+                {!inHref && !outHref && (<p className="text-gray-400">Location not captured</p>)}
+              </div>
+            ); })()}
+            {(addrLoading || addrIn || addrOut) && (
+              <div className="mt-2 text-sm">
+                {addrIn && (<p><span className="text-gray-500">In address:</span> <span className="font-medium">{addrIn}</span></p>)}
+                {addrOut && (<p><span className="text-gray-500">Out address:</span> <span className="font-medium">{addrOut}</span></p>)}
+                {addrLoading && !addrIn && !addrOut && (<p className="text-gray-400">Resolving address…</p>)}
+              </div>
+            )}
             <p><span className="text-gray-500">Hours:</span> <span className="font-medium">{calculateWorkHours(selectedRecord.clock_in, selectedRecord.clock_out)}</span></p>
             <p>
               <span className="text-gray-500">Status:</span>{' '}

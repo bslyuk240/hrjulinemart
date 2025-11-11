@@ -17,6 +17,10 @@ export default function LeaveApproval({ leave, onClose, onSuccess }) {
     if (result.success) {
       showSuccess('Leave request approved successfully');
       onSuccess();
+      // Ensure dashboards and profile reflect updated leave balance
+      try {
+        window.location.reload();
+      } catch (_) {}
     } else {
       showError(result.error || 'Failed to approve leave request');
     }

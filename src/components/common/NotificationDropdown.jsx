@@ -15,7 +15,8 @@ import {
   deleteNotification,
   subscribeToNotifications,
   unsubscribeFromNotifications,
-  getNotificationIcon
+  getNotificationIcon,
+  getNotificationColor
 } from '../../services/notificationAPI';
 
 export default function NotificationDropdown() {
@@ -203,7 +204,7 @@ export default function NotificationDropdown() {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start space-x-3 flex-1">
-                          <span className="text-2xl">
+                          <span className={`flex items-center justify-center w-9 h-9 rounded-full text-xl ${getNotificationColor(notification.type)}`}>
                             {getNotificationIcon(notification.type)}
                           </span>
                           <div className="flex-1 min-w-0">

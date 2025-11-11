@@ -1,5 +1,6 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 import { notifyNewLeaveRequest, notifyLeaveDecision, createNotification } from './notificationAPI';
+import { getEmployeeById, updateLeaveBalance } from './employeeService';
 
 /**
  * Get all leave requests
@@ -185,6 +186,23 @@ export const updateLeaveRequest = async (id, leaveData) => {
  */
 export const approveLeaveRequest = async (id) => {
   try {
+    // Fetch the leave request first to check status and get details
+    const { data: leaveRow, error: fetchError } = await supabase
+      .from(TABLES.LEAVE_REQUESTS)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      return handleSupabaseError(fetchError);
+    }
+
+    // If already approved, do not double-deduct
+    if (leaveRow?.status === 'approved') {
+      return handleSupabaseSuccess(leaveRow);
+    }
+
+    // Approve the leave request
     const { data, error } = await supabase
       .from(TABLES.LEAVE_REQUESTS)
       .update({ status: 'approved' })
@@ -194,12 +212,40 @@ export const approveLeaveRequest = async (id) => {
     if (error) {
       return handleSupabaseError(error);
     }
+
     const updated = data[0];
+
+    // Deduct leave balance for all leave types
+    try {
+      if (updated && updated.employee_id) {
+          // Compute days if not stored
+          const daysComputed =
+            typeof updated.days === 'number' && !Number.isNaN(updated.days)
+              ? updated.days
+              : calculateLeaveDays(updated.start_date, updated.end_date);
+
+          const daysToDeduct = Math.max(0, Number(daysComputed || 0));
+          if (daysToDeduct > 0) {
+            // Read current balance and write back new value
+            const empRes = await getEmployeeById(updated.employee_id);
+            if (empRes.success && empRes.data) {
+              const currentBalance = Number(empRes.data.leave_balance || 0);
+              const newBalance = Math.max(0, currentBalance - daysToDeduct);
+              await updateLeaveBalance(updated.employee_id, newBalance);
+            }
+          }
+      }
+    } catch (e) {
+      console.warn('Leave balance update error:', e);
+    }
+
+    // Notify the employee about the decision
     try {
       await notifyLeaveDecision(updated.employee_id, updated, 'Approved');
     } catch (e) {
       console.warn('Notification error (leave approve):', e);
     }
+
     return handleSupabaseSuccess(updated);
   } catch (error) {
     return handleSupabaseError(error);

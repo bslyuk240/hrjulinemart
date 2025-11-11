@@ -1,4 +1,5 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
+import { NOTIFICATION_TYPES } from './notificationAPI';
 
 /**
  * Get all attendance records
@@ -90,6 +91,7 @@ export const clockIn = async (attendanceData) => {
           date: today,
           clock_in: new Date().toTimeString().split(' ')[0],
           status: 'present',
+          notes: attendanceData.notes || '',
         },
       ])
       .select();
@@ -98,7 +100,52 @@ export const clockIn = async (attendanceData) => {
       return handleSupabaseError(error);
     }
 
-    return handleSupabaseSuccess(data[0]);
+    const rec = data[0];
+
+    // Non-blocking notifications: managers/admins + employee
+    try {
+      const { data: managers } = await supabase
+        .from(TABLES.EMPLOYEES)
+        .select('id')
+        .eq('is_manager', true);
+      const { data: admins } = await supabase
+        .from(TABLES.ADMIN_USERS)
+        .select('id');
+      const notifyUserIds = [
+        ...(managers || []).map((m) => m.id),
+        ...(admins || []).map((a) => a.id),
+      ].filter((id) => id !== rec.employee_id);
+      const notifications = [];
+      for (const uid of notifyUserIds) {
+        notifications.push({
+          user_id: uid,
+          type: NOTIFICATION_TYPES.ATTENDANCE,
+          title: 'Employee Clocked In',
+          message: `${rec.employee_name} clocked in at ${rec.clock_in}`,
+          data: { attendance_id: rec.id, event: 'clock_in', employee_name: rec.employee_name, date: rec.date },
+          link: '/attendance',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+      notifications.push({
+        user_id: rec.employee_id,
+        type: NOTIFICATION_TYPES.ATTENDANCE,
+        title: 'Clock In Recorded',
+        message: `You clocked in at ${rec.clock_in}`,
+        data: { attendance_id: rec.id, event: 'clock_in' },
+        link: '/attendance',
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+      if (notifications.length) {
+        await supabase.from(TABLES.NOTIFICATIONS).insert(notifications);
+      }
+    } catch (e) {
+      console.warn('Notification error (clock in):', e);
+    }
+
+    return handleSupabaseSuccess(rec);
   } catch (error) {
     return handleSupabaseError(error);
   }
@@ -107,14 +154,26 @@ export const clockIn = async (attendanceData) => {
 /**
  * Clock out
  */
-export const clockOut = async (attendanceId) => {
+export const clockOut = async (attendanceId, notesAppend) => {
   try {
     const clockOutTime = new Date().toTimeString().split(' ')[0];
+    // Read existing notes to append location info if provided
+    let newNotes;
+    if (notesAppend) {
+      const { data: existing } = await supabase
+        .from(TABLES.ATTENDANCE)
+        .select('notes')
+        .eq('id', attendanceId)
+        .single();
+      const prefix = existing?.notes ? existing.notes + ' | ' : '';
+      newNotes = prefix + notesAppend;
+    }
     
     const { data, error } = await supabase
       .from(TABLES.ATTENDANCE)
       .update({ 
         clock_out: clockOutTime,
+        ...(newNotes !== undefined ? { notes: newNotes } : {}),
       })
       .eq('id', attendanceId)
       .select();
@@ -123,7 +182,52 @@ export const clockOut = async (attendanceId) => {
       return handleSupabaseError(error);
     }
 
-    return handleSupabaseSuccess(data[0]);
+    const rec = data[0];
+
+    // Non-blocking notifications
+    try {
+      const { data: managers } = await supabase
+        .from(TABLES.EMPLOYEES)
+        .select('id')
+        .eq('is_manager', true);
+      const { data: admins } = await supabase
+        .from(TABLES.ADMIN_USERS)
+        .select('id');
+      const notifyUserIds = [
+        ...(managers || []).map((m) => m.id),
+        ...(admins || []).map((a) => a.id),
+      ].filter((id) => id !== rec.employee_id);
+      const notifications = [];
+      for (const uid of notifyUserIds) {
+        notifications.push({
+          user_id: uid,
+          type: NOTIFICATION_TYPES.ATTENDANCE,
+          title: 'Employee Clocked Out',
+          message: `${rec.employee_name} clocked out at ${rec.clock_out}`,
+          data: { attendance_id: rec.id, event: 'clock_out', employee_name: rec.employee_name, date: rec.date },
+          link: '/attendance',
+          is_read: false,
+          created_at: new Date().toISOString(),
+        });
+      }
+      notifications.push({
+        user_id: rec.employee_id,
+        type: NOTIFICATION_TYPES.ATTENDANCE,
+        title: 'Clock Out Recorded',
+        message: `You clocked out at ${rec.clock_out}`,
+        data: { attendance_id: rec.id, event: 'clock_out' },
+        link: '/attendance',
+        is_read: false,
+        created_at: new Date().toISOString(),
+      });
+      if (notifications.length) {
+        await supabase.from(TABLES.NOTIFICATIONS).insert(notifications);
+      }
+    } catch (e) {
+      console.warn('Notification error (clock out):', e);
+    }
+
+    return handleSupabaseSuccess(rec);
   } catch (error) {
     return handleSupabaseError(error);
   }

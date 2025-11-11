@@ -464,15 +464,16 @@ export const notifyRequisitionMessage = async (recipientUserIds, requestId, from
  */
 export const getNotificationIcon = (type) => {
   const icons = {
-    resignation: 'RESIGN',
-    leave_request: 'LEAVE',
-    attendance: 'ATTN',
-    payroll: 'PAY',
-    performance: 'PERF',
-    employee: 'EMP',
-    system: 'SYS',
+    resignation: '🚪',
+    leave_request: '📝',
+    attendance: '🕒',
+    payroll: '💰',
+    performance: '📈',
+    employee: '👤',
+    system: '🔔',
+    requisition: '📦',
   };
-  return icons[type] || 'NOTE';
+  return icons[type] || '🔔';
 };
 
 /**
