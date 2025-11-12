@@ -534,6 +534,35 @@ export default function EmployeeList() {
               </div>
             </div>
 
+            {/* Profile Details (Address & Emergency) */}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Profile Details</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Address</label>
+                  <p className="mt-1 text-gray-900">
+                    {selectedEmployee.address || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Date of Birth</label>
+                  <p className="mt-1 text-gray-900">{formatDate(selectedEmployee.date_of_birth)}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Marital Status</label>
+                  <p className="mt-1 text-gray-900">{selectedEmployee.marital_status || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Emergency Contact</label>
+                  <p className="mt-1 text-gray-900">{selectedEmployee.emergency_contact_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-600">Emergency Phone</label>
+                  <p className="mt-1 text-gray-900">{selectedEmployee.emergency_contact_phone || 'N/A'}</p>
+                </div>
+              </div>
+            </div>
+
             {/* Employment Information */}
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Employment Information</h3>

@@ -39,6 +39,7 @@ export default function VendorResponsesList() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [submitters, setSubmitters] = useState({});
+  const [employeeProfiles, setEmployeeProfiles] = useState({});
 
   const canDelete = isAdmin();
 
@@ -58,11 +59,14 @@ export default function VendorResponsesList() {
     const result = await getAllEmployees();
     if (result.success) {
       const map = {};
+      const profiles = {};
       (result.data || []).forEach((employee) => {
         if (!employee?.id) return;
+        profiles[employee.id] = employee;
         map[employee.id] = employee.name || employee.username || employee.email || 'Employee';
       });
       setSubmitters(map);
+      setEmployeeProfiles(profiles);
     }
   };
 
@@ -73,6 +77,9 @@ export default function VendorResponsesList() {
     'HR user';
 
   const resolveSubmitterEmail = (entry) => entry?.submitted_by_email || 'Not provided';
+
+  const resolveSubmitterProfile = (entry) =>
+    employeeProfiles[entry?.submitted_by_id] || null;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -254,6 +261,42 @@ export default function VendorResponsesList() {
           onConfirm={() => setSelectedEntry(null)}
           confirmText="Close"
         >
+          {(() => {
+            const profile = resolveSubmitterProfile(selectedEntry);
+            if (!profile) return null;
+            return (
+              <div className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-xs uppercase tracking-wider text-gray-500">Submitter profile</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-sm text-gray-700">
+                  <div>
+                    <p className="font-semibold text-gray-900">{formatFieldValue(profile.name)}</p>
+                    <p className="text-xs text-gray-500">{formatFieldValue(profile.position)}</p>
+                    <p className="text-xs text-gray-500">{formatFieldValue(profile.department)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-gray-500">Contact</p>
+                    <p>{formatFieldValue(profile.email)}</p>
+                    <p>{formatFieldValue(profile.phone)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase text-gray-500">Payroll info</p>
+                    <p>{formatFieldValue(profile.employee_code)}</p>
+                    <p>{formatFieldValue(profile.payment_mode)}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-xs text-gray-500">
+                  <p>Joined: {formatFieldValue(profile.join_date)}</p>
+                  <p>Leave balance: {formatFieldValue(profile.leave_balance)}</p>
+                  <p>Manager: {profile.is_manager ? 'Yes' : 'No'}</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3 text-xs text-gray-500">
+                  <p>Bank: {formatFieldValue(profile.bank_name)}</p>
+                  <p>Account: {formatFieldValue(profile.bank_account)}</p>
+                  <p>Manager perms: {formatFieldValue(profile.manager_permissions)}</p>
+                </div>
+              </div>
+            );
+          })()}
           <div className="space-y-6 text-sm text-gray-700">
             <div>
               <p className="text-xs uppercase tracking-wider text-gray-500">Submitted</p>
