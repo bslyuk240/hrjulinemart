@@ -397,7 +397,7 @@ export const notifyVendorSubmission = async (recipientUserIds, vendorData) => {
       user_id: userId,
       type: NOTIFICATION_TYPES.VENDOR,
       title: 'New Vendor Source',
-      message: `${vendorData.vendor_name || 'A vendor'} added by ${vendorData.marketer_name || 'your team'}`,
+      message: `${vendorData.vendor_name || 'A vendor'} added by ${vendorData.submitted_by_name || vendorData.submitted_by_email || 'your team'}`,
       data: {
         vendor_id: vendorData.id,
         vendor_name: vendorData.vendor_name,
@@ -497,17 +497,17 @@ export const notifyRequisitionMessage = async (recipientUserIds, requestId, from
  */
 export const getNotificationIcon = (type) => {
   const icons = {
-    resignation: '??',
-    leave_request: '???',
-    attendance: '??',
-    payroll: '??',
-    performance: '??',
-    employee: '??',
-    system: '???',
-    requisition: '??',
-    vendor: '??',
+    resignation: '⚠️',
+    leave_request: '🏝️',
+    attendance: '📅',
+    payroll: '💰',
+    performance: '📈',
+    employee: '👤',
+    system: '🛠️',
+    requisition: '🧾',
+    vendor: '🤝',
   };
-  return icons[type] || '??';
+  return icons[type] || '🔔';
 }
 
 /**
