@@ -12,6 +12,7 @@ export const NOTIFICATION_TYPES = {
   EMPLOYEE: 'employee',
   SYSTEM: 'system',
   REQUISITION: 'requisition',
+  VENDOR: 'vendor',
 };
 
 /**
@@ -388,6 +389,38 @@ export const notifyPerformanceDeadline = async (managerUserIds, reviewData) => {
 };
 
 /**
+ * Vendor sourcing: notify managers/admins
+ */
+export const notifyVendorSubmission = async (recipientUserIds, vendorData) => {
+  try {
+    const notifications = recipientUserIds.map((userId) => ({
+      user_id: userId,
+      type: NOTIFICATION_TYPES.VENDOR,
+      title: 'New Vendor Source',
+      message: `${vendorData.vendor_name || 'A vendor'} added by ${vendorData.marketer_name || 'your team'}`,
+      data: {
+        vendor_id: vendorData.id,
+        vendor_name: vendorData.vendor_name,
+      },
+      link: '/vendor-sourcing',
+    }));
+
+    const { data, error } = await supabase
+      .from(TABLES.NOTIFICATIONS)
+      .insert(notifications)
+      .select();
+
+    if (error) {
+      return handleSupabaseError(error);
+    }
+
+    return handleSupabaseSuccess(data);
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
  * Requisition: new request created (notify approvers)
  */
 export const notifyNewRequisition = async (recipientUserIds, request) => {
@@ -464,17 +497,18 @@ export const notifyRequisitionMessage = async (recipientUserIds, requestId, from
  */
 export const getNotificationIcon = (type) => {
   const icons = {
-    resignation: '🚪',
-    leave_request: '📝',
-    attendance: '🕒',
-    payroll: '💰',
-    performance: '📈',
-    employee: '👤',
-    system: '🔔',
-    requisition: '📦',
+    resignation: '??',
+    leave_request: '???',
+    attendance: '??',
+    payroll: '??',
+    performance: '??',
+    employee: '??',
+    system: '???',
+    requisition: '??',
+    vendor: '??',
   };
-  return icons[type] || '🔔';
-};
+  return icons[type] || '??';
+}
 
 /**
  * Get notification color based on type
@@ -488,9 +522,10 @@ export const getNotificationColor = (type) => {
     performance: 'bg-purple-100 text-purple-800',
     employee: 'bg-indigo-100 text-indigo-800',
     system: 'bg-gray-100 text-gray-800',
+    vendor: 'bg-emerald-100 text-emerald-800',
   };
   return colors[type] || 'bg-gray-100 text-gray-800';
-};
+}
 
 /**
  * Subscribe to real-time notifications

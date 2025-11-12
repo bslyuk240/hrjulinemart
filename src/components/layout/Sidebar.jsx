@@ -16,6 +16,7 @@ import {
   ChevronLeft,
   X,
   User,
+  ShoppingCart,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -58,6 +59,12 @@ export default function Sidebar() {
       name: 'Attendance',
       path: '/attendance',
       icon: Clock,
+      roles: ['admin', 'manager', 'employee'],
+    },
+    {
+      name: 'Vendor Sourcing',
+      path: '/vendor-sourcing',
+      icon: ShoppingCart,
       roles: ['admin', 'manager', 'employee'],
     },
     {

@@ -20,6 +20,8 @@ import Settings from './pages/Settings';
 import EmployeePayslip from './pages/EmployeePayslip';
 import Requisitions from './pages/Requisitions';
 import RequisitionManagement from './pages/RequisitionManagement';
+import VendorResponsesList from './components/vendor/VendorResponsesList';
+import VendorSourcingForm from './components/vendor/VendorSourcingForm';
 import './styles/index.css';
 
 // Role-based Dashboard Router
@@ -117,6 +119,24 @@ function App() {
                 element={
                   <ProtectedRoute requiredRole="employee">
                     <Attendance />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* Vendor sourcing */}
+              <Route 
+                path="vendor-sourcing" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <VendorResponsesList />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="vendor-sourcing/new" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <VendorSourcingForm />
                   </ProtectedRoute>
                 } 
               />

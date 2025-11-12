@@ -64,6 +64,7 @@ export const TABLES = {
   BLOG_BANNERS: 'blog_banners',
   MANAGERS_VIEW: 'managers_view',
   NOTIFICATIONS: 'notifications',
+  VENDOR_RESPONSES: 'vendor_responses',
 };
 
 // Export default client
