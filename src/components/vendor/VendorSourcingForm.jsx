@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { createVendorResponse } from '../../services/vendorService';
 
 const initialForm = {
-  marketer_name: '',
-  marketer_phone: '',
-  marketer_email: '',
   vendor_name: '',
   contact_person: '',
   vendor_phone: '',
@@ -23,6 +21,7 @@ const initialForm = {
 };
 
 export default function VendorSourcingForm() {
+  const navigate = useNavigate();
   const { showSuccess, showError } = useApp();
   const { user } = useAuth();
   const [formData, setFormData] = useState(initialForm);
@@ -38,7 +37,7 @@ export default function VendorSourcingForm() {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!formData.marketer_name || !formData.vendor_name || !formData.category || !formData.interest || !formData.onboarding) {
+    if (!formData.vendor_name || !formData.category || !formData.interest || !formData.onboarding) {
       showError('Please complete all required fields.');
       return;
     }
@@ -50,6 +49,9 @@ export default function VendorSourcingForm() {
       ...formData,
       entry_id: entryId,
       device: navigator?.userAgent ?? 'unknown',
+      submitted_by_id: user?.id,
+      submitted_by_name: user?.name || user?.username || 'HR user',
+      submitted_by_email: user?.email,
     };
 
     const result = await createVendorResponse(payload, user?.id);
@@ -66,47 +68,31 @@ export default function VendorSourcingForm() {
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Vendor Sourcing Form</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Capture vendor intelligence and notify the team in one place.
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-gray-900">Vendor Sourcing Form</h1>
+          <p className="text-sm text-gray-500">
+            Capture vendor intelligence and notify the team in one place.
+          </p>
+          <p className="text-xs text-gray-500">
+            Submitted by{' '}
+            <span className="text-gray-900 font-semibold">
+              {user?.name || user?.username || user?.email || 'an authenticated user'}
+            </span>
+            .
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => navigate('/vendor-sourcing')}
+          className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          Close
+        </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Marketer Name*</label>
-            <input
-              name="marketer_name"
-              value={formData.marketer_name}
-              onChange={handleChange}
-              className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none"
-              placeholder="Jane Doe"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Marketer Phone</label>
-            <input
-              type="tel"
-              name="marketer_phone"
-              value={formData.marketer_phone}
-              onChange={handleChange}
-              className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none"
-              placeholder="+234 800 123 4567"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-gray-500">Marketer Email</label>
-            <input
-              type="email"
-              name="marketer_email"
-              value={formData.marketer_email}
-              onChange={handleChange}
-              className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none"
-              placeholder="jane@julinemart.com"
-            />
-          </div>
           <div>
             <label className="text-xs font-semibold uppercase text-gray-500">Vendor Name*</label>
             <input
@@ -131,10 +117,10 @@ export default function VendorSourcingForm() {
             <label className="text-xs font-semibold uppercase text-gray-500">Vendor Phone</label>
             <input
               name="vendor_phone"
-              type="tel"
               value={formData.vendor_phone}
               onChange={handleChange}
               className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none"
+              placeholder="+234 800 123 4567"
             />
           </div>
           <div>
@@ -145,9 +131,10 @@ export default function VendorSourcingForm() {
               value={formData.vendor_email}
               onChange={handleChange}
               className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none"
+              placeholder="vendor@brand.com"
             />
           </div>
-          <div>
+          <div className="md:col-span-2">
             <label className="text-xs font-semibold uppercase text-gray-500">Business Address</label>
             <input
               name="business_address"

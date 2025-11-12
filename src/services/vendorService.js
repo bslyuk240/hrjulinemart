@@ -10,9 +10,6 @@ export const createVendorResponse = async (payload, submitterId) => {
       .from(TABLES.VENDOR_RESPONSES)
       .insert([{
         entry_id: payload.entry_id,
-        marketer_name: payload.marketer_name,
-        marketer_phone: payload.marketer_phone,
-        marketer_email: payload.marketer_email,
         vendor_name: payload.vendor_name,
         contact_person: payload.contact_person,
         vendor_phone: payload.vendor_phone,
@@ -25,6 +22,9 @@ export const createVendorResponse = async (payload, submitterId) => {
         onboarding: payload.onboarding,
         challenges: payload.challenges,
         comments: payload.comments,
+        submitted_by_id: payload.submitted_by_id,
+        submitted_by_name: payload.submitted_by_name,
+        submitted_by_email: payload.submitted_by_email,
         device: payload.device,
         image_links: payload.image_links || null,
       }])
@@ -58,6 +58,26 @@ export const createVendorResponse = async (payload, submitterId) => {
     }
 
     return handleSupabaseSuccess(response);
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
+ * Delete a vendor response by id
+ */
+export const deleteVendorResponse = async (id) => {
+  try {
+    const { error } = await supabase
+      .from(TABLES.VENDOR_RESPONSES)
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      return handleSupabaseError(error);
+    }
+
+    return handleSupabaseSuccess({ id });
   } catch (error) {
     return handleSupabaseError(error);
   }
