@@ -22,7 +22,7 @@ export const createVendorResponse = async (payload, submitterId) => {
         onboarding: payload.onboarding,
         challenges: payload.challenges,
         comments: payload.comments,
-        submitted_by_id: payload.submitted_by_id,
+        submitted_by_id: payload.submitted_by_id ? `${payload.submitted_by_id}` : null,
         submitted_by_name: payload.submitted_by_name,
         submitted_by_email: payload.submitted_by_email,
         device: payload.device,

@@ -49,7 +49,7 @@ export default function VendorSourcingForm() {
       ...formData,
       entry_id: entryId,
       device: navigator?.userAgent ?? 'unknown',
-      submitted_by_id: user?.id,
+      submitted_by_id: user?.id ? `${user.id}` : null,
       submitted_by_name: user?.name || user?.username || 'HR user',
       submitted_by_email: user?.email,
     };
