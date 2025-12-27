@@ -9,7 +9,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.76.1",
+    "@supabase/supabase-js": "^2.86.2",
     "jspdf": "^2.5.1",
     "lucide-react": "^0.263.1",
     "react": "^18.3.1",
