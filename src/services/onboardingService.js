@@ -215,6 +215,26 @@ export const updateOnboardingStatus = async (id, status) => {
   }
 };
 
+const getInitials = (fullName) => {
+  const parts = String(fullName || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return 'XX';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+};
+
+const getPositionCode = (position) => {
+  const parts = String(position || '')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (parts.length === 0) return 'XX';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+};
+
 /**
  * Approve onboarding and convert to employee
  */
@@ -229,7 +249,16 @@ export const approveOnboarding = async (id, approvedBy) => {
     const profile = profileResult.data;
 
     // Generate employee code
-    const employeeCode = `EMP${Date.now().toString().slice(-6)}`;
+    const { count: positionCount, error: countError } = await supabase
+      .from(TABLES.EMPLOYEES)
+      .select('id', { count: 'exact', head: true })
+      .eq('position', profile.position);
+    if (countError) {
+      return handleSupabaseError(countError);
+    }
+
+    const sequence = String((positionCount || 0) + 1).padStart(3, '0');
+    const employeeCode = `${getInitials(profile.full_name)}${getPositionCode(profile.position)}${sequence}`;
 
     // Create employee record
     const { data: employee, error: employeeError } = await supabase
