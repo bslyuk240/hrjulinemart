@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/.netlify/functions' : '');
 
 const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
 
@@ -31,7 +31,7 @@ export const sendOnboardingEmail = async (
   candidateName,
   position,
   onboardingToken
-) => postJson('/api/email/onboarding', {
+) => postJson('/email/onboarding', {
   candidateEmail,
   candidateName,
   position,
@@ -44,7 +44,7 @@ export const sendReferenceRequestEmail = async (
   candidateName,
   position,
   referenceToken
-) => postJson('/api/email/reference-request', {
+) => postJson('/email/reference-request', {
   refereeEmail,
   refereeName,
   candidateName,
@@ -58,7 +58,7 @@ export const sendReferenceReminderEmail = async (
   candidateName,
   position,
   referenceToken
-) => postJson('/api/email/reference-reminder', {
+) => postJson('/email/reference-reminder', {
   refereeEmail,
   refereeName,
   candidateName,
@@ -66,6 +66,6 @@ export const sendReferenceReminderEmail = async (
   referenceToken,
 });
 
-export const testEmailConfiguration = async (testRecipient) => postJson('/api/email/test', {
+export const testEmailConfiguration = async (testRecipient) => postJson('/email/test', {
   recipientEmail: testRecipient,
 });
