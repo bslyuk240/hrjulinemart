@@ -1,9 +1,28 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom'; // ✨ Added useLocation
 import { useAuth } from '../../context/AuthContext';
 
 export default function ProtectedRoute({ children, requiredRole }) {
   const { user, loading, isAdmin, isManager, isEmployee } = useAuth();
+  const location = useLocation(); // ✨ NEW
+
+  // ✨ NEW: Define public paths that don't require authentication
+  const publicPaths = [
+    '/login',
+    '/onboarding',       // Matches /onboarding/:token
+    '/reference',        // Matches /reference/:token
+    '/onboarding-success',
+  ];
+
+  // ✨ NEW: Check if current path is public
+  const isPublicPath = publicPaths.some(path => 
+    location.pathname.startsWith(path)
+  );
+
+  // ✨ NEW: Allow public paths without authentication
+  if (isPublicPath) {
+    return children;
+  }
 
   // Show loading spinner while checking authentication
   if (loading) {

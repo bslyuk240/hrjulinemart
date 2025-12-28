@@ -5,6 +5,7 @@ import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard,
   Users,
+  UserPlus, // ✨ NEW: Icon for Onboarding
   DollarSign,
   Calendar,
   Clock,
@@ -37,6 +38,13 @@ export default function Sidebar() {
       icon: User,
       roles: ['admin', 'manager', 'employee'],
     },
+    // ✨ NEW: Onboarding (Admin only)
+    {
+      name: 'Onboarding',
+      path: '/onboarding',
+      icon: UserPlus,
+      roles: ['admin'],
+    },
     {
       name: 'Employees',
       path: '/employees',
@@ -68,11 +76,11 @@ export default function Sidebar() {
       roles: ['admin', 'manager', 'employee'],
     },
     {
-  name: 'My Payslips',
-  path: '/payslips',
-  icon: FileText,
-  roles: ['manager', 'employee'], // admin removed
-},
+      name: 'My Payslips',
+      path: '/payslips',
+      icon: FileText,
+      roles: ['manager', 'employee'],
+    },
     {
       name: 'Performance',
       path: '/performance',
@@ -80,17 +88,17 @@ export default function Sidebar() {
       roles: ['admin', 'manager'],
     }, 
     {
-  name: 'My Requisitions',
-  path: '/requisitions',
-  icon: FileText,
-  roles: ['employee', 'manager'], // remove 'admin'
-},
-{
-  name: 'Requisition Management',
-  path: '/requisition-management',
-  icon: DollarSign,
-  roles: ['admin'],
-},
+      name: 'My Requisitions',
+      path: '/requisitions',
+      icon: FileText,
+      roles: ['employee', 'manager'],
+    },
+    {
+      name: 'Requisition Management',
+      path: '/requisition-management',
+      icon: DollarSign,
+      roles: ['admin'],
+    },
     {
       name: 'Resignations',
       path: '/resignation',
@@ -107,19 +115,19 @@ export default function Sidebar() {
 
   // Filter navigation based on user role
   const filteredNavigation = navigationItems.filter((item) => {
-  if (isAdmin()) {
-    // Admin only sees admin routes
-    return item.roles.includes('admin');
-  }
+    if (isAdmin()) {
+      // Admin only sees admin routes
+      return item.roles.includes('admin');
+    }
 
-  if (isManager()) {
-    // Manager sees manager and employee routes
-    return item.roles.includes('manager') || item.roles.includes('employee');
-  }
+    if (isManager()) {
+      // Manager sees manager and employee routes
+      return item.roles.includes('manager') || item.roles.includes('employee');
+    }
 
-  // Regular employee
-  return item.roles.includes('employee');
-});
+    // Regular employee
+    return item.roles.includes('employee');
+  });
 
 
   return (
@@ -260,7 +268,7 @@ export default function Sidebar() {
               © 2025 {import.meta.env.VITE_COMPANY_NAME || 'JulineMart'} HR System
             </p>
             <p className="text-xs text-gray-500 text-center mt-1">
-              Version 2.0.0
+              Version 2.1.0 {/* ✨ Updated version */}
             </p>
           </div>
         </div>

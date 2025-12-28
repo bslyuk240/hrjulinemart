@@ -22,6 +22,13 @@ import Requisitions from './pages/Requisitions';
 import RequisitionManagement from './pages/RequisitionManagement';
 import VendorResponsesList from './components/vendor/VendorResponsesList';
 import VendorSourcingForm from './components/vendor/VendorSourcingForm';
+
+// ✨ NEW: Onboarding imports
+import OnboardingDashboard from './pages/OnboardingDashboard';
+import OnboardingFormPage from './pages/OnboardingFormPage';
+import ReferenceFormPage from './pages/ReferenceFormPage';
+import OnboardingSuccessPage from './pages/OnboardingSuccessPage';
+
 import './styles/index.css';
 
 // Role-based Dashboard Router
@@ -42,6 +49,12 @@ function App() {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            
+            {/* ✨ NEW: Public Onboarding & Reference Routes (No Login Required) */}
+            <Route path="/onboarding/:token" element={<OnboardingFormPage />} />
+            <Route path="/reference/:token" element={<ReferenceFormPage />} />
+            <Route path="/onboarding-success" element={<OnboardingSuccessPage />} />
+            
             <Route
               path="/"
               element={
@@ -63,25 +76,34 @@ function App() {
               /> 
 
               {/* Employee Requisitions */}
-<Route 
-  path="requisitions" 
-  element={
-    <ProtectedRoute requiredRole="employee">
-      <Requisitions />
-    </ProtectedRoute>
-  } 
-/>
+              <Route 
+                path="requisitions" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <Requisitions />
+                  </ProtectedRoute>
+                } 
+              />
 
-{/* Admin Requisition Management */}
-<Route 
-  path="requisition-management" 
-  element={
-    <ProtectedRoute requiredRole="admin">
-      <RequisitionManagement />
-    </ProtectedRoute>
-  } 
-/>
-
+              {/* Admin Requisition Management */}
+              <Route 
+                path="requisition-management" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <RequisitionManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              
+              {/* ✨ NEW: Onboarding - Admin only */}
+              <Route 
+                path="onboarding" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <OnboardingDashboard />
+                  </ProtectedRoute>
+                } 
+              />
               
               {/* Employee Routes - Admin (full access), Manager (view only) */}
               <Route 
@@ -182,24 +204,24 @@ function App() {
               />
 
               {/* Profile - All roles */}
-<Route 
-  path="profile" 
-  element={
-    <ProtectedRoute requiredRole="employee">
-      <Profile />
-    </ProtectedRoute>
-  } 
-/>
+              <Route 
+                path="profile" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <Profile />
+                  </ProtectedRoute>
+                } 
+              />
 
-{/* Payslips - All roles */}
-<Route 
-  path="payslips" 
-  element={
-    <ProtectedRoute requiredRole="employee">
-      <EmployeePayslip />
-    </ProtectedRoute>
-  } 
-/>
+              {/* Payslips - All roles */}
+              <Route 
+                path="payslips" 
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <EmployeePayslip />
+                  </ProtectedRoute>
+                } 
+              />
 
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -65,6 +65,10 @@ export const TABLES = {
   MANAGERS_VIEW: 'managers_view',
   NOTIFICATIONS: 'notifications',
   VENDOR_RESPONSES: 'vendor_responses',
+  ONBOARDING_PROFILES: 'onboarding_profiles',
+  ONBOARDING_DOCUMENTS: 'onboarding_documents',
+  REFERENCE_REQUESTS: 'reference_requests',
+  REFERENCES: 'references',
 };
 
 // Export default client
