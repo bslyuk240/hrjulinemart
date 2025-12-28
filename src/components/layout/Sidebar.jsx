@@ -43,7 +43,7 @@ export default function Sidebar() {
       name: 'Onboarding',
       path: '/onboarding',
       icon: UserPlus,
-      roles: ['admin'],
+      roles: ['admin', 'manager'],
     },
     {
       name: 'Employees',
@@ -55,7 +55,7 @@ export default function Sidebar() {
       name: 'Payroll',
       path: '/payroll',
       icon: DollarSign,
-      roles: ['admin'],
+      roles: ['admin', 'manager'],
     },
     {
       name: 'Leave Requests',
@@ -97,19 +97,19 @@ export default function Sidebar() {
       name: 'Requisition Management',
       path: '/requisition-management',
       icon: DollarSign,
-      roles: ['admin'],
+      roles: ['admin', 'manager'],
     },
     {
       name: 'Resignations',
       path: '/resignation',
       icon: UserX,
-      roles: ['admin'],
+      roles: ['admin', 'manager'],
     },
     {
       name: 'Archive',
       path: '/archive',
       icon: Archive,
-      roles: ['admin'],
+      roles: ['admin', 'manager'],
     },
   ];
 
