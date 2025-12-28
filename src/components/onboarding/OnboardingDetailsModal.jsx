@@ -28,6 +28,7 @@ import {
   createReferenceRequest,
 } from '../../services/referenceService';
 import { sendOnboardingApprovedEmail, sendReferenceRequestEmail } from '../../services/emailService';
+import { getEmployeeById } from '../../services/employeeService';
 
 export default function OnboardingDetailsModal({ profile, onClose }) {
   const [loading, setLoading] = useState(false);
@@ -159,6 +160,39 @@ export default function OnboardingDetailsModal({ profile, onClose }) {
     } catch (error) {
       console.error('Error sending reference requests:', error);
       alert('Error sending reference requests');
+    }
+    setLoading(false);
+  };
+
+  const handleSendApprovalEmail = async () => {
+    if (!profile.converted_employee_id) {
+      alert('Employee record not found for this onboarding.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const employeeResult = await getEmployeeById(profile.converted_employee_id);
+      if (!employeeResult.success) {
+        alert('Failed to load employee record: ' + employeeResult.error);
+        return;
+      }
+
+      const emailResult = await sendOnboardingApprovedEmail(
+        profile.email,
+        profile.full_name,
+        profile.position,
+        employeeResult.data.employee_code
+      );
+
+      if (emailResult.success) {
+        alert('Approval email sent successfully.');
+      } else {
+        alert('Failed to send approval email: ' + emailResult.error);
+      }
+    } catch (error) {
+      console.error('Error sending approval email:', error);
+      alert('Error sending approval email');
     }
     setLoading(false);
   };
@@ -464,6 +498,21 @@ export default function OnboardingDetailsModal({ profile, onClose }) {
                   Approve & Create Employee
                 </button>
               </>
+            )}
+
+            {profile.status === 'approved' && !showRejectDialog && (
+              <button
+                onClick={handleSendApprovalEmail}
+                disabled={loading}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {loading ? (
+                  <Loader className="w-5 h-5 animate-spin" />
+                ) : (
+                  <Mail className="w-5 h-5" />
+                )}
+                Send Approval Email
+              </button>
             )}
 
             {showRejectDialog && (
