@@ -99,7 +99,7 @@ function App() {
               <Route 
                 path="onboarding" 
                 element={
-                  <ProtectedRoute requiredRole="admin">
+                  <ProtectedRoute requiredRole="manager">
                     <OnboardingDashboard />
                   </ProtectedRoute>
                 } 
