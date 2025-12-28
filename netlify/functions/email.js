@@ -150,6 +150,34 @@ const buildReferenceReminderEmail = (refereeName, candidateName, position, refer
   };
 };
 
+const buildOnboardingApprovedEmail = (candidateName, position, employeeCode) => ({
+  subject: `Onboarding Approved - Welcome to ${COMPANY_NAME}`,
+  html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Approved</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden;">
+    <div style="background: #16a34a; color: #fff; padding: 20px; text-align: center;">
+      <h1 style="margin: 0;">Onboarding Approved</h1>
+    </div>
+    <div style="padding: 20px;">
+      <p>Dear ${candidateName},</p>
+      <p>Congratulations! Your onboarding for the role of <strong>${position}</strong> has been approved.</p>
+      <p>Your employee code is <strong>${employeeCode}</strong>.</p>
+      <p>Our HR team will contact you with your start details and next steps.</p>
+      <p>Best regards,<br>HR Team<br>${COMPANY_NAME}</p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim(),
+});
+
 const sendMail = async ({ to, subject, html }) => {
   const transporter = nodemailer.createTransport(getEmailConfig());
   const info = await transporter.sendMail({
@@ -225,6 +253,16 @@ export const handler = async (event) => {
         text: 'This is a test email to verify SMTP settings.',
       });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Email configuration is working.' });
+    }
+
+    if (path.endsWith('/onboarding-approved')) {
+      const { candidateEmail, candidateName, position, employeeCode } = payload;
+      if (!candidateEmail || !candidateName || !position || !employeeCode) {
+        return jsonResponse(400, { success: false, error: 'Missing required fields.' });
+      }
+      const { subject, html } = buildOnboardingApprovedEmail(candidateName, position, employeeCode);
+      const info = await sendMail({ to: candidateEmail, subject, html });
+      return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Onboarding approval email sent successfully.' });
     }
 
     return jsonResponse(404, { success: false, error: 'Endpoint not found.' });

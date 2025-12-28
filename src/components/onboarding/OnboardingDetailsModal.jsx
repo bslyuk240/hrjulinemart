@@ -27,7 +27,7 @@ import {
   getReferencesByProfile,
   createReferenceRequest,
 } from '../../services/referenceService';
-import { sendReferenceRequestEmail } from '../../services/emailService';
+import { sendOnboardingApprovedEmail, sendReferenceRequestEmail } from '../../services/emailService';
 
 export default function OnboardingDetailsModal({ profile, onClose }) {
   const [loading, setLoading] = useState(false);

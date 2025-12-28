@@ -1,4 +1,5 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
+import { updateOnboardingStatus } from './onboardingService';
 
 /**
  * =====================================================
@@ -290,6 +291,11 @@ export const submitReference = async (referenceData) => {
       referenceData.reference_request_id,
       'completed'
     );
+
+    const completionResult = await getReferenceCompletionStatus(referenceData.onboarding_profile_id);
+    if (completionResult.success && completionResult.data.allCompleted) {
+      await updateOnboardingStatus(referenceData.onboarding_profile_id, 'references_received');
+    }
 
     return handleSupabaseSuccess(data[0]);
   } catch (error) {

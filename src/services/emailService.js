@@ -1,4 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/.netlify/functions' : '');
+const API_BASE_URL = import.meta.env.VITE_API_URL
+  || (import.meta.env.PROD ? '/.netlify/functions' : '/api');
 
 const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
 
@@ -68,4 +69,16 @@ export const sendReferenceReminderEmail = async (
 
 export const testEmailConfiguration = async (testRecipient) => postJson('/email/test', {
   recipientEmail: testRecipient,
+});
+
+export const sendOnboardingApprovedEmail = async (
+  candidateEmail,
+  candidateName,
+  position,
+  employeeCode
+) => postJson('/email/onboarding-approved', {
+  candidateEmail,
+  candidateName,
+  position,
+  employeeCode,
 });

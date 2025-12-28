@@ -108,14 +108,14 @@ export default function OnboardingSuccessPage() {
             </p>
             <div className="flex flex-col items-center gap-2 text-sm">
               <a 
-                href="mailto:hr@julinemart.com" 
+                href="mailto:admin@julinemart.com" 
                 className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
               >
                 <Mail className="w-4 h-4" />
-                hr@julinemart.com
+                admin@julinemart.com
               </a>
               <p className="text-gray-500">
-                or call us at: <span className="font-medium text-gray-700">+234 XXX XXX XXXX</span>
+                or call us at: <span className="font-medium text-gray-700">+2347075825761</span>
               </p>
             </div>
           </div>

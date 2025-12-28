@@ -139,6 +139,34 @@ const buildReferenceReminderEmail = (refereeName, candidateName, position, refer
   };
 };
 
+const buildOnboardingApprovedEmail = (candidateName, position, employeeCode) => ({
+  subject: `Onboarding Approved - Welcome to ${COMPANY_NAME}`,
+  html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Onboarding Approved</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; background: #f5f5f5; padding: 20px;">
+  <div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; overflow: hidden;">
+    <div style="background: #16a34a; color: #fff; padding: 20px; text-align: center;">
+      <h1 style="margin: 0;">Onboarding Approved</h1>
+    </div>
+    <div style="padding: 20px;">
+      <p>Dear ${candidateName},</p>
+      <p>Congratulations! Your onboarding for the role of <strong>${position}</strong> has been approved.</p>
+      <p>Your employee code is <strong>${employeeCode}</strong>.</p>
+      <p>Our HR team will contact you with your start details and next steps.</p>
+      <p>Best regards,<br>HR Team<br>${COMPANY_NAME}</p>
+    </div>
+  </div>
+</body>
+</html>
+  `.trim(),
+});
+
 const createTransporter = () => nodemailer.createTransport(getEmailConfig());
 
 const ensureEmailConfig = () => {
@@ -257,6 +285,34 @@ app.post('/api/email/test', async (req, res) => {
     return res.json({ success: true, messageId: info.messageId, message: 'Email configuration is working.' });
   } catch (error) {
     console.error('Error sending test email:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Failed to send email.' });
+  }
+});
+
+app.post('/api/email/onboarding-approved', async (req, res) => {
+  const { candidateEmail, candidateName, position, employeeCode } = req.body || {};
+  if (!candidateEmail || !candidateName || !position || !employeeCode) {
+    return res.status(400).json({ success: false, error: 'Missing required fields.' });
+  }
+
+  const configError = ensureEmailConfig();
+  if (configError) {
+    return res.status(500).json({ success: false, error: configError });
+  }
+
+  try {
+    const transporter = createTransporter();
+    const { subject, html } = buildOnboardingApprovedEmail(candidateName, position, employeeCode);
+    const info = await transporter.sendMail({
+      from: `"${COMPANY_NAME} HR" <${FROM_EMAIL}>`,
+      to: candidateEmail,
+      subject,
+      html,
+    });
+
+    return res.json({ success: true, messageId: info.messageId, message: 'Onboarding approval email sent successfully.' });
+  } catch (error) {
+    console.error('Error sending onboarding approval email:', error);
     return res.status(500).json({ success: false, error: error.message || 'Failed to send email.' });
   }
 });
