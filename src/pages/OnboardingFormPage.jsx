@@ -555,26 +555,30 @@ export default function OnboardingFormPage() {
                 <h2 className="text-2xl font-bold text-gray-900 mb-4">Upload Documents</h2>
 
                 <div className="space-y-4">
-                  {['passport', 'national_id', 'cv'].map((docType) => (
-                    <div key={docType} className="p-4 border border-gray-200 rounded-lg">
-                      <label className="block text-sm font-medium text-gray-700 mb-2 capitalize">
-                        {docType.replace('_', ' ')} {docType === 'passport' && <span className="text-red-500">*</span>}
+                  {[
+                    { key: 'national_id', label: 'Voter\'s Card / National ID' },
+                    { key: 'passport', label: 'Passport Photograph' },
+                    { key: 'cv', label: 'CV' },
+                  ].map((doc) => (
+                    <div key={doc.key} className="p-4 border border-gray-200 rounded-lg">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {doc.label} <span className="text-red-500">*</span>
                       </label>
                       <div className="flex items-center gap-4">
                         <input
                           type="file"
-                          onChange={(e) => handleFileChange(docType, e)}
+                          onChange={(e) => handleFileChange(doc.key, e)}
                           accept=".pdf,.jpg,.jpeg,.png"
-                          required={docType === 'passport'}
+                          required
                           className="flex-1"
                         />
-                        {uploadedFiles[docType] && (
+                        {uploadedFiles[doc.key] && (
                           <CheckCircle className="w-5 h-5 text-green-500" />
                         )}
                       </div>
-                      {uploadedFiles[docType] && (
+                      {uploadedFiles[doc.key] && (
                         <p className="text-sm text-green-600 mt-1">
-                          Selected: {uploadedFiles[docType].name}
+                          Selected: {uploadedFiles[doc.key].name}
                         </p>
                       )}
                     </div>
