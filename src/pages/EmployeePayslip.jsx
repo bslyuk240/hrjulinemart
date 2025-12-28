@@ -122,6 +122,23 @@ export default function EmployeePayslip() {
         })
       : "N/A";
 
+  const getCustomLabel = (comments, type) => {
+    if (!comments) return null;
+    const parts = String(comments).split(" | ").map((part) => part.trim());
+    const prefix = `${type}: `;
+    const match = parts.find((part) => part.startsWith(prefix));
+    return match ? match.slice(prefix.length) : null;
+  };
+
+  const getVisibleComments = (comments) => {
+    if (!comments) return "";
+    return String(comments)
+      .split(" | ")
+      .map((part) => part.trim())
+      .filter((part) => part && !part.startsWith("Earning: ") && !part.startsWith("Deduction: "))
+      .join(" | ");
+  };
+
   // Compute total deductions across all components
   const getTotalDeductions = (p) =>
     (parseFloat(p?.deductions) || 0) +
@@ -428,6 +445,16 @@ export default function EmployeePayslip() {
                       </span>
                     </div>
                   )}
+                  {selectedPayslip.other_earnings > 0 && (
+                    <div className="flex justify-between bg-green-50 rounded-lg p-2 md:p-3">
+                      <span>
+                        {getCustomLabel(selectedPayslip.comments, "Earning") || "Other Earnings"}
+                      </span>
+                      <span className="font-semibold">
+                        {formatCurrency(selectedPayslip.other_earnings)}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between bg-blue-100 rounded-lg p-2 md:p-3 font-semibold">
                     <span>Gross Salary</span>
                     <span className="text-blue-700">
@@ -448,7 +475,10 @@ export default function EmployeePayslip() {
                     { label: 'Insurance', value: selectedPayslip.insurance },
                     { label: 'NHF', value: selectedPayslip.nhf },
                     { label: 'Loan Deduction', value: selectedPayslip.loan_deduction },
-                    { label: 'Other Deductions', value: selectedPayslip.other_deductions },
+                    {
+                      label: getCustomLabel(selectedPayslip.comments, "Deduction") || 'Other Deductions',
+                      value: selectedPayslip.other_deductions,
+                    },
                     { label: 'General Deductions', value: selectedPayslip.deductions },
                   ].map((item) =>
                     parseFloat(item.value) > 0 ? (
@@ -469,6 +499,15 @@ export default function EmployeePayslip() {
                   </div>
                 </div>
               </div>
+
+              {getVisibleComments(selectedPayslip.comments) && (
+                <div className="bg-gray-50 rounded-lg p-3 md:p-4">
+                  <h3 className="font-semibold text-gray-700 mb-2">Notes</h3>
+                  <p className="text-sm text-gray-600 whitespace-pre-line">
+                    {getVisibleComments(selectedPayslip.comments)}
+                  </p>
+                </div>
+              )}
 
               {/* Net Salary */}
               <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 md:p-6 text-white">

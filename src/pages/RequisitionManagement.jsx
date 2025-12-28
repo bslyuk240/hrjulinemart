@@ -54,6 +54,7 @@ export default function RequisitionManagement() {
     paid: 0,
     totalPaid: 0,
   });
+  const [filteredStats, setFilteredStats] = useState(stats);
 
   const chatRef = useRef(null);
 
@@ -72,6 +73,9 @@ useEffect(() => {
   useEffect(() => {
     filterRequests();
   }, [searchTerm, filterStatus, filterType, filterDateFrom, filterDateTo, requests]);
+  useEffect(() => {
+    setFilteredStats(buildStats(filteredRequests));
+  }, [filteredRequests]);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -90,6 +94,7 @@ useEffect(() => {
     const result = await getRequestStats(true, null);
     if (result.success) {
       setStats(result.data);
+      setFilteredStats(result.data);
     }
   };
 
@@ -113,19 +118,29 @@ useEffect(() => {
       filtered = filtered.filter(req => req.kind === filterType);
     }
 
-    if (filterDateFrom) {
-      filtered = filtered.filter(
-        req => new Date(req.created_at) >= new Date(filterDateFrom)
-      );
-    }
-
-    if (filterDateTo) {
-      filtered = filtered.filter(
-        req => new Date(req.created_at) <= new Date(filterDateTo + 'T23:59:59')
-      );
+    if (filterDateFrom && filterDateTo) {
+      const fromDate = new Date(`${filterDateFrom}T00:00:00`);
+      const toDate = new Date(`${filterDateTo}T23:59:59`);
+      filtered = filtered.filter((req) => {
+        const createdAt = new Date(req.created_at);
+        return createdAt >= fromDate && createdAt <= toDate;
+      });
     }
 
     setFilteredRequests(filtered);
+  };
+  const buildStats = (data) => {
+    const safeData = data || [];
+    return {
+      total: safeData.length,
+      pending: safeData.filter((req) => req.status === 'Pending').length,
+      approved: safeData.filter((req) => req.status === 'Approved').length,
+      declined: safeData.filter((req) => req.status === 'Declined').length,
+      paid: safeData.filter((req) => req.status === 'Paid').length,
+      totalPaid: safeData
+        .filter((req) => req.status === 'Paid')
+        .reduce((sum, req) => sum + (req.amount || 0), 0),
+    };
   };
 
   const handleStatusUpdate = async (requestId, newStatus) => {
@@ -321,7 +336,7 @@ useEffect(() => {
         <div className="bg-white rounded-lg p-3 md:p-4 shadow-md">
           <div className="flex items-center justify-between mb-2">
             <FileText className="w-4 h-4 md:w-5 md:h-5 text-gray-500" />
-            <span className="text-xl md:text-2xl font-bold text-gray-900">{stats.total}</span>
+            <span className="text-xl md:text-2xl font-bold text-gray-900">{filteredStats.total}</span>
           </div>
           <p className="text-xs text-gray-600">Total</p>
         </div>
@@ -329,7 +344,7 @@ useEffect(() => {
         <div className="bg-white rounded-lg p-3 md:p-4 shadow-md">
           <div className="flex items-center justify-between mb-2">
             <Clock className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
-            <span className="text-xl md:text-2xl font-bold text-yellow-600">{stats.pending}</span>
+            <span className="text-xl md:text-2xl font-bold text-yellow-600">{filteredStats.pending}</span>
           </div>
           <p className="text-xs text-gray-600">Pending</p>
         </div>
@@ -337,7 +352,7 @@ useEffect(() => {
         <div className="bg-white rounded-lg p-3 md:p-4 shadow-md">
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-green-500" />
-            <span className="text-xl md:text-2xl font-bold text-green-600">{stats.approved}</span>
+            <span className="text-xl md:text-2xl font-bold text-green-600">{filteredStats.approved}</span>
           </div>
           <p className="text-xs text-gray-600">Approved</p>
         </div>
@@ -345,7 +360,7 @@ useEffect(() => {
         <div className="bg-white rounded-lg p-3 md:p-4 shadow-md">
           <div className="flex items-center justify-between mb-2">
             <XCircle className="w-4 h-4 md:w-5 md:h-5 text-red-500" />
-            <span className="text-xl md:text-2xl font-bold text-red-600">{stats.declined}</span>
+            <span className="text-xl md:text-2xl font-bold text-red-600">{filteredStats.declined}</span>
           </div>
           <p className="text-xs text-gray-600">Declined</p>
         </div>
@@ -353,7 +368,7 @@ useEffect(() => {
         <div className="bg-white rounded-lg p-3 md:p-4 shadow-md">
           <div className="flex items-center justify-between mb-2">
             <CheckCircle className="w-4 h-4 md:w-5 md:h-5 text-blue-500" />
-            <span className="text-xl md:text-2xl font-bold text-blue-600">{stats.paid}</span>
+            <span className="text-xl md:text-2xl font-bold text-blue-600">{filteredStats.paid}</span>
           </div>
           <p className="text-xs text-gray-600">Paid</p>
         </div>
@@ -362,7 +377,7 @@ useEffect(() => {
           <div className="flex items-center justify-between mb-2">
             <DollarSign className="w-4 h-4 md:w-5 md:h-5 text-purple-500" />
             <span className="text-sm md:text-lg font-bold text-purple-600">
-              ₦{stats.totalPaid.toFixed(0)}
+              ₦{filteredStats.totalPaid.toFixed(0)}
             </span>
           </div>
           <p className="text-xs text-gray-600">Total Paid</p>
@@ -425,6 +440,7 @@ useEffect(() => {
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
             placeholder="To Date"
           />
+
         </div>
 
         <div className="mt-4">
@@ -882,3 +898,5 @@ useEffect(() => {
     </div>
   );
 }
+
+

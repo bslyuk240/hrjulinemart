@@ -13,6 +13,23 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleDateString('en-GB');
 };
 
+const getCustomLabel = (comments, type) => {
+  if (!comments) return null;
+  const parts = String(comments).split(' | ').map((part) => part.trim());
+  const prefix = `${type}: `;
+  const match = parts.find((part) => part.startsWith(prefix));
+  return match ? match.slice(prefix.length) : null;
+};
+
+const getVisibleComments = (comments) => {
+  if (!comments) return '';
+  const parts = String(comments)
+    .split(' | ')
+    .map((part) => part.trim())
+    .filter((part) => part && !part.startsWith('Earning: ') && !part.startsWith('Deduction: '));
+  return parts.join(' | ');
+};
+
 export const generatePayslip = async (payrollData, employeeData) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -155,13 +172,16 @@ export const generatePayslip = async (payrollData, employeeData) => {
   doc.setTextColor(50, 50, 50);
   
   let earningsY = yPos + 8;
+  const customEarningLabel = getCustomLabel(payrollData.comments, 'Earning');
+  const customDeductionLabel = getCustomLabel(payrollData.comments, 'Deduction');
+
   const earnings = [
     { label: 'Basic Salary', value: payrollData.basic_salary },
     { label: 'Allowances', value: payrollData.allowances },
     { label: 'Overtime Pay', value: payrollData.overtime_pay },
     { label: 'Bonus', value: payrollData.bonus },
     { label: 'Holiday Pay', value: payrollData.holiday_pay },
-    { label: 'Other Earnings', value: payrollData.other_earnings },
+    { label: customEarningLabel || 'Other Earnings', value: payrollData.other_earnings },
   ];
   
   const leftColEnd = pageWidth / 2 - 10;
@@ -185,7 +205,7 @@ export const generatePayslip = async (payrollData, employeeData) => {
     { label: 'Insurance', value: payrollData.insurance },
     { label: 'NHF', value: payrollData.nhf },
     { label: 'Loan Deduction', value: payrollData.loan_deduction },
-    { label: 'Other Deductions', value: payrollData.other_deductions },
+    { label: customDeductionLabel || 'Other Deductions', value: payrollData.other_deductions },
     { label: 'General Deductions', value: payrollData.deductions },
   ];
   
@@ -235,6 +255,20 @@ export const generatePayslip = async (payrollData, employeeData) => {
   doc.text('NET PAY', 20, netPayY + 8);
   doc.setFont('courier', 'bold');
   doc.text(formatCurrency(payrollData.net_salary), pageWidth - 18, netPayY + 8, { align: 'right' });
+
+  // ==================== COMMENTS ====================
+  const visibleComments = getVisibleComments(payrollData.comments);
+  if (visibleComments) {
+    const notesY = netPayY + 18;
+    doc.setFontSize(9);
+    doc.setTextColor(60, 60, 60);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Notes:', 15, notesY);
+
+    doc.setFont('helvetica', 'normal');
+    const wrappedNotes = doc.splitTextToSize(String(visibleComments), pageWidth - 30);
+    doc.text(wrappedNotes, 15, notesY + 6);
+  }
   
   // ==================== FOOTER ====================
 // Website

@@ -271,7 +271,7 @@ export default function OnboardingDashboard() {
 
       {/* Onboarding Profiles Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full min-w-[800px]">
             <thead className="bg-gradient-to-r from-purple-600 to-blue-600 text-white">
               <tr>
@@ -363,6 +363,87 @@ export default function OnboardingDashboard() {
               )}
             </tbody>
           </table>
+        </div>
+        <div className="md:hidden">
+          {filteredProfiles.length === 0 ? (
+            <div className="px-4 py-10 text-center">
+              <div className="flex flex-col items-center justify-center text-gray-400">
+                <AlertCircle className="w-12 h-12 mb-4" />
+                <p className="text-base font-medium">No onboarding profiles found</p>
+                <p className="text-xs mt-2">
+                  {searchTerm || statusFilter !== 'all'
+                    ? 'Try adjusting your filters'
+                    : 'Click "New Onboarding" to get started'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {filteredProfiles.map((profile) => (
+                <div key={profile.id} className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{profile.full_name}</p>
+                      <p className="text-xs text-gray-500">{profile.email}</p>
+                      <p className="text-xs text-gray-400">{profile.phone}</p>
+                    </div>
+                    {getStatusBadge(profile.status)}
+                  </div>
+
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p>
+                      <span className="text-gray-500">Position:</span> {profile.position}
+                    </p>
+                    <p>
+                      <span className="text-gray-500">Department:</span> {profile.department}
+                    </p>
+                    <p>
+                      <span className="text-gray-500">Created:</span> {formatDate(profile.created_at)}
+                    </p>
+                    <p>
+                      <span className="text-gray-500">Start Date:</span> {formatDate(profile.proposed_start_date)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      onClick={() => {
+                        setSelectedProfile(profile);
+                        setShowDetailsModal(true);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1.5 text-xs text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="View Details"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View
+                    </button>
+
+                    {profile.status === 'draft' && (
+                      <button
+                        onClick={() => handleSendOnboardingLink(profile)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Send Onboarding Link"
+                      >
+                        <Send className="w-4 h-4" />
+                        Send
+                      </button>
+                    )}
+
+                    {(profile.status === 'draft' || profile.status === 'rejected') && (
+                      <button
+                        onClick={() => handleDeleteProfile(profile.id)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

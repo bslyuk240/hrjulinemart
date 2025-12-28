@@ -17,15 +17,17 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
     overtime_pay: '0',
     bonus: '0',
     holiday_pay: '0',
-    other_earnings: '0',
-    deductions: '0',
+    custom_earning_label: '',
+    custom_earning_percent: '0',
+    custom_earning_amount: '0',
     tax: '0',
     pension: '0',
     loan_repayment: '0',
     insurance: '0',
-    other_deductions: '0',
-    nhf: '0',
     loan_deduction: '0',
+    custom_deduction_label: '',
+    custom_deduction_percent: '0',
+    custom_deduction_amount: '0',
     working_days: '0',
     pay_period_start: '',
     pay_period_end: '',
@@ -54,15 +56,15 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
     formData.overtime_pay,
     formData.bonus,
     formData.holiday_pay,
-    formData.other_earnings,
-    formData.deductions,
+    formData.custom_earning_percent,
+    formData.custom_earning_amount,
     formData.tax,
     formData.pension,
     formData.loan_repayment,
     formData.insurance,
-    formData.other_deductions,
-    formData.nhf,
     formData.loan_deduction,
+    formData.custom_deduction_percent,
+    formData.custom_deduction_amount,
   ]);
 
   const calculateTotals = () => {
@@ -71,21 +73,37 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
     const overtime = parseFloat(formData.overtime_pay) || 0;
     const bonus = parseFloat(formData.bonus) || 0;
     const holiday = parseFloat(formData.holiday_pay) || 0;
-    const otherEarnings = parseFloat(formData.other_earnings) || 0;
+    const customEarningPercent = parseFloat(formData.custom_earning_percent) || 0;
+    const customEarningAmount = parseFloat(formData.custom_earning_amount) || 0;
+    const customEarningPercentAmount = (basic * customEarningPercent) / 100;
 
-    const grossSalary = basic + allowances + overtime + bonus + holiday + otherEarnings;
+    const grossSalary =
+      basic +
+      allowances +
+      overtime +
+      bonus +
+      holiday +
+      customEarningAmount +
+      customEarningPercentAmount;
 
-    const deductions = parseFloat(formData.deductions) || 0;
     const taxPercent = parseFloat(formData.tax) || 0;
     const pension = parseFloat(formData.pension) || 0;
     const loanRepayment = parseFloat(formData.loan_repayment) || 0;
     const insurance = parseFloat(formData.insurance) || 0;
-    const otherDeductions = parseFloat(formData.other_deductions) || 0;
-    const nhf = parseFloat(formData.nhf) || 0;
     const loanDeduction = parseFloat(formData.loan_deduction) || 0;
+    const customDeductionPercent = parseFloat(formData.custom_deduction_percent) || 0;
+    const customDeductionAmount = parseFloat(formData.custom_deduction_amount) || 0;
+    const customDeductionPercentAmount = (grossSalary * customDeductionPercent) / 100;
 
     const taxAmount = (grossSalary * (taxPercent || 0)) / 100;
-    const totalDeductions = deductions + taxAmount + pension + loanRepayment + insurance + otherDeductions + nhf + loanDeduction;
+    const totalDeductions =
+      taxAmount +
+      pension +
+      loanRepayment +
+      insurance +
+      loanDeduction +
+      customDeductionAmount +
+      customDeductionPercentAmount;
     const netSalary = grossSalary - totalDeductions;
 
     setCalculatedTotals({
@@ -384,16 +402,48 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Other Earnings
+                  Custom Earning Label
+                </label>
+                <input
+                  type="text"
+                  name="custom_earning_label"
+                  value={formData.custom_earning_label}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="e.g., Housing"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Earning (%)
                 </label>
                 <input
                   type="number"
-                  name="other_earnings"
-                  value={formData.other_earnings}
+                  name="custom_earning_percent"
+                  value={formData.custom_earning_percent}
+                  onChange={handleChange}
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Earning (Amount)
+                </label>
+                <input
+                  type="number"
+                  name="custom_earning_amount"
+                  value={formData.custom_earning_amount}
                   onChange={handleChange}
                   min="0"
                   step="0.01"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0"
                 />
               </div>
             </div>
@@ -467,21 +517,6 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  NHF
-                </label>
-                <input
-                  type="number"
-                  name="nhf"
-                  value={formData.nhf}
-                  onChange={handleChange}
-                  min="0"
-                  step="0.01"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Loan Deduction
                 </label>
                 <input
@@ -497,31 +532,48 @@ export default function PayrollForm({ employees, onClose, onSuccess }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Other Deductions
+                  Custom Deduction Label
                 </label>
                 <input
-                  type="number"
-                  name="other_deductions"
-                  value={formData.other_deductions}
+                  type="text"
+                  name="custom_deduction_label"
+                  value={formData.custom_deduction_label}
                   onChange={handleChange}
-                  min="0"
-                  step="0.01"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="e.g., Union fee"
                 />
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  General Deductions
+                  Custom Deduction (%)
                 </label>
                 <input
                   type="number"
-                  name="deductions"
-                  value={formData.deductions}
+                  name="custom_deduction_percent"
+                  value={formData.custom_deduction_percent}
+                  onChange={handleChange}
+                  min="0"
+                  max="100"
+                  step="0.01"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Custom Deduction (Amount)
+                </label>
+                <input
+                  type="number"
+                  name="custom_deduction_amount"
+                  value={formData.custom_deduction_amount}
                   onChange={handleChange}
                   min="0"
                   step="0.01"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="0"
                 />
               </div>
             </div>

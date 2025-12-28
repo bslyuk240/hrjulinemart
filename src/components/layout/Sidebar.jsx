@@ -5,7 +5,7 @@ import { useApp } from '../../context/AppContext';
 import {
   LayoutDashboard,
   Users,
-  UserPlus, // ✨ NEW: Icon for Onboarding
+  UserPlus,
   DollarSign,
   Calendar,
   Clock,
@@ -38,7 +38,6 @@ export default function Sidebar() {
       icon: User,
       roles: ['admin', 'manager', 'employee'],
     },
-    // ✨ NEW: Onboarding (Admin only)
     {
       name: 'Onboarding',
       path: '/onboarding',
@@ -55,7 +54,7 @@ export default function Sidebar() {
       name: 'Payroll',
       path: '/payroll',
       icon: DollarSign,
-      roles: ['admin', 'manager'],
+      roles: ['admin'],
     },
     {
       name: 'Leave Requests',
@@ -97,35 +96,35 @@ export default function Sidebar() {
       name: 'Requisition Management',
       path: '/requisition-management',
       icon: DollarSign,
-      roles: ['admin', 'manager'],
+      roles: ['admin'],
     },
     {
       name: 'Resignations',
       path: '/resignation',
       icon: UserX,
-      roles: ['admin', 'manager'],
+      roles: ['admin'],
     },
     {
       name: 'Archive',
       path: '/archive',
       icon: Archive,
-      roles: ['admin', 'manager'],
+      roles: ['admin'],
     },
   ];
 
   // Filter navigation based on user role
-  const filteredNavigation = navigationItems.filter((item) => {
-    if (isAdmin()) {
-      // Admin only sees admin routes
-      return item.roles.includes('admin');
-    }
+  const normalizedRole = (user?.role || '').toLowerCase();
+  const isManagerRole = normalizedRole === 'manager' || user?.is_manager === true;
 
-    if (isManager()) {
-      // Manager sees manager and employee routes
+  const filteredNavigation = navigationItems.filter((item) => {
+    if (isManagerRole) {
       return item.roles.includes('manager') || item.roles.includes('employee');
     }
 
-    // Regular employee
+    if (normalizedRole === 'admin' || user?.type === 'admin' || isAdmin()) {
+      return item.roles.includes('admin');
+    }
+
     return item.roles.includes('employee');
   });
 
@@ -268,7 +267,7 @@ export default function Sidebar() {
               © 2025 {import.meta.env.VITE_COMPANY_NAME || 'JulineMart'} HR System
             </p>
             <p className="text-xs text-gray-500 text-center mt-1">
-              Version 2.1.0 {/* ✨ Updated version */}
+              Version 2.1.0
             </p>
           </div>
         </div>
