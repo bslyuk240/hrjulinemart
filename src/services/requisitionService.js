@@ -170,22 +170,30 @@ export const updateRequestStatus = async (requestId, status, comment = null, emp
 
     // ✅ Record payout if marked as Paid
     if (status === 'Paid') {
-      const { data: requestData, error: fetchError } = await supabase
-        .from('requests')
-        .select('amount')
-        .eq('id', requestId)
-        .single();
+      try {
+        const { data: requestData, error: fetchError } = await supabase
+          .from('requests')
+          .select('amount')
+          .eq('id', requestId)
+          .single();
 
-      if (fetchError) throw fetchError;
+        if (fetchError) {
+          throw fetchError;
+        }
 
-      const { error: payoutError } = await supabase.from('payouts').insert({
-        request_id: requestId,
-        amount: requestData.amount,
-        paid_by: employeeId,
-        paid_at: new Date(),
-      });
+        const { error: payoutError } = await supabase.from('payouts').insert({
+          request_id: requestId,
+          amount: requestData.amount,
+          paid_by: employeeId,
+          paid_at: new Date(),
+        });
 
-      if (payoutError) throw payoutError;
+        if (payoutError) {
+          throw payoutError;
+        }
+      } catch (payoutError) {
+        console.warn('Failed to record payout for request', requestId, payoutError);
+      }
     }
     // Notify requester about status change
     try {
