@@ -28,6 +28,7 @@ import OnboardingDashboard from './pages/OnboardingDashboard';
 import OnboardingFormPage from './pages/OnboardingFormPage';
 import ReferenceFormPage from './pages/ReferenceFormPage';
 import OnboardingSuccessPage from './pages/OnboardingSuccessPage';
+import PublicVendorSourcingPage from './pages/PublicVendorSourcingPage';
 
 import './styles/index.css';
 
@@ -50,10 +51,11 @@ function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             
-            {/* ✨ NEW: Public Onboarding & Reference Routes (No Login Required) */}
+            {/* ✨ Public routes (no login required) */}
             <Route path="/onboarding/:token" element={<OnboardingFormPage />} />
             <Route path="/reference/:token" element={<ReferenceFormPage />} />
             <Route path="/onboarding-success" element={<OnboardingSuccessPage />} />
+            <Route path="/source-vendor" element={<PublicVendorSourcingPage />} />
             
             <Route
               path="/"
