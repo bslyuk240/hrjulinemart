@@ -3,6 +3,7 @@ import { createVendorResponse } from '../services/vendorService';
 
 const initialForm = {
   submitter_name: '',
+  submitter_phone: '',
   vendor_name: '',
   contact_person: '',
   vendor_phone: '',
@@ -42,8 +43,13 @@ export default function PublicVendorSourcingPage() {
     setMessage(null);
 
     const entryId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    const submitterPhone = formData.submitter_phone?.trim();
+    const commentsWithSubmitterPhone = submitterPhone
+      ? `Submitter phone: ${submitterPhone}${formData.comments ? '\n\n' + formData.comments : ''}`
+      : formData.comments;
     const payload = {
       ...formData,
+      comments: commentsWithSubmitterPhone,
       entry_id: entryId,
       device: navigator?.userAgent ?? 'unknown',
       submitted_by_id: null,
@@ -98,6 +104,17 @@ export default function PublicVendorSourcingPage() {
                   onChange={handleChange}
                   className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none"
                   placeholder="Who is submitting this form"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold uppercase text-gray-500">Your phone</label>
+                <input
+                  name="submitter_phone"
+                  value={formData.submitter_phone}
+                  onChange={handleChange}
+                  type="tel"
+                  className="mt-2 w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-purple-600 focus:outline-none"
+                  placeholder="Your contact number"
                 />
               </div>
               <div>
