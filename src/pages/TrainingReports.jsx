@@ -181,7 +181,7 @@ export default function TrainingReports() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
             <table className="w-full min-w-[900px]">
               <thead className="bg-gray-50">
                 <tr>
@@ -218,6 +218,33 @@ export default function TrainingReports() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {filteredCourseRows.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
+                No course report rows found.
+              </div>
+            ) : (
+              filteredCourseRows.map((row) => (
+                <div key={row.course_id} className="bg-white rounded-lg shadow-md p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-semibold text-gray-900">{row.title}</p>
+                    <span className="text-xs capitalize px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                      {row.status}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                    <p>Enrollments: <span className="text-gray-800">{row.enrollments}</span></p>
+                    <p>Started: <span className="text-gray-800">{row.started}</span></p>
+                    <p>Completed: <span className="text-gray-800">{row.completed}</span></p>
+                    <p>Attempts: <span className="text-gray-800">{row.attempts}</span></p>
+                    <p>Avg Score: <span className="text-gray-800">{row.average_score}%</span></p>
+                    <p>Pass Rate: <span className="text-gray-800">{row.pass_rate}%</span></p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </>
       ) : (
@@ -269,7 +296,7 @@ export default function TrainingReports() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
             <table className="w-full min-w-[1200px]">
               <thead className="bg-gray-50">
                 <tr>
@@ -341,6 +368,52 @@ export default function TrainingReports() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="md:hidden space-y-3">
+            {filteredEmployeeRows.length === 0 ? (
+              <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
+                No employee rows found.
+              </div>
+            ) : (
+              filteredEmployeeRows.map((row) => (
+                <div key={`${row.user_id}-${row.course_id}`} className="bg-white rounded-lg shadow-md p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-gray-900">{row.employee_name}</p>
+                      <p className="text-xs text-gray-500">{row.employee_email}</p>
+                    </div>
+                    <span
+                      className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                        row.overdue
+                          ? 'bg-red-100 text-red-800'
+                          : row.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : row.status === 'in_progress'
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-yellow-100 text-yellow-800'
+                      }`}
+                    >
+                      {row.overdue ? 'Overdue' : String(row.status || 'assigned').replace('_', ' ')}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-800">{row.course_title}</p>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                    <p>Assigned: <span className="text-gray-800">{formatDate(row.assigned_at)}</span></p>
+                    <p>Due: <span className="text-gray-800">{formatDate(row.due_date)}</span></p>
+                    <p>Completion: <span className="text-gray-800">{row.completion_percent}%</span></p>
+                    <p>Attempts: <span className="text-gray-800">{row.attempts}</span></p>
+                    <p>Score: <span className="text-gray-800">{row.latest_score == null ? '-' : `${row.latest_score}%`}</span></p>
+                    <p>
+                      Pass:{' '}
+                      <span className={row.pass_status == null ? 'text-gray-800' : row.pass_status ? 'text-green-700' : 'text-red-700'}>
+                        {row.pass_status == null ? '-' : row.pass_status ? 'Yes' : 'No'}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </>
       )}
