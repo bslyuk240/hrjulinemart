@@ -168,7 +168,9 @@ export default function Sidebar() {
 
       {/* Sidebar */}
       <aside
+        data-sidebar="true"
         className={`fixed left-0 top-safe h-full w-64 bg-white border-r border-gray-200 z-40 flex flex-col transition-transform duration-300 ease-in-out
+          overflow-y-auto overscroll-contain
           ${sidebarOpen ? 'block translate-x-0' : 'hidden -translate-x-full'}
           lg:block lg:translate-x-0
         `}
@@ -235,7 +237,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+        <nav className="flex-1 min-h-0 p-4 space-y-1">
           {filteredNavigation.map((item) => {
             const Icon = item.icon;
             return (

@@ -20,6 +20,8 @@ export default function PullToRefresh({ onRefresh, threshold = 70, children }) {
   useEffect(() => {
     const onTouchStart = (e) => {
       if (!enabledRef.current || refreshing) return;
+      // Never hijack scroll gestures that start inside the sidebar.
+      if (e.target?.closest?.('[data-sidebar="true"]')) return;
       if (window.scrollY > 0) return; // only when at top
       const touch = e.touches[0];
       startYRef.current = touch.clientY;
@@ -99,4 +101,3 @@ export default function PullToRefresh({ onRefresh, threshold = 70, children }) {
     </div>
   );
 }
-
