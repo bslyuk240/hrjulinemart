@@ -211,8 +211,15 @@ export default function AttendanceList({ employees }) {
       }
       const now = new Date();
       const today = now.toISOString().split('T')[0];
-      const { data: existing } = await supabase.from('attendance').select('*').eq('employee_id', user.id).eq('date', today).single();
-      if (existing) return showError('You have already clocked in today!');
+      const { data: existingRows, error: existingError } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('employee_id', user.id)
+        .eq('date', today)
+        .order('id', { ascending: false })
+        .limit(1);
+      if (existingError) return showError(existingError.message || 'Failed to verify clock-in state');
+      if (existingRows?.[0]) return showError('You have already clocked in today!');
       const result = await clockIn({ employee_id: employee.id, employee_name: employee.name, notes });
       if (result.success) {
         showSuccess('Clocked in successfully');

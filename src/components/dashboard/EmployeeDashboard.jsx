@@ -36,6 +36,20 @@ export default function EmployeeDashboard() {
     }
   }, [user]);
 
+  const getLatestAttendanceForToday = async () => {
+    const today = new Date().toISOString().split('T')[0];
+    const { data, error } = await supabase
+      .from('attendance')
+      .select('*')
+      .eq('employee_id', user.id)
+      .eq('date', today)
+      .order('id', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+    return data?.[0] || null;
+  };
+
   const fetchEmployeeData = async () => {
     setLoading(true);
     try {
@@ -86,18 +100,7 @@ export default function EmployeeDashboard() {
 
   const checkClockStatus = async () => {
     try {
-      const today = new Date().toISOString().split('T')[0];
-      const { data, error } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('employee_id', user.id)
-        .eq('date', today)
-        .maybeSingle();
-
-      if (error) {
-        console.error('Error checking clock status:', error);
-        return;
-      }
+      const data = await getLatestAttendanceForToday();
 
       if (data) {
         if (data.clock_in && !data.clock_out) {
@@ -122,12 +125,7 @@ export default function EmployeeDashboard() {
       const today = now.toISOString().split('T')[0];
       const time = now.toTimeString().split(' ')[0];
 
-      const { data: existing } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('employee_id', user.id)
-        .eq('date', today)
-        .single();
+      const existing = await getLatestAttendanceForToday();
 
       if (existing) {
         alert('You have already clocked in today!');
@@ -166,15 +164,9 @@ export default function EmployeeDashboard() {
   const handleClockOut = async () => {
     try {
       const now = new Date();
-      const today = now.toISOString().split('T')[0];
       const time = now.toTimeString().split(' ')[0];
 
-      const { data: existing } = await supabase
-        .from('attendance')
-        .select('*')
-        .eq('employee_id', user.id)
-        .eq('date', today)
-        .single();
+      const existing = await getLatestAttendanceForToday();
 
       if (!existing) {
         alert('No clock-in record found for today!');
@@ -191,8 +183,7 @@ export default function EmployeeDashboard() {
       const { error } = await supabase
         .from('attendance')
         .update({ clock_out: time })
-        .eq('employee_id', user.id)
-        .eq('date', today);
+        .eq('id', existing.id);
 
       if (error) throw error;
 
