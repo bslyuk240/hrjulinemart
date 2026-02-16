@@ -71,7 +71,7 @@ export default function Layout() {
         {/* Main Content */}
         <main className="flex-1 transition-all duration-300 ml-0 lg:ml-64">
           <PullToRefresh onRefresh={() => window.location.reload()}>
-            <div className="p-6">
+            <div className="p-4 md:p-6">
               <Outlet />
             </div>
           </PullToRefresh>

@@ -169,14 +169,14 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         data-sidebar="true"
-        className={`fixed left-0 top-safe h-full w-64 bg-white border-r border-gray-200 z-40 flex flex-col transition-transform duration-300 ease-in-out
-          overflow-y-auto overscroll-contain
+        className={`fixed left-0 top-safe bottom-0 w-[85vw] max-w-xs bg-white border-r border-gray-200 z-40 flex flex-col transition-transform duration-300 ease-in-out
+          overflow-hidden
           ${sidebarOpen ? 'block translate-x-0' : 'hidden -translate-x-full'}
-          lg:block lg:translate-x-0
+          lg:block lg:translate-x-0 lg:w-64
         `}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-sm">
               <img 
@@ -210,7 +210,7 @@ export default function Sidebar() {
         </div>
 
         {/* User Info */}
-        <div className="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200">
+        <div className="p-3 md:p-4 bg-gradient-to-r from-purple-50 to-blue-50 border-b border-gray-200">
           <div className="flex items-center space-x-3">
             <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
               {user?.profile_pic ? (
@@ -237,7 +237,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 min-h-0 p-4 space-y-1">
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-1">
           {filteredNavigation.map((item) => {
             const Icon = item.icon;
             return (
@@ -251,7 +251,7 @@ export default function Sidebar() {
                   }
                 }}
                 className={({ isActive }) =>
-                  `flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                  `flex items-start md:items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -261,7 +261,7 @@ export default function Sidebar() {
                 {({ isActive }) => (
                   <>
                     <Icon className={`w-4 h-4 md:w-5 md:h-5 ${isActive ? 'text-white' : 'text-gray-500'}`} />
-                    <span className="text-sm md:text-base font-medium">{item.name}</span>
+                    <span className="text-sm md:text-base font-medium leading-snug">{item.name}</span>
                   </>
                 )}
               </NavLink>
@@ -270,7 +270,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="p-4 border-t border-gray-200 shrink-0 bg-white">
           <NavLink
             to="/settings"
             onClick={() => {

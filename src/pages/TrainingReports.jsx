@@ -119,15 +119,15 @@ export default function TrainingReports() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Training Reports</h1>
-          <p className="text-gray-600 mt-1">Course analytics and employee-level progress.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Training Reports</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Course analytics and employee-level progress.</p>
         </div>
         <button
           onClick={() => navigate('/training/admin')}
-          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 w-full sm:w-auto"
         >
           <ArrowLeft className="w-4 h-4" />
           Dashboard
@@ -353,7 +353,7 @@ function EmployeeCard({ label, value }) {
     <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-purple-500">
       <p className="text-xs text-gray-600 uppercase">{label}</p>
       <div className="flex items-center justify-between mt-1">
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p className="text-xl md:text-2xl font-bold text-gray-900">{value}</p>
         <Users className="w-4 h-4 text-purple-500" />
       </div>
     </div>
@@ -365,7 +365,7 @@ function ReportCard({ label, value }) {
     <div className="bg-white rounded-lg shadow-md p-4 border-l-4 border-blue-500">
       <p className="text-xs text-gray-600 uppercase">{label}</p>
       <div className="flex items-center justify-between mt-1">
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p className="text-xl md:text-2xl font-bold text-gray-900">{value}</p>
         <BarChart3 className="w-4 h-4 text-blue-500" />
       </div>
     </div>

@@ -157,23 +157,23 @@ export default function TrainingAdminDashboard() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Training Dashboard</h1>
-          <p className="text-gray-600 mt-1">Create and manage courses for your team.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Training Dashboard</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Create and manage courses for your team.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-2 w-full md:w-auto">
           <button
             onClick={() => navigate('/training/admin/editor')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:from-purple-700 hover:to-blue-700"
           >
             <Plus className="w-4 h-4" />
             New Course
           </button>
           <button
             onClick={() => navigate('/training/admin/reports')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             <Activity className="w-4 h-4" />
             Reports
@@ -215,7 +215,7 @@ export default function TrainingAdminDashboard() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-x-auto">
+      <div className="hidden md:block bg-white rounded-lg shadow-md overflow-x-auto">
         <table className="w-full min-w-[900px]">
           <thead className="bg-gray-50">
             <tr>
@@ -291,6 +291,60 @@ export default function TrainingAdminDashboard() {
         </table>
       </div>
 
+      <div className="md:hidden space-y-3">
+        {filteredCourses.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
+            No courses found.
+          </div>
+        ) : (
+          filteredCourses.map((course) => (
+            <div key={course.id} className="bg-white rounded-lg shadow-md p-4 space-y-3">
+              <div>
+                <p className="font-semibold text-gray-900">{course.title}</p>
+                <p className="text-xs text-gray-500 line-clamp-2">{course.description || 'No description'}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
+                <p>Category: <span className="text-gray-800">{course.category || '-'}</span></p>
+                <p>Difficulty: <span className="text-gray-800 capitalize">{course.difficulty || '-'}</span></p>
+                <p>Duration: <span className="text-gray-800">{course.estimated_minutes || 0} min</span></p>
+                <p>
+                  Status:{' '}
+                  <span className={`font-medium ${course.status === 'published' ? 'text-green-700' : 'text-yellow-700'}`}>
+                    {course.status || 'draft'}
+                  </span>
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => navigate(`/training/admin/editor/${course.id}`)}
+                  className="px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleTogglePublish(course)}
+                  className="px-3 py-2 text-sm rounded-md border border-blue-300 text-blue-700 hover:bg-blue-50"
+                >
+                  {course.status === 'published' ? 'Unpublish' : 'Publish'}
+                </button>
+                <button
+                  onClick={() => openAssignmentModal(course)}
+                  className="px-3 py-2 text-sm rounded-md border border-purple-300 text-purple-700 hover:bg-purple-50"
+                >
+                  Assign
+                </button>
+                <button
+                  onClick={() => handleDeleteCourse(course.id)}
+                  className="px-3 py-2 text-sm rounded-md border border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       {assigningCourse && (
         <div
           className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
@@ -362,7 +416,7 @@ function StatCard({ label, value, icon: Icon }) {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs text-gray-600 uppercase">{label}</p>
-          <p className="text-2xl font-bold text-gray-900 mt-1">{value}</p>
+          <p className="text-xl md:text-2xl font-bold text-gray-900 mt-1">{value}</p>
         </div>
         <div className="w-11 h-11 rounded-full bg-purple-100 flex items-center justify-center">
           <Icon className="w-5 h-5 text-purple-600" />
@@ -371,4 +425,3 @@ function StatCard({ label, value, icon: Icon }) {
     </div>
   );
 }
-

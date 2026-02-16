@@ -229,13 +229,13 @@ export default function TrainingCourseEditor() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Course Editor</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Course Editor</h1>
           <p className="text-sm text-gray-600 mt-1">{course.title || 'New course'}</p>
         </div>
-        <button onClick={() => navigate('/training/admin')} className="px-3 py-2 border rounded-lg hover:bg-gray-50">Back</button>
+        <button onClick={() => navigate('/training/admin')} className="px-3 py-2 border rounded-lg hover:bg-gray-50 w-full sm:w-auto">Back</button>
       </div>
 
       <div className="bg-white rounded-lg shadow p-3 flex flex-wrap gap-2">
@@ -343,4 +343,3 @@ function EditorField({ label, children }) {
     </label>
   );
 }
-

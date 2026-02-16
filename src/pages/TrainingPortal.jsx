@@ -57,15 +57,15 @@ export default function TrainingPortal() {
   if (loading) return <Loading />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Training Home</h1>
-          <p className="text-gray-600 mt-1">Continue courses and track your progress.</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Training Home</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Continue courses and track your progress.</p>
         </div>
         <button
           onClick={() => navigate('/training/results')}
-          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 w-full sm:w-auto"
         >
           My Results
         </button>
@@ -166,4 +166,3 @@ export default function TrainingPortal() {
     </div>
   );
 }
-

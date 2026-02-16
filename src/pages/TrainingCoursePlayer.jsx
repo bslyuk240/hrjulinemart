@@ -156,15 +156,15 @@ export default function TrainingCoursePlayer() {
   if (!course) return <div className="text-gray-600">Course not found.</div>;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-5">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">{course.title}</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">{course.title}</h1>
           <p className="text-sm text-gray-600 mt-1">{course.description || 'Training course'}</p>
         </div>
         <button
           onClick={() => navigate('/training')}
-          className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 w-full sm:w-auto"
         >
           Back
         </button>
@@ -184,7 +184,7 @@ export default function TrainingCoursePlayer() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[320px,1fr] gap-4">
-        <aside className="bg-white rounded-lg shadow-md p-3 max-h-[70vh] overflow-y-auto">
+        <aside className="bg-white rounded-lg shadow-md p-3 max-h-[45vh] xl:max-h-[70vh] overflow-y-auto">
           <p className="text-xs uppercase text-gray-500 px-2 mb-2">Module / Lesson flow</p>
           <div className="space-y-1">
             {flow.map((item, index) => {
@@ -219,7 +219,7 @@ export default function TrainingCoursePlayer() {
           </div>
         </aside>
 
-        <main className="bg-white rounded-lg shadow-md p-5 min-h-[70vh]">
+        <main className="bg-white rounded-lg shadow-md p-4 md:p-5 min-h-[55vh] xl:min-h-[70vh]">
           {activeItem?.type === 'lesson' ? (
             <div className="space-y-4">
               <div>
