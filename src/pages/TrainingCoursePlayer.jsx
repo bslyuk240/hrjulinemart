@@ -238,6 +238,7 @@ export default function TrainingCoursePlayer() {
                       title={activeItem.title}
                       src={toEmbedUrl(activeItem.lesson.video_url)}
                       className="w-full h-full"
+                      referrerPolicy="strict-origin-when-cross-origin"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
