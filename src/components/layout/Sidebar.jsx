@@ -18,6 +18,9 @@ import {
   X,
   User,
   ShoppingCart,
+  GraduationCap,
+  ClipboardList,
+  BarChart3,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -75,6 +78,18 @@ export default function Sidebar() {
       roles: ['admin', 'manager', 'employee'],
     },
     {
+      name: 'Training Portal',
+      path: '/training',
+      icon: GraduationCap,
+      roles: ['admin', 'manager', 'employee'],
+    },
+    {
+      name: 'My Training Results',
+      path: '/training/results',
+      icon: ClipboardList,
+      roles: ['manager', 'employee'],
+    },
+    {
       name: 'My Payslips',
       path: '/payslips',
       icon: FileText,
@@ -108,6 +123,18 @@ export default function Sidebar() {
       name: 'Archive',
       path: '/archive',
       icon: Archive,
+      roles: ['admin'],
+    },
+    {
+      name: 'Training Builder',
+      path: '/training/admin',
+      icon: GraduationCap,
+      roles: ['admin'],
+    },
+    {
+      name: 'Training Reports',
+      path: '/training/admin/reports',
+      icon: BarChart3,
       roles: ['admin'],
     },
   ];

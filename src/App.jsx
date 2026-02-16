@@ -22,6 +22,12 @@ import Requisitions from './pages/Requisitions';
 import RequisitionManagement from './pages/RequisitionManagement';
 import VendorResponsesList from './components/vendor/VendorResponsesList';
 import VendorSourcingForm from './components/vendor/VendorSourcingForm';
+import TrainingPortal from './pages/TrainingPortal';
+import TrainingCoursePlayer from './pages/TrainingCoursePlayer';
+import TrainingResults from './pages/TrainingResults';
+import TrainingAdminDashboard from './pages/TrainingAdminDashboard';
+import TrainingCourseEditor from './pages/TrainingCourseEditor';
+import TrainingReports from './pages/TrainingReports';
 
 // ✨ NEW: Onboarding imports
 import OnboardingDashboard from './pages/OnboardingDashboard';
@@ -163,6 +169,66 @@ function App() {
                     <VendorSourcingForm />
                   </ProtectedRoute>
                 } 
+              />
+
+              {/* Training - Employee Portal */}
+              <Route
+                path="training"
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <TrainingPortal />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="training/course/:courseId"
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <TrainingCoursePlayer />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="training/results"
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <TrainingResults />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Training - Admin Builder */}
+              <Route
+                path="training/admin"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <TrainingAdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="training/admin/editor"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <TrainingCourseEditor />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="training/admin/editor/:courseId"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <TrainingCourseEditor />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="training/admin/reports"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <TrainingReports />
+                  </ProtectedRoute>
+                }
               />
               
               {/* Performance - Admin & Manager */}

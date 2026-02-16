@@ -69,6 +69,14 @@ export const TABLES = {
   ONBOARDING_DOCUMENTS: 'onboarding_documents',
   REFERENCE_REQUESTS: 'reference_requests',
   REFERENCES: 'references',
+  TRAINING_COURSES: 'training_courses',
+  TRAINING_MODULES: 'training_modules',
+  TRAINING_LESSONS: 'training_lessons',
+  TRAINING_QUIZZES: 'training_quizzes',
+  TRAINING_QUIZ_QUESTIONS: 'training_quiz_questions',
+  TRAINING_ENROLLMENTS: 'training_enrollments',
+  TRAINING_PROGRESS: 'training_progress',
+  TRAINING_QUIZ_ATTEMPTS: 'training_quiz_attempts',
 };
 
 // Export default client
