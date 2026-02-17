@@ -4,6 +4,8 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   ClipboardCheck,
   PlayCircle,
@@ -97,6 +99,7 @@ export default function TrainingCoursePlayer() {
   const [course, setCourse] = useState(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [savingProgress, setSavingProgress] = useState(false);
+  const [mobileFlowOpen, setMobileFlowOpen] = useState(false);
 
   const flow = useMemo(() => (course ? buildFlow(course) : []), [course]);
   const activeItem = flow[activeIndex] || null;
@@ -108,6 +111,7 @@ export default function TrainingCoursePlayer() {
     const completed = lessons.filter((lesson) => lesson.progress?.is_completed).length;
     return Math.round((completed / lessons.length) * 100);
   }, [course]);
+  const activeFlowTitle = flow[activeIndex]?.title || '';
 
   const loadPlayer = async () => {
     if (!courseId || !user?.id) return;
@@ -183,8 +187,68 @@ export default function TrainingCoursePlayer() {
         </div>
       </div>
 
+      <section className="xl:hidden bg-white rounded-lg shadow-md p-3">
+        <button
+          type="button"
+          onClick={() => setMobileFlowOpen((prev) => !prev)}
+          className="w-full flex items-center justify-between gap-3 text-left"
+        >
+          <div>
+            <p className="text-xs uppercase text-gray-500">Module / Lesson flow</p>
+            <p className="text-sm font-medium text-gray-900 truncate">
+              {activeFlowTitle || 'Select a lesson'}
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-2 text-xs text-gray-600 shrink-0">
+            {flow.length ? `${activeIndex + 1}/${flow.length}` : '0/0'}
+            {mobileFlowOpen ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
+          </span>
+        </button>
+
+        {mobileFlowOpen ? (
+          <div className="mt-3 max-h-[42vh] overflow-y-auto space-y-1 pr-1">
+            {flow.map((item, index) => {
+              const isActive = index === activeIndex;
+              const completed =
+                item.type === 'lesson'
+                  ? item.lesson?.progress?.is_completed
+                  : Boolean(item.quiz?.latest_attempt);
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => {
+                    setActiveIndex(index);
+                    setMobileFlowOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-lg border ${
+                    isActive
+                      ? 'bg-purple-50 border-purple-300'
+                      : 'border-transparent hover:bg-gray-50'
+                  }`}
+                >
+                  <p className="text-xs text-gray-500">{item.moduleTitle}</p>
+                  <p className="text-sm text-gray-900 flex items-center gap-2">
+                    {item.type === 'lesson' ? (
+                      <BookOpen className="w-4 h-4 text-blue-500" />
+                    ) : (
+                      <ClipboardCheck className="w-4 h-4 text-purple-500" />
+                    )}
+                    {item.title}
+                    {completed ? <CheckCircle2 className="w-4 h-4 text-green-600 ml-auto" /> : null}
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+      </section>
+
       <div className="grid grid-cols-1 xl:grid-cols-[320px,1fr] gap-4">
-        <aside className="bg-white rounded-lg shadow-md p-3 max-h-[45vh] xl:max-h-[70vh] overflow-y-auto">
+        <aside className="hidden xl:block bg-white rounded-lg shadow-md p-3 max-h-[70vh] overflow-y-auto">
           <p className="text-xs uppercase text-gray-500 px-2 mb-2">Module / Lesson flow</p>
           <div className="space-y-1">
             {flow.map((item, index) => {
