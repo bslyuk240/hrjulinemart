@@ -102,6 +102,10 @@ const buildQuizCourseMap = (quizzes, modules, lessons) => {
   const quizCourseMap = {};
 
   for (const quiz of quizzes) {
+    if (quiz.course_id) {
+      quizCourseMap[quiz.id] = quiz.course_id;
+      continue;
+    }
     if (quiz.lesson_id) {
       const moduleId = lessonToModule.get(quiz.lesson_id);
       const courseId = moduleToCourse.get(moduleId);
@@ -245,6 +249,13 @@ export const getTrainingCourseById = async (courseId) => {
       quizzes = quizzes.concat(lessonQuizzes || []);
     }
 
+    const { data: courseQuizzes, error: courseQuizError } = await supabase
+      .from(TABLES.TRAINING_QUIZZES)
+      .select('*')
+      .eq('course_id', courseId);
+    if (courseQuizError) return handleSupabaseError(courseQuizError);
+    quizzes = quizzes.concat(courseQuizzes || []);
+
     quizzes = quizzes.filter(
       (quiz, index, array) => array.findIndex((item) => item.id === quiz.id) === index
     );
@@ -269,6 +280,7 @@ export const getTrainingCourseById = async (courseId) => {
 
     const moduleQuizzesByModuleId = {};
     const lessonQuizzesByLessonId = {};
+    let courseQuiz = null;
     for (const quiz of quizzes) {
       const normalizedQuiz = {
         ...quiz,
@@ -279,6 +291,7 @@ export const getTrainingCourseById = async (courseId) => {
 
       if (quiz.module_id) moduleQuizzesByModuleId[quiz.module_id] = normalizedQuiz;
       if (quiz.lesson_id) lessonQuizzesByLessonId[quiz.lesson_id] = normalizedQuiz;
+      if (quiz.course_id === courseId) courseQuiz = normalizedQuiz;
     }
 
     const lessonsByModuleId = {};
@@ -292,6 +305,7 @@ export const getTrainingCourseById = async (courseId) => {
 
     const courseTree = {
       ...normalizeCourseRow(course),
+      course_quiz: courseQuiz,
       modules: (modules || []).sort(bySortOrder).map((module) => ({
         ...module,
         lessons: (lessonsByModuleId[module.id] || []).sort(bySortOrder),
@@ -461,13 +475,14 @@ export const saveTrainingQuiz = async (quizData) => {
       time_limit_seconds: quizData.time_limit_seconds
         ? Number(quizData.time_limit_seconds)
         : null,
+      course_id: quizData.course_id || null,
       module_id: quizData.module_id || null,
       lesson_id: quizData.lesson_id || null,
     };
 
     if (!payload.title) return { success: false, error: 'Quiz title is required.' };
-    if (!payload.module_id && !payload.lesson_id) {
-      return { success: false, error: 'Quiz must target a module or lesson.' };
+    if (!payload.course_id && !payload.module_id && !payload.lesson_id) {
+      return { success: false, error: 'Quiz must target a course, module, or lesson.' };
     }
 
     if (quizData.id) {
@@ -826,7 +841,7 @@ export const getTrainingCoursePlayerData = async (courseId, userId) => {
           .filter((lesson) => lesson.quiz)
           .map((lesson) => lesson.quiz.id);
         return moduleQuizIds.concat(lessonQuizIds);
-      })
+      }).concat(course.course_quiz ? [course.course_quiz.id] : [])
     );
 
     let progressRows = [];
@@ -871,7 +886,18 @@ export const getTrainingCoursePlayerData = async (courseId, userId) => {
       latest_attempt: module.quiz ? (attemptsByQuizId[module.quiz.id] || [])[0] || null : null,
     }));
 
-    return handleSupabaseSuccess({ ...course, modules: enhancedModules });
+    const enhancedCourseQuiz = course.course_quiz
+      ? {
+          ...course.course_quiz,
+          latest_attempt: (attemptsByQuizId[course.course_quiz.id] || [])[0] || null,
+        }
+      : null;
+
+    return handleSupabaseSuccess({
+      ...course,
+      course_quiz: enhancedCourseQuiz,
+      modules: enhancedModules,
+    });
   } catch (error) {
     return handleSupabaseError(error);
   }
@@ -1251,7 +1277,7 @@ export const getTrainingEmployeeReports = async () => {
       supabase.from(TABLES.TRAINING_MODULES).select('id,course_id'),
       supabase.from(TABLES.TRAINING_LESSONS).select('id,module_id'),
       supabase.from(TABLES.TRAINING_PROGRESS).select('*'),
-      supabase.from(TABLES.TRAINING_QUIZZES).select('id,lesson_id,module_id'),
+      supabase.from(TABLES.TRAINING_QUIZZES).select('id,lesson_id,module_id,course_id'),
       supabase.from(TABLES.TRAINING_QUIZ_ATTEMPTS).select('*'),
     ]);
 

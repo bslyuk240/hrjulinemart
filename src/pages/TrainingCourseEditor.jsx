@@ -28,6 +28,7 @@ const emptyCourse = {
   difficulty: 'beginner',
   estimated_minutes: 0,
   status: 'draft',
+  course_quiz: null,
 };
 const emptyLesson = { id: null, title: '', lesson_type: 'content', content_html: '', video_url: '', resources_text: '' };
 const emptyQuiz = { id: null, title: '', pass_mark: 60, time_limit_seconds: '' };
@@ -62,10 +63,11 @@ export default function TrainingCourseEditor() {
     [modules]
   );
   const activeQuiz = useMemo(() => {
+    if (quizTargetType === 'course') return course.course_quiz || null;
     if (!quizTargetId) return null;
     if (quizTargetType === 'module') return modules.find((m) => m.id === quizTargetId)?.quiz || null;
     return modules.flatMap((m) => m.lessons || []).find((l) => l.id === quizTargetId)?.quiz || null;
-  }, [modules, quizTargetType, quizTargetId]);
+  }, [course.course_quiz, modules, quizTargetType, quizTargetId]);
 
   useEffect(() => {
     if (!activeQuiz) {
@@ -98,6 +100,7 @@ export default function TrainingCourseEditor() {
       difficulty: row.difficulty || 'beginner',
       estimated_minutes: row.estimated_minutes || 0,
       status: row.status || 'draft',
+      course_quiz: row.course_quiz || null,
     });
     setModules(row.modules || []);
     setSelectedModuleId(row.modules?.[0]?.id || null);
@@ -181,12 +184,17 @@ export default function TrainingCourseEditor() {
   };
 
   const saveQuiz = async () => {
-    if (!quizTargetId) return showError('Select a module or lesson target.');
+    const courseRef = await ensureCourse();
+    if (!courseRef) return;
+    if (quizTargetType !== 'course' && !quizTargetId) {
+      return showError('Select a module or lesson target.');
+    }
     const result = await saveTrainingQuiz({
       id: quiz.id,
       title: quiz.title,
       pass_mark: Number(quiz.pass_mark || 60),
       time_limit_seconds: quiz.time_limit_seconds ? Number(quiz.time_limit_seconds) : null,
+      course_id: quizTargetType === 'course' ? courseRef : null,
       module_id: quizTargetType === 'module' ? quizTargetId : null,
       lesson_id: quizTargetType === 'lesson' ? quizTargetId : null,
     });
@@ -296,8 +304,8 @@ export default function TrainingCourseEditor() {
         <section className="bg-white rounded-lg shadow p-4 space-y-3">
           <h2 className="font-semibold text-gray-900">Quiz</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <EditorField label="Target Type"><select className="w-full border rounded-lg px-3 py-2" value={quizTargetType} onChange={(e) => { setQuizTargetType(e.target.value); setQuizTargetId(null); }}><option value="module">Module</option><option value="lesson">Lesson</option></select></EditorField>
-            <EditorField label="Target"><select className="w-full border rounded-lg px-3 py-2" value={quizTargetId || ''} onChange={(e) => setQuizTargetId(Number(e.target.value) || null)}><option value="">Select target</option>{quizTargetType === 'module' ? modules.map((m) => <option key={m.id} value={m.id}>{m.title}</option>) : lessonTargets.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select></EditorField>
+            <EditorField label="Target Type"><select className="w-full border rounded-lg px-3 py-2" value={quizTargetType} onChange={(e) => { const nextType = e.target.value; setQuizTargetType(nextType); setQuizTargetId(null); }}><option value="module">Module</option><option value="lesson">Lesson</option><option value="course">Course (Final Quiz)</option></select></EditorField>
+            <EditorField label="Target">{quizTargetType === 'course' ? <input className="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-600" value="Course-level quiz (appears at end of course)" readOnly /> : <select className="w-full border rounded-lg px-3 py-2" value={quizTargetId || ''} onChange={(e) => setQuizTargetId(Number(e.target.value) || null)}><option value="">Select target</option>{quizTargetType === 'module' ? modules.map((m) => <option key={m.id} value={m.id}>{m.title}</option>) : lessonTargets.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}</select>}</EditorField>
             <EditorField label="Quiz Title"><input className="w-full border rounded-lg px-3 py-2" value={quiz.title} onChange={(e) => setQuiz((p) => ({ ...p, title: e.target.value }))} /></EditorField>
             <EditorField label="Pass Mark"><input type="number" className="w-full border rounded-lg px-3 py-2" value={quiz.pass_mark} onChange={(e) => setQuiz((p) => ({ ...p, pass_mark: Number(e.target.value || 0) }))} /></EditorField>
             <EditorField label="Time Limit Seconds"><input type="number" className="w-full border rounded-lg px-3 py-2" value={quiz.time_limit_seconds} onChange={(e) => setQuiz((p) => ({ ...p, time_limit_seconds: e.target.value }))} /></EditorField>

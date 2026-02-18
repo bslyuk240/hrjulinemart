@@ -35,13 +35,16 @@ create table if not exists public.training_lessons (
 
 create table if not exists public.training_quizzes (
   id bigserial primary key,
+  course_id bigint references public.training_courses(id) on delete cascade,
   lesson_id bigint references public.training_lessons(id) on delete cascade,
   module_id bigint references public.training_modules(id) on delete cascade,
   title text not null,
   pass_mark numeric(5,2) not null default 50,
   time_limit_seconds integer,
   created_at timestamptz not null default now(),
-  constraint quiz_target_check check (lesson_id is not null or module_id is not null)
+  constraint quiz_target_check check (
+    ((course_id is not null)::int + (module_id is not null)::int + (lesson_id is not null)::int) = 1
+  )
 );
 
 create table if not exists public.training_quiz_questions (
@@ -87,8 +90,19 @@ create table if not exists public.training_quiz_attempts (
   answers_json jsonb
 );
 
+-- Backward-compatible migration for existing environments.
+alter table public.training_quizzes
+  add column if not exists course_id bigint references public.training_courses(id) on delete cascade;
+
+alter table public.training_quizzes drop constraint if exists quiz_target_check;
+alter table public.training_quizzes
+  add constraint quiz_target_check check (
+    ((course_id is not null)::int + (module_id is not null)::int + (lesson_id is not null)::int) = 1
+  );
+
 create index if not exists idx_training_modules_course_id on public.training_modules(course_id);
 create index if not exists idx_training_lessons_module_id on public.training_lessons(module_id);
+create index if not exists idx_training_quizzes_course_id on public.training_quizzes(course_id);
 create index if not exists idx_training_quizzes_lesson_id on public.training_quizzes(lesson_id);
 create index if not exists idx_training_quizzes_module_id on public.training_quizzes(module_id);
 create index if not exists idx_training_questions_quiz_id on public.training_quiz_questions(quiz_id);

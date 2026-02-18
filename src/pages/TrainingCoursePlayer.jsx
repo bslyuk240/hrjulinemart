@@ -86,6 +86,19 @@ const buildFlow = (course) => {
       });
     }
   }
+  if (course.course_quiz) {
+    items.push({
+      id: `course-quiz-${course.course_quiz.id}`,
+      type: 'quiz',
+      moduleId: null,
+      moduleTitle: 'Final Assessment',
+      title: course.course_quiz.title || 'Course Quiz',
+      quiz: {
+        ...course.course_quiz,
+        latest_attempt: course.course_quiz?.latest_attempt || null,
+      },
+    });
+  }
   return items;
 };
 
