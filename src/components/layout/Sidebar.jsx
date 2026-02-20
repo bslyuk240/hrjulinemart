@@ -176,7 +176,7 @@ export default function Sidebar() {
         `}
       >
         {/* Sidebar Header */}
-        <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-200">
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 md:p-6 border-b border-gray-200 bg-white">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white shadow-sm">
               <img 
