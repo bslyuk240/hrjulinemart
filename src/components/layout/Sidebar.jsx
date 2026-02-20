@@ -169,8 +169,8 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         data-sidebar="true"
-        className={`fixed left-0 top-safe bottom-0 w-[85vw] max-w-xs bg-white border-r border-gray-200 z-40 flex flex-col transition-transform duration-300 ease-in-out
-          overflow-hidden
+        className={`fixed left-0 top-safe bottom-0 w-[85vw] max-w-xs bg-white border-r border-gray-200 z-40 transition-transform duration-300 ease-in-out
+          overflow-y-auto overflow-x-hidden overscroll-none
           ${sidebarOpen ? 'block translate-x-0' : 'hidden -translate-x-full'}
           lg:block lg:translate-x-0 lg:w-64
         `}
@@ -237,7 +237,7 @@ export default function Sidebar() {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 space-y-1">
+        <nav className="p-3 md:p-4 space-y-0.5">
           {filteredNavigation.map((item) => {
             const Icon = item.icon;
             return (
@@ -251,7 +251,7 @@ export default function Sidebar() {
                   }
                 }}
                 className={({ isActive }) =>
-                  `flex items-start md:items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
+                  `flex items-start md:items-center space-x-3 px-3.5 py-2.5 rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg'
                       : 'text-gray-700 hover:bg-gray-100'
@@ -270,7 +270,7 @@ export default function Sidebar() {
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-gray-200 shrink-0 bg-white">
+        <div className="p-4 border-t border-gray-200 bg-white">
           <NavLink
             to="/settings"
             onClick={() => {

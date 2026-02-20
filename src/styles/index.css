@@ -35,10 +35,10 @@
 /* iOS safe-area support for notched devices */
 :root {
   /* Expose safe-area insets as CSS variables */
-  --safe-area-inset-top: env(safe-area-inset-top);
-  --safe-area-inset-right: env(safe-area-inset-right);
-  --safe-area-inset-bottom: env(safe-area-inset-bottom);
-  --safe-area-inset-left: env(safe-area-inset-left);
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
 }
 
 /* Apply conservative padding so content avoids status/home bars in standalone */
@@ -79,4 +79,33 @@ body.pwa-safe-area {
 /* For fixed elements that need their top offset aligned with safe area */
 .top-safe {
   top: var(--safe-area-inset-top);
+}
+
+/* Sidebar scrollbar: subtle by default, clearer on hover */
+[data-sidebar='true'] {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+[data-sidebar='true']::-webkit-scrollbar {
+  width: 8px;
+}
+
+[data-sidebar='true']::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-sidebar='true']::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.12);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+[data-sidebar='true']:hover {
+  scrollbar-color: rgba(107, 114, 128, 0.45) transparent;
+}
+
+[data-sidebar='true']:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(107, 114, 128, 0.45);
 }
