@@ -139,17 +139,22 @@ export default function Sidebar() {
     },
   ];
 
-  // Filter navigation based on user role
+  // Filter navigation based on user role.
+  // IMPORTANT: admin check must come before manager check because admins also
+  // have is_manager=true (they have all permissions), but should see admin-tagged
+  // items, not the manager/employee subset.
   const normalizedRole = (user?.role || '').toLowerCase();
-  const isManagerRole = normalizedRole === 'manager' || user?.is_manager === true;
+  const isAdminUser   = normalizedRole === 'admin' || user?.type === 'admin';
+  const isManagerRole = !isAdminUser && (normalizedRole === 'manager' || user?.is_manager === true);
 
   const filteredNavigation = navigationItems.filter((item) => {
-    if (isManagerRole) {
-      return item.roles.includes('manager') || item.roles.includes('employee');
+    if (isAdminUser) {
+      // Admins see every item that lists 'admin' in its roles array
+      return item.roles.includes('admin');
     }
 
-    if (normalizedRole === 'admin' || user?.type === 'admin' || isAdmin()) {
-      return item.roles.includes('admin');
+    if (isManagerRole) {
+      return item.roles.includes('manager') || item.roles.includes('employee');
     }
 
     return item.roles.includes('employee');
