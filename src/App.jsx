@@ -93,14 +93,14 @@ function App() {
                 } 
               />
 
-              {/* Admin Requisition Management */}
-              <Route 
-                path="requisition-management" 
+              {/* Admin + Manager Requisition Management */}
+              <Route
+                path="requisition-management"
                 element={
-                  <ProtectedRoute requiredRole="admin">
+                  <ProtectedRoute requiredRole="manager">
                     <RequisitionManagement />
                   </ProtectedRoute>
-                } 
+                }
               />
               
               {/* ✨ NEW: Onboarding - Admin only */}

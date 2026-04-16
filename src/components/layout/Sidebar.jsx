@@ -111,7 +111,7 @@ export default function Sidebar() {
       name: 'Requisition Management',
       path: '/requisition-management',
       icon: DollarSign,
-      roles: ['admin'],
+      roles: ['admin', 'manager'],
     },
     {
       name: 'Resignations',

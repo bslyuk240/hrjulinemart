@@ -29,7 +29,7 @@ import {
 import Loading from '../components/common/Loading';
 
 export default function RequisitionManagement() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { showSuccess, showError } = useApp();
   const [loading, setLoading] = useState(true);
   const [requests, setRequests] = useState([]);
@@ -532,13 +532,15 @@ useEffect(() => {
                         >
                           <Eye className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(request.id, request.employee?.name)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {isAdmin() && (
+                          <button
+                            onClick={() => handleDelete(request.id, request.employee?.name)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -604,12 +606,14 @@ useEffect(() => {
                   <Eye className="w-4 h-4" />
                   View
                 </button>
-                <button
-                  onClick={() => handleDelete(request.id, request.employee?.name)}
-                  className="px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                {isAdmin() && (
+                  <button
+                    onClick={() => handleDelete(request.id, request.employee?.name)}
+                    className="px-3 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                )}
               </div>
             </div>
           ))
@@ -848,7 +852,7 @@ useEffect(() => {
                         </>
                       )}
 
-                      {selectedRequest.status === 'Approved' && (
+                      {selectedRequest.status === 'Approved' && isAdmin() && (
                         <button
                           onClick={() =>
                             handleStatusUpdate(selectedRequest.id, 'Paid')
@@ -862,7 +866,7 @@ useEffect(() => {
                       )}
 
                       {(selectedRequest.status === 'Approved' ||
-                        selectedRequest.status === 'Declined') && (
+                        selectedRequest.status === 'Declined') && isAdmin() && (
                         <button
                           onClick={() =>
                             handleStatusUpdate(selectedRequest.id, 'Pending')
