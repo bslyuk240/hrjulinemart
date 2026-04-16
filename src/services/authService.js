@@ -3,72 +3,75 @@ import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './
 /**
  * Admin Login
  * Authenticates admin users from admin_users table
+ * NOTE: Passwords are currently stored as plaintext — plan to migrate to
+ * a server-side Edge Function with bcrypt before going to production with sensitive data.
  */
 export const loginAdmin = async (username, password) => {
   try {
+    // Only select the columns we actually need — never return the password column to the client
     const { data, error } = await supabase
       .from(TABLES.ADMIN_USERS)
-      .select('*')
+      .select('id, username, role, employee_id, email')
       .eq('username', username)
-      .eq('password', password) // Note: In production, use hashed passwords
+      .eq('password', password)
       .single();
 
     if (error) {
-      return handleSupabaseError(error);
+      // Return generic message — don't reveal whether username or password was wrong
+      return { success: false, error: 'Invalid username or password' };
     }
 
     if (!data) {
-      return {
-        success: false,
-        error: 'Invalid username or password',
-      };
+      return { success: false, error: 'Invalid username or password' };
     }
 
-    // Store user info in localStorage
     const userData = {
       id: data.id,
+      employee_id: data.employee_id || null,
       username: data.username,
+      email: data.email || null,
       role: data.role || 'admin',
       type: 'admin',
       loginTime: new Date().toISOString(),
+      sessionExpiry: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
     };
 
     localStorage.setItem('user', JSON.stringify(userData));
-
     return handleSupabaseSuccess(userData);
   } catch (error) {
-    return handleSupabaseError(error);
+    return { success: false, error: 'Invalid username or password' };
   }
 };
 
 /**
  * Employee Login
  * Authenticates employees from employees table
+ * NOTE: Passwords are currently stored as plaintext — plan to migrate to
+ * a server-side Edge Function with bcrypt before going to production with sensitive data.
  */
 export const loginEmployee = async (email, password) => {
   try {
+    // Only select the columns we need — never return sensitive columns (password, salary, bank_account, etc.)
     const { data, error } = await supabase
       .from(TABLES.EMPLOYEES)
-      .select('*')
+      .select('id, name, email, position, department, profile_pic, is_manager, manager_permissions, can_login')
       .eq('email', email)
-      .eq('password', password) // Note: In production, use hashed passwords
-      .eq('can_login', true) // Only allow employees with login permission
+      .eq('password', password)
+      .eq('can_login', true)
       .single();
 
     if (error) {
-      return handleSupabaseError(error);
+      // Return generic message — don't reveal whether email or password was wrong
+      return { success: false, error: 'Invalid email or password, or login not permitted' };
     }
 
     if (!data) {
-      return {
-        success: false,
-        error: 'Invalid email or password, or login not permitted',
-      };
+      return { success: false, error: 'Invalid email or password, or login not permitted' };
     }
 
-    // Store user info in localStorage
     const userData = {
       id: data.id,
+      employee_id: data.id, // For employees, id IS the employee_id
       name: data.name,
       email: data.email,
       position: data.position,
@@ -79,30 +82,32 @@ export const loginEmployee = async (email, password) => {
       is_manager: data.is_manager,
       manager_permissions: data.manager_permissions,
       loginTime: new Date().toISOString(),
+      sessionExpiry: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(), // 8 hours
     };
 
     localStorage.setItem('user', JSON.stringify(userData));
-
     return handleSupabaseSuccess(userData);
   } catch (error) {
-    return handleSupabaseError(error);
+    return { success: false, error: 'Invalid email or password, or login not permitted' };
   }
 };
 
 /**
  * Unified Login
- * Tries admin login first, then employee login
+ * Tries admin login first (username), then employee login (email).
+ * Both run in parallel to reduce timing side-channels.
  */
 export const login = async (identifier, password) => {
-  // Try admin login first (using username)
-  const adminResult = await loginAdmin(identifier, password);
-  if (adminResult.success) {
-    return adminResult;
-  }
+  const [adminResult, employeeResult] = await Promise.all([
+    loginAdmin(identifier, password),
+    loginEmployee(identifier, password),
+  ]);
 
-  // If admin login fails, try employee login (using email)
-  const employeeResult = await loginEmployee(identifier, password);
-  return employeeResult;
+  if (adminResult.success) return adminResult;
+  if (employeeResult.success) return employeeResult;
+
+  // Return generic error — don't reveal which table matched or not
+  return { success: false, error: 'Invalid credentials. Please try again.' };
 };
 
 /**

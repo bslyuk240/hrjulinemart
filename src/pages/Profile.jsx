@@ -89,14 +89,19 @@ export default function Profile() {
   }, [user]);
 
   const fetchProfileData = async () => {
-    if (!user?.id) return;
+    if (!user) return;
+
+    // Admin users have user.id = admin_users.id, but their employee record
+    // is identified by user.employee_id. Employees have user.id === employee_id.
+    const employeeId = user.employee_id || user.id;
+    if (!employeeId) return;
 
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('employees')
         .select('*')
-        .eq('id', user.id)
+        .eq('id', employeeId)
         .single();
 
       if (error) throw error;
@@ -132,14 +137,16 @@ export default function Profile() {
   };
 
   const fetchStats = async () => {
-  if (!user?.id) return;
+  if (!user) return;
+  const employeeId = user.employee_id || user.id;
+  if (!employeeId) return;
 
   try {
     // Get total approved leave
     const { data: leaveData, count: leaveCount } = await supabase
       .from('leave_requests')
       .select('*', { count: 'exact' })
-      .eq('employee_id', user.id)
+      .eq('employee_id', employeeId)
       .eq('status', 'approved');
 
     // Get attendance this month
@@ -148,14 +155,14 @@ export default function Profile() {
     const { data: attendanceData, count: attendanceCount } = await supabase
       .from('attendance')
       .select('*', { count: 'exact' })
-      .eq('employee_id', user.id)
+      .eq('employee_id', employeeId)
       .gte('date', startOfMonth.toISOString().split('T')[0]);
 
-    // Get latest performance review - FIXED
+    // Get latest performance review
     const { data: performanceData, error: perfError } = await supabase
       .from('performance_records')
-      .select('overall_rating')  // ✅ Changed from 'rating' to 'overall_rating'
-      .eq('employee_id', user.id)
+      .select('overall_rating')
+      .eq('employee_id', employeeId)
       .order('date', { ascending: false })  // ✅ Changed from 'created_at' to 'date'
       .limit(1);
 
@@ -182,6 +189,7 @@ export default function Profile() {
   const handlePersonalUpdate = async (e) => {
     e.preventDefault();
     setSaving(true);
+    const employeeId = user.employee_id || user.id;
 
     try {
       const { error } = await supabase
@@ -196,7 +204,7 @@ export default function Profile() {
           date_of_birth: profileData.date_of_birth,
           marital_status: profileData.marital_status,
         })
-        .eq('id', user.id);
+        .eq('id', employeeId);
 
       if (error) throw error;
 
@@ -218,6 +226,7 @@ export default function Profile() {
   const handleBankUpdate = async (e) => {
     e.preventDefault();
     setSaving(true);
+    const employeeId = user.employee_id || user.id;
 
     try {
       const { error } = await supabase
@@ -227,7 +236,7 @@ export default function Profile() {
           bank_account: bankDetails.bank_account,
           payment_mode: bankDetails.payment_mode,
         })
-        .eq('id', user.id);
+        .eq('id', employeeId);
 
       if (error) throw error;
 
@@ -255,11 +264,12 @@ export default function Profile() {
     setSaving(true);
 
     try {
+      const employeeId = user.employee_id || user.id;
       // Verify current password
       const { data: employee } = await supabase
         .from('employees')
         .select('password')
-        .eq('id', user.id)
+        .eq('id', employeeId)
         .single();
 
       if (employee.password !== passwordData.currentPassword) {
@@ -272,7 +282,7 @@ export default function Profile() {
       const { error } = await supabase
         .from('employees')
         .update({ password: passwordData.newPassword })
-        .eq('id', user.id);
+        .eq('id', employeeId);
 
       if (error) throw error;
 
@@ -306,8 +316,10 @@ export default function Profile() {
     setNotifLoading(true);
     setNotifStatus('');
     setNotifMessage('');
+    // Use employee_id for admin users (FCM tokens are keyed on employee/user id)
+    const fcmUserId = user?.employee_id || user?.id;
     try {
-      console.log('[FCM Debug] Starting FCM init for user:', user?.id);
+      console.log('[FCM Debug] Starting FCM init for user:', fcmUserId);
       console.log('[FCM Debug] Notification API supported:', 'Notification' in window);
       console.log('[FCM Debug] Current permission:', Notification.permission);
       console.log('[FCM Debug] Service Worker supported:', 'serviceWorker' in navigator);
@@ -325,7 +337,7 @@ export default function Profile() {
         console.error('[FCM Debug] SW fetch error:', swErr);
       }
 
-      const token = await initFCM(user.id);
+      const token = await initFCM(fcmUserId);
       console.log('[FCM Debug] initFCM result token:', token ? token.substring(0, 30) + '…' : null);
 
       if (token) {

@@ -12,6 +12,23 @@ import { removeFCMTokens } from '../services/fcmService';
 
 const AuthContext = createContext(null);
 
+// Session max age in milliseconds (8 hours)
+const SESSION_MAX_MS = 8 * 60 * 60 * 1000;
+
+/** Returns true if the stored session is still within the allowed time window */
+function isSessionValid(storedUser) {
+  if (!storedUser) return false;
+  // Support both sessionExpiry (new) and loginTime (legacy) fields
+  if (storedUser.sessionExpiry) {
+    return new Date(storedUser.sessionExpiry) > new Date();
+  }
+  if (storedUser.loginTime) {
+    return (Date.now() - new Date(storedUser.loginTime).getTime()) < SESSION_MAX_MS;
+  }
+  // No time info — treat as expired for safety
+  return false;
+}
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
@@ -25,43 +42,53 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-    // 🔹 Clear stale admin cache if employee_id is missing or outdated
+  // Load session from localStorage on mount — enforce expiry and sanitise legacy data
   useEffect(() => {
-    const cached = JSON.parse(localStorage.getItem("user"));
-    if (cached && cached.username === "admin" && (!cached.employee_id || cached.employee_id !== 8)) {
-      console.log("🧹 Clearing stale admin cache...");
-      localStorage.removeItem("user");
-    }
-  }, []);
-
-  // Check for existing user session on mount
-  // Replace your checkUserSession() call with this version:
-useEffect(() => {
-  try {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setUser(parsed);
-    }
-  } catch (error) {
-    console.warn("Auth load error, resetting storage:", error);
-    localStorage.clear();
-  } finally {
-    setLoading(false);
-  }
-}, []);
-
-  const checkUserSession = () => {
     try {
-      const currentUser = getCurrentUser();
-      setUser(currentUser);
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+
+        // Reject expired sessions
+        if (!isSessionValid(parsed)) {
+          console.info('[Auth] Session expired — logging out');
+          localStorage.removeItem('user');
+          setLoading(false);
+          return;
+        }
+
+        // Sanitise legacy admin cache that had hardcoded employee_id
+        // (employee_id now comes from the DB via authService)
+        if (parsed.type === 'admin' && parsed.username === 'admin' && !parsed.sessionExpiry) {
+          // Old format without expiry — treat as expired
+          console.info('[Auth] Stale admin session without expiry — logging out');
+          localStorage.removeItem('user');
+          setLoading(false);
+          return;
+        }
+
+        setUser(parsed);
+      }
     } catch (err) {
-      console.error('Error checking user session:', err);
-      setUser(null);
+      console.warn('[Auth] Load error, clearing storage:', err);
+      localStorage.clear();
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Periodic session expiry check (every 5 minutes while app is open)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const stored = getCurrentUser();
+      if (stored && !isSessionValid(stored)) {
+        console.info('[Auth] Session expired during activity — logging out');
+        localStorage.removeItem('user');
+        setUser(null);
+      }
+    }, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const login = async (identifier, password) => {
     try {
@@ -71,27 +98,15 @@ useEffect(() => {
       const result = await loginService(identifier, password);
 
       if (result.success) {
-  let userData = result.data;
-
-  // ✅ Attach employee_id for local admin account
-  if (userData.username === 'admin' || userData.email === 'info@julinemart.com') {
-    userData = {
-      ...userData,
-      employee_id: 8,  // matches employees.id for your Admin record
-      role: 'admin',
-    };
-  }
-
-  setUser(userData);
-  // Save to localStorage for session persistence
-  localStorage.setItem('user', JSON.stringify(userData));
-
-  return { success: true, user: userData };
-} else {
-  setError(result.error);
-  return { success: false, error: result.error };
-}
-
+        const userData = result.data;
+        // authService already sets sessionExpiry — just store and set
+        setUser(userData);
+        localStorage.setItem('user', JSON.stringify(userData));
+        return { success: true, user: userData };
+      } else {
+        setError(result.error);
+        return { success: false, error: result.error };
+      }
     } catch (err) {
       const errorMessage = err.message || 'Login failed';
       setError(errorMessage);
@@ -103,7 +118,6 @@ useEffect(() => {
 
   const logout = () => {
     try {
-      // Remove FCM token so this device stops receiving pushes
       const stored = getCurrentUser();
       if (stored?.id) removeFCMTokens(stored.id).catch(() => {});
 
@@ -122,8 +136,7 @@ useEffect(() => {
       ...prevUser,
       ...userData,
     }));
-    
-    // Update localStorage
+
     const currentUser = getCurrentUser();
     if (currentUser) {
       const updatedUser = { ...currentUser, ...userData };
@@ -131,9 +144,9 @@ useEffect(() => {
     }
   };
 
-  // Role checking helpers
-  const isAdmin = () => checkIsAdmin();
-  const isManager = () => checkIsManager();
+  // Role checking helpers — always read from localStorage (source of truth)
+  const isAdmin    = () => checkIsAdmin();
+  const isManager  = () => checkIsManager();
   const isEmployee = () => checkIsEmployee();
 
   const value = {
