@@ -1,4 +1,4 @@
-const CACHE_NAME = 'julinemart-hr-v3';
+const CACHE_NAME = 'julinemart-hr-v4';
 const URLS_TO_CACHE = ['/', '/index.html'];
 
 self.addEventListener('install', (event) => {
