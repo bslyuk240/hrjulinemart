@@ -4,6 +4,7 @@ import { useApp } from '../../context/AppContext';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import PullToRefresh from '../common/PullToRefresh';
+import PushNotificationBanner from '../common/PushNotificationBanner';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export default function Layout() {
@@ -63,6 +64,9 @@ export default function Layout() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <Header />
+
+      {/* Push Notification Banner */}
+      <PushNotificationBanner />
 
       <div className="flex">
         {/* Sidebar */}

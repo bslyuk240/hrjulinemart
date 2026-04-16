@@ -8,7 +8,7 @@ import {
   isManager as checkIsManager,
   isEmployee as checkIsEmployee,
 } from '../services/authService';
-import { initFCM, removeFCMTokens } from '../services/fcmService';
+import { removeFCMTokens } from '../services/fcmService';
 
 const AuthContext = createContext(null);
 
@@ -85,10 +85,6 @@ useEffect(() => {
   setUser(userData);
   // Save to localStorage for session persistence
   localStorage.setItem('user', JSON.stringify(userData));
-
-  // Initialise Firebase push notifications (non-blocking)
-  const fcmId = userData.id;
-  if (fcmId) initFCM(fcmId).catch((err) => console.warn('FCM setup failed:', err));
 
   return { success: true, user: userData };
 } else {
