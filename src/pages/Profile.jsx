@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../services/supabase';
+import { initFCM } from '../services/fcmService';
 import {
   User,
   Mail,
@@ -19,7 +20,11 @@ import {
   Clock,
   Award,
   MapPin,
-  Heart
+  Heart,
+  Bell,
+  BellOff,
+  Loader,
+  AlertTriangle
 } from 'lucide-react';
 import Loading from '../components/common/Loading';
 
@@ -71,6 +76,12 @@ export default function Profile() {
     attendanceThisMonth: 0,
     performanceRating: null,
   });
+
+  // Notification State
+  const [notifPermission, setNotifPermission] = useState(null);
+  const [notifLoading, setNotifLoading]       = useState(false);
+  const [notifStatus, setNotifStatus]         = useState(''); // 'success' | 'error'
+  const [notifMessage, setNotifMessage]       = useState('');
 
   useEffect(() => {
     fetchProfileData();
@@ -278,6 +289,67 @@ export default function Profile() {
     setSaving(false);
   };
 
+  // Read current notification permission whenever the notifications tab is opened
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      if (!('Notification' in window)) {
+        setNotifPermission('unsupported');
+      } else {
+        setNotifPermission(Notification.permission);
+      }
+      setNotifStatus('');
+      setNotifMessage('');
+    }
+  }, [activeTab]);
+
+  const handleEnableNotifications = async () => {
+    setNotifLoading(true);
+    setNotifStatus('');
+    setNotifMessage('');
+    try {
+      console.log('[FCM Debug] Starting FCM init for user:', user?.id);
+      console.log('[FCM Debug] Notification API supported:', 'Notification' in window);
+      console.log('[FCM Debug] Current permission:', Notification.permission);
+      console.log('[FCM Debug] Service Worker supported:', 'serviceWorker' in navigator);
+
+      // Check if firebase-messaging-sw.js is reachable
+      try {
+        const swCheck = await fetch('/firebase-messaging-sw.js');
+        console.log('[FCM Debug] firebase-messaging-sw.js status:', swCheck.status, swCheck.ok ? 'OK' : 'MISSING');
+        if (swCheck.ok) {
+          const text = await swCheck.text();
+          console.log('[FCM Debug] SW file length:', text.length, 'chars');
+          console.log('[FCM Debug] SW contains apiKey:', text.includes('apiKey'));
+        }
+      } catch (swErr) {
+        console.error('[FCM Debug] SW fetch error:', swErr);
+      }
+
+      const token = await initFCM(user.id);
+      console.log('[FCM Debug] initFCM result token:', token ? token.substring(0, 30) + '…' : null);
+
+      if (token) {
+        setNotifPermission('granted');
+        setNotifStatus('success');
+        setNotifMessage('Push notifications enabled! You will receive alerts on this device.');
+      } else {
+        const perm = 'Notification' in window ? Notification.permission : 'unsupported';
+        setNotifPermission(perm);
+        setNotifStatus('error');
+        if (perm === 'denied') {
+          setNotifMessage('Notifications are blocked. Go to your browser/OS settings and allow notifications for this site.');
+        } else {
+          setNotifMessage('Could not get a push token. Check the browser console for details.');
+        }
+      }
+    } catch (err) {
+      console.error('[FCM Debug] handleEnableNotifications error:', err);
+      setNotifStatus('error');
+      setNotifMessage(`Error: ${err.message || 'Unknown error — check console'}`);
+    }
+    setNotifLoading(false);
+  };
+
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -402,6 +474,18 @@ export default function Profile() {
             >
               <Lock className="w-5 h-5" />
               <span className="font-medium">Security</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('notifications')}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
+                activeTab === 'notifications'
+                  ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg'
+                  : 'text-gray-700 hover:bg-gray-100'
+              }`}
+            >
+              <Bell className="w-5 h-5" />
+              <span className="font-medium">Notifications</span>
             </button>
           </div>
         </div>
@@ -743,6 +827,100 @@ export default function Profile() {
                     </button>
                   </div>
                 </form>
+              </div>
+            )}
+
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Push Notifications</h2>
+                <p className="text-sm text-gray-500 mb-6">
+                  Enable push notifications to receive alerts for leave updates, payroll, and more — even when the app is closed.
+                </p>
+
+                {/* Unsupported */}
+                {notifPermission === 'unsupported' && (
+                  <div className="flex items-start gap-3 bg-gray-50 border border-gray-200 rounded-xl p-4">
+                    <BellOff className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-gray-700">Not supported</p>
+                      <p className="text-sm text-gray-500 mt-0.5">Your browser does not support push notifications.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Denied */}
+                {notifPermission === 'denied' && (
+                  <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                    <BellOff className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-orange-900">Notifications blocked</p>
+                      <p className="text-sm text-orange-700 mt-0.5">
+                        Go to your browser / OS settings, find this site, and set notifications to <strong>Allow</strong>. Then come back and try again.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Granted */}
+                {notifPermission === 'granted' && notifStatus !== 'error' && (
+                  <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-green-900">Push notifications are enabled</p>
+                      <p className="text-sm text-green-700 mt-0.5">
+                        {notifMessage || 'This device will receive alerts for leave, payroll, and more.'}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Default / ask to enable */}
+                {(notifPermission === 'default' || (notifPermission === 'granted' && notifStatus === 'error')) && (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3 bg-purple-50 border border-purple-200 rounded-xl p-4">
+                      <Bell className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-purple-900">Push notifications are not enabled</p>
+                        <p className="text-sm text-purple-700 mt-0.5">
+                          Tap the button below to allow push notifications on this device.
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleEnableNotifications}
+                      disabled={notifLoading}
+                      className="flex items-center gap-2 px-5 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 disabled:opacity-60 transition-colors shadow"
+                    >
+                      {notifLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                      {notifLoading ? 'Enabling…' : 'Enable Push Notifications'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Error message */}
+                {notifStatus === 'error' && notifMessage && (
+                  <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-xl p-4 mt-4">
+                    <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-red-900">Something went wrong</p>
+                      <p className="text-sm text-red-700 mt-0.5">{notifMessage}</p>
+                      <p className="text-xs text-red-500 mt-2">Open your browser developer console (F12) for detailed logs prefixed with <code>[FCM Debug]</code>.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Re-enable button when in error state with permission still default/granted */}
+                {notifStatus === 'error' && notifPermission !== 'denied' && notifPermission !== 'unsupported' && (
+                  <button
+                    onClick={handleEnableNotifications}
+                    disabled={notifLoading}
+                    className="flex items-center gap-2 px-5 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 disabled:opacity-60 transition-colors shadow mt-4"
+                  >
+                    {notifLoading ? <Loader className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
+                    {notifLoading ? 'Retrying…' : 'Try Again'}
+                  </button>
+                )}
               </div>
             )}
 
