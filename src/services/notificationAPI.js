@@ -1,6 +1,30 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 
 /**
+ * Internal helper — look up FCM tokens for a list of user IDs and
+ * fire a push notification via the send-push edge function.
+ * Runs silently (never throws).
+ */
+const sendPushToUsers = async (userIds, title, body, data = {}) => {
+  if (!userIds || userIds.length === 0) return;
+  try {
+    const { data: tokenRows } = await supabase
+      .from('fcm_tokens')
+      .select('token')
+      .in('user_id', userIds);
+
+    const tokens = (tokenRows || []).map((r) => r.token).filter(Boolean);
+    if (tokens.length === 0) return;
+
+    await supabase.functions.invoke('send-push', {
+      body: { tokens, title, body, data },
+    });
+  } catch (err) {
+    console.warn('Push notification error:', err);
+  }
+};
+
+/**
  * Notification Types
  */
 export const NOTIFICATION_TYPES = {
@@ -199,27 +223,21 @@ export const deleteAllRead = async (userId) => {
  */
 export const notifyNewResignation = async (adminUserIds, resignationData) => {
   try {
+    const title = 'New Resignation Submitted';
+    const message = `${resignationData.employee_name} has submitted a resignation`;
     const notifications = adminUserIds.map(userId => ({
       user_id: userId,
       type: NOTIFICATION_TYPES.RESIGNATION,
-      title: 'New Resignation Submitted',
-      message: `${resignationData.employee_name} has submitted a resignation`,
-      data: {
-        resignation_id: resignationData.id,
-        employee_name: resignationData.employee_name,
-      },
+      title,
+      message,
+      data: { resignation_id: resignationData.id, employee_name: resignationData.employee_name },
       link: '/resignation',
     }));
 
-    const { data, error } = await supabase
-      .from(TABLES.NOTIFICATIONS)
-      .insert(notifications)
-      .select();
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert(notifications).select();
+    if (error) return handleSupabaseError(error);
 
-    if (error) {
-      return handleSupabaseError(error);
-    }
-
+    sendPushToUsers(adminUserIds, title, message, { type: NOTIFICATION_TYPES.RESIGNATION, link: '/resignation' });
     return handleSupabaseSuccess(data);
   } catch (error) {
     return handleSupabaseError(error);
@@ -231,27 +249,21 @@ export const notifyNewResignation = async (adminUserIds, resignationData) => {
  */
 export const notifyNewLeaveRequest = async (managerUserIds, leaveData) => {
   try {
+    const title = 'New Leave Request';
+    const message = `${leaveData.employee_name} has requested leave from ${leaveData.start_date} to ${leaveData.end_date}`;
     const notifications = managerUserIds.map(userId => ({
       user_id: userId,
       type: NOTIFICATION_TYPES.LEAVE_REQUEST,
-      title: 'New Leave Request',
-      message: `${leaveData.employee_name} has requested leave from ${leaveData.start_date} to ${leaveData.end_date}`,
-      data: {
-        leave_id: leaveData.id,
-        employee_name: leaveData.employee_name,
-      },
+      title,
+      message,
+      data: { leave_id: leaveData.id, employee_name: leaveData.employee_name },
       link: '/leave',
     }));
 
-    const { data, error } = await supabase
-      .from(TABLES.NOTIFICATIONS)
-      .insert(notifications)
-      .select();
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert(notifications).select();
+    if (error) return handleSupabaseError(error);
 
-    if (error) {
-      return handleSupabaseError(error);
-    }
-
+    sendPushToUsers(managerUserIds, title, message, { type: NOTIFICATION_TYPES.LEAVE_REQUEST, link: '/leave' });
     return handleSupabaseSuccess(data);
   } catch (error) {
     return handleSupabaseError(error);
@@ -263,27 +275,21 @@ export const notifyNewLeaveRequest = async (managerUserIds, leaveData) => {
  */
 export const notifyLeaveDecision = async (employeeUserId, leaveData, status) => {
   try {
+    const title = `Leave Request ${status}`;
+    const message = `Your leave request from ${leaveData.start_date} to ${leaveData.end_date} has been ${status.toLowerCase()}`;
     const notification = {
       user_id: employeeUserId,
       type: NOTIFICATION_TYPES.LEAVE_REQUEST,
-      title: `Leave Request ${status}`,
-      message: `Your leave request from ${leaveData.start_date} to ${leaveData.end_date} has been ${status.toLowerCase()}`,
-      data: {
-        leave_id: leaveData.id,
-        status: status,
-      },
+      title,
+      message,
+      data: { leave_id: leaveData.id, status },
       link: '/leave',
     };
 
-    const { data, error } = await supabase
-      .from(TABLES.NOTIFICATIONS)
-      .insert([notification])
-      .select();
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert([notification]).select();
+    if (error) return handleSupabaseError(error);
 
-    if (error) {
-      return handleSupabaseError(error);
-    }
-
+    sendPushToUsers([employeeUserId], title, message, { type: NOTIFICATION_TYPES.LEAVE_REQUEST, link: '/leave' });
     return handleSupabaseSuccess(data[0]);
   } catch (error) {
     return handleSupabaseError(error);
@@ -295,27 +301,21 @@ export const notifyLeaveDecision = async (employeeUserId, leaveData, status) => 
  */
 export const notifyPayrollGenerated = async (employeeUserIds, month, year) => {
   try {
+    const title = 'Payroll Generated';
+    const message = `Your payslip for ${month} ${year} is now available`;
     const notifications = employeeUserIds.map(userId => ({
       user_id: userId,
       type: NOTIFICATION_TYPES.PAYROLL,
-      title: 'Payroll Generated',
-      message: `Your payslip for ${month} ${year} is now available`,
-      data: {
-        month: month,
-        year: year,
-      },
+      title,
+      message,
+      data: { month, year },
       link: '/payroll',
     }));
 
-    const { data, error } = await supabase
-      .from(TABLES.NOTIFICATIONS)
-      .insert(notifications)
-      .select();
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert(notifications).select();
+    if (error) return handleSupabaseError(error);
 
-    if (error) {
-      return handleSupabaseError(error);
-    }
-
+    sendPushToUsers(employeeUserIds, title, message, { type: NOTIFICATION_TYPES.PAYROLL, link: '/payroll' });
     return handleSupabaseSuccess(data);
   } catch (error) {
     return handleSupabaseError(error);
@@ -393,27 +393,21 @@ export const notifyPerformanceDeadline = async (managerUserIds, reviewData) => {
  */
 export const notifyVendorSubmission = async (recipientUserIds, vendorData) => {
   try {
+    const title = 'New Vendor Source';
+    const message = `${vendorData.vendor_name || 'A vendor'} added by ${vendorData.submitted_by_name || vendorData.submitted_by_email || 'your team'}`;
     const notifications = recipientUserIds.map((userId) => ({
       user_id: userId,
       type: NOTIFICATION_TYPES.VENDOR,
-      title: 'New Vendor Source',
-      message: `${vendorData.vendor_name || 'A vendor'} added by ${vendorData.submitted_by_name || vendorData.submitted_by_email || 'your team'}`,
-      data: {
-        vendor_id: vendorData.id,
-        vendor_name: vendorData.vendor_name,
-      },
+      title,
+      message,
+      data: { vendor_id: vendorData.id, vendor_name: vendorData.vendor_name },
       link: '/vendor-sourcing',
     }));
 
-    const { data, error } = await supabase
-      .from(TABLES.NOTIFICATIONS)
-      .insert(notifications)
-      .select();
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert(notifications).select();
+    if (error) return handleSupabaseError(error);
 
-    if (error) {
-      return handleSupabaseError(error);
-    }
-
+    sendPushToUsers(recipientUserIds, title, message, { type: NOTIFICATION_TYPES.VENDOR, link: '/vendor-sourcing' });
     return handleSupabaseSuccess(data);
   } catch (error) {
     return handleSupabaseError(error);
@@ -425,19 +419,20 @@ export const notifyVendorSubmission = async (recipientUserIds, vendorData) => {
  */
 export const notifyNewRequisition = async (recipientUserIds, request) => {
   try {
+    const title = 'New Requisition';
+    const message = `${request.kind} request submitted by ${request.employee_name || 'employee'}`;
     const notifications = recipientUserIds.map((userId) => ({
       user_id: userId,
       type: NOTIFICATION_TYPES.REQUISITION,
-      title: 'New Requisition',
-      message: `${request.kind} request submitted by ${request.employee_name || 'employee'}`,
+      title,
+      message,
       data: { request_id: request.id, amount: request.amount, currency: request.currency },
       link: '/requisition-management',
     }));
-    const { data, error } = await supabase
-      .from(TABLES.NOTIFICATIONS)
-      .insert(notifications)
-      .select();
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert(notifications).select();
     if (error) return handleSupabaseError(error);
+
+    sendPushToUsers(recipientUserIds, title, message, { type: NOTIFICATION_TYPES.REQUISITION, link: '/requisition-management' });
     return handleSupabaseSuccess(data);
   } catch (error) {
     return handleSupabaseError(error);
@@ -449,19 +444,20 @@ export const notifyNewRequisition = async (recipientUserIds, request) => {
  */
 export const notifyRequisitionStatus = async (employeeUserId, request, status) => {
   try {
+    const title = `Requisition ${status}`;
+    const message = `Your ${request.kind} request has been ${status.toLowerCase()}`;
     const notification = {
       user_id: employeeUserId,
       type: NOTIFICATION_TYPES.REQUISITION,
-      title: `Requisition ${status}`,
-      message: `Your ${request.kind} request has been ${status.toLowerCase()}`,
+      title,
+      message,
       data: { request_id: request.id, status },
       link: '/requisitions',
     };
-    const { data, error } = await supabase
-      .from(TABLES.NOTIFICATIONS)
-      .insert([notification])
-      .select();
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert([notification]).select();
     if (error) return handleSupabaseError(error);
+
+    sendPushToUsers([employeeUserId], title, message, { type: NOTIFICATION_TYPES.REQUISITION, link: '/requisitions' });
     return handleSupabaseSuccess(data[0]);
   } catch (error) {
     return handleSupabaseError(error);

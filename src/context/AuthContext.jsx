@@ -8,6 +8,7 @@ import {
   isManager as checkIsManager,
   isEmployee as checkIsEmployee,
 } from '../services/authService';
+import { initFCM, removeFCMTokens } from '../services/fcmService';
 
 const AuthContext = createContext(null);
 
@@ -85,6 +86,10 @@ useEffect(() => {
   // Save to localStorage for session persistence
   localStorage.setItem('user', JSON.stringify(userData));
 
+  // Initialise Firebase push notifications (non-blocking)
+  const fcmId = userData.id;
+  if (fcmId) initFCM(fcmId).catch(() => {});
+
   return { success: true, user: userData };
 } else {
   setError(result.error);
@@ -102,6 +107,10 @@ useEffect(() => {
 
   const logout = () => {
     try {
+      // Remove FCM token so this device stops receiving pushes
+      const stored = getCurrentUser();
+      if (stored?.id) removeFCMTokens(stored.id).catch(() => {});
+
       logoutService();
       setUser(null);
       setError(null);
