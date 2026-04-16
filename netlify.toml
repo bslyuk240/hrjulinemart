@@ -21,7 +21,7 @@
     # - script-src: own origin + Firebase CDN (for service worker) + blob: (for Vite chunks)
     # - connect-src: own origin + Supabase + Firebase + Google APIs
     # - worker-src: own origin + blob: (service workers)
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://fcm.googleapis.com https://www.googleapis.com https://res.cloudinary.com; worker-src 'self' blob:; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://www.googleapis.com blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: https: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com https://fcm.googleapis.com https://www.googleapis.com https://res.cloudinary.com; worker-src 'self' blob:; frame-ancestors 'none';"
 
 # Cache static assets aggressively (Vite adds content hashes to filenames)
 [[headers]]
