@@ -119,10 +119,11 @@ export const createLeaveRequest = async (leaveData) => {
         .eq('is_manager', true);
       const { data: admins } = await supabase
         .from(TABLES.ADMIN_USERS)
-        .select('id');
+        .select('id, employee_id');
       const managerUserIds = [
         ...(managers || []).map((m) => m.id),
-        ...(admins || []).map((a) => a.id),
+        // Use employee_id as the canonical user_id for notifications
+        ...(admins || []).map((a) => a.employee_id || a.id),
       ];
       if (managerUserIds.length > 0) {
         await notifyNewLeaveRequest(managerUserIds, created);

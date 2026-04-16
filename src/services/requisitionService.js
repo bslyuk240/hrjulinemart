@@ -69,10 +69,11 @@ export const createRequest = async (requestData, employeeId) => {
     // Notify approvers and requester
     try {
       const { data: managers } = await supabase.from('employees').select('id').eq('is_manager', true);
-      const { data: admins } = await supabase.from('admin_users').select('id');
+      const { data: admins } = await supabase.from('admin_users').select('id, employee_id');
       const approverIds = [
         ...((managers || []).map(m => m.id)),
-        ...((admins || []).map(a => a.id)),
+        // Use employee_id as the canonical user_id for notifications
+        ...((admins || []).map(a => a.employee_id || a.id)),
       ];
       if (approverIds.length > 0) {
         await notifyNewRequisition(approverIds, created);
@@ -321,10 +322,11 @@ export const addRequestNote = async (requestId, note, employeeId) => {
     if (req) {
       if (employeeId === req.employee_id) {
         const { data: managers } = await supabase.from('employees').select('id').eq('is_manager', true);
-        const { data: admins } = await supabase.from('admin_users').select('id');
+        const { data: admins } = await supabase.from('admin_users').select('id, employee_id');
         const recipients = [
           ...((managers || []).map(m => m.id)),
-          ...((admins || []).map(a => a.id)),
+          // Use employee_id as the canonical user_id for notifications
+          ...((admins || []).map(a => a.employee_id || a.id)),
         ];
         if (recipients.length > 0) {
           await notifyRequisitionMessage(recipients, requestId, 'Employee', note.trim());

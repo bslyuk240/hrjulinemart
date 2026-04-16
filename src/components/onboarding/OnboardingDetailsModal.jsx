@@ -29,8 +29,10 @@ import {
 } from '../../services/referenceService';
 import { sendOnboardingApprovedEmail, sendReferenceRequestEmail } from '../../services/emailService';
 import { getEmployeeById } from '../../services/employeeService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function OnboardingDetailsModal({ profile, onClose }) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState([]);
   const [referenceRequests, setReferenceRequests] = useState([]);
@@ -74,7 +76,7 @@ export default function OnboardingDetailsModal({ profile, onClose }) {
 
     setLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
+      // user is injected from useAuth() above
       const result = await approveOnboarding(profile.id, user?.username || 'admin');
 
       if (result.success) {
@@ -98,7 +100,7 @@ export default function OnboardingDetailsModal({ profile, onClose }) {
 
     setLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
+      // user is injected from useAuth() above
       const result = await rejectOnboarding(profile.id, rejectionReason, user?.username || 'admin');
 
       if (result.success) {

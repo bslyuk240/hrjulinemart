@@ -48,7 +48,7 @@ function getLockoutMinutesLeft() {
 }
 
 export default function Login() {
-  const [identifier, setIdentifier] = useState('');
+  const [identifier, setIdentifier] = useState(''); // email address
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -93,7 +93,7 @@ export default function Login() {
     }
 
     if (!identifier.trim() || !password.trim()) {
-      setError('Please enter both username/email and password');
+      setError('Please enter your email address and password');
       return;
     }
 
@@ -174,22 +174,23 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Username/Email Input */}
+              {/* Email Input */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Username or Email
+                  Email Address
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type="text"
+                    type="email"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="block w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
-                    placeholder="Enter username or email"
+                    placeholder="Enter your email address"
                     disabled={loading}
+                    autoComplete="email"
                   />
                 </div>
               </div>
@@ -248,7 +249,7 @@ export default function Login() {
             {/* Help Text */}
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Use your registered email address and password to login
+                Use your registered email address and password to sign in
               </p>
             </div>
           </div>

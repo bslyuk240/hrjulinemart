@@ -102,8 +102,9 @@ export const submitResignation = async (resignationData) => {
     try {
       const { data: admins } = await supabase
         .from(TABLES.ADMIN_USERS)
-        .select('id');
-      const adminIds = (admins || []).map((a) => a.id);
+        .select('id, employee_id');
+      // Use employee_id as the canonical user_id for notifications
+      const adminIds = (admins || []).map((a) => a.employee_id || a.id);
       if (adminIds.length > 0) {
         await notifyNewResignation(adminIds, created);
       }

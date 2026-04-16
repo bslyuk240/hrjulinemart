@@ -256,27 +256,34 @@ export default function Profile() {
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      alert('Password must be at least 6 characters long');
+    if (passwordData.newPassword.length < 8) {
+      alert('New password must be at least 8 characters long.');
       return;
     }
 
     setSaving(true);
 
     try {
-      // Password change is handled server-side via Edge Function (bcrypt)
-      // The current password is verified server-side — never compared in the browser
-      const { data, error } = await supabase.functions.invoke('change-password', {
-        body: {
-          userId: user.type === 'admin' ? user.id : (user.employee_id || user.id),
-          userType: user.type || 'employee',
-          currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
-        },
+      // Step 1: Verify the current password by re-authenticating with Supabase Auth.
+      // This is done client-side — Supabase Auth handles the credential check securely.
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: passwordData.currentPassword,
       });
 
-      if (error || !data?.success) {
-        alert(data?.error || 'Failed to change password. Please try again.');
+      if (verifyError) {
+        alert('Current password is incorrect. Please try again.');
+        setSaving(false);
+        return;
+      }
+
+      // Step 2: Update the password in Supabase Auth.
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: passwordData.newPassword,
+      });
+
+      if (updateError) {
+        alert(updateError.message || 'Failed to update password. Please try again.');
         setSaving(false);
         return;
       }
@@ -285,7 +292,7 @@ export default function Profile() {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
       console.error('Error changing password:', error);
-      alert('Failed to change password');
+      alert('Failed to change password. Please try again.');
     }
     setSaving(false);
   };

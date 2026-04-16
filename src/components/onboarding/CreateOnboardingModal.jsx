@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { X, UserPlus, Loader } from 'lucide-react';
 import { createOnboardingProfile } from '../../services/onboardingService';
+import { useAuth } from '../../context/AuthContext';
 
 export default function CreateOnboardingModal({ onClose }) {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
@@ -34,8 +36,6 @@ export default function CreateOnboardingModal({ onClose }) {
 
     setLoading(true);
     try {
-      const user = JSON.parse(localStorage.getItem('user'));
-      
       const result = await createOnboardingProfile({
         ...formData,
         proposed_salary: parseFloat(formData.proposed_salary) || 0,
