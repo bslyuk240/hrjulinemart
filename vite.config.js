@@ -1,18 +1,8 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
 
-/**
- * Vite plugin — generates firebase-messaging-sw.js at build time,
- * injecting env vars so no credentials are hardcoded in source files.
- */
-function firebaseSwPlugin(env) {
-  return {
-    name: 'firebase-sw-generator',
-    generateBundle() {
-      this.emitFile({
-        type: 'asset',
-        fileName: 'firebase-messaging-sw.js',
-        source: `importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+function buildSwContent(env) {
+  return `importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
 
 firebase.initializeApp({
@@ -55,7 +45,35 @@ self.addEventListener('notificationclick', (event) => {
     })
   );
 });
-`,
+`;
+}
+
+/**
+ * Vite plugin:
+ * - Dev: serves firebase-messaging-sw.js dynamically via middleware
+ * - Build: emits firebase-messaging-sw.js as a static asset
+ * Either way, env vars are injected at runtime — nothing hardcoded.
+ */
+function firebaseSwPlugin(env) {
+  const swContent = buildSwContent(env);
+  return {
+    name: 'firebase-sw-generator',
+
+    // DEV — serve the SW dynamically so Firebase can register it
+    configureServer(server) {
+      server.middlewares.use('/firebase-messaging-sw.js', (_req, res) => {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Service-Worker-Allowed', '/');
+        res.end(swContent);
+      });
+    },
+
+    // PROD — emit the SW as a build artifact
+    generateBundle() {
+      this.emitFile({
+        type: 'asset',
+        fileName: 'firebase-messaging-sw.js',
+        source: swContent,
       });
     },
   };

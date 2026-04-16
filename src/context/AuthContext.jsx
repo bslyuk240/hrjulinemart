@@ -88,7 +88,7 @@ useEffect(() => {
 
   // Initialise Firebase push notifications (non-blocking)
   const fcmId = userData.id;
-  if (fcmId) initFCM(fcmId).catch(() => {});
+  if (fcmId) initFCM(fcmId).catch((err) => console.warn('FCM setup failed:', err));
 
   return { success: true, user: userData };
 } else {
