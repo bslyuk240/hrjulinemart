@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabase';
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
+import { useAuth } from '../../context/AuthContext';
+import { useApp } from '../../context/AppContext';
+import { terminateEmployee } from '../../services/archiveService';
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
   Eye,
   Filter,
   Users,
@@ -15,13 +18,22 @@ import {
   DollarSign,
   CreditCard,
   Download,
-  User
+  User,
+  UserX,
+  AlertTriangle,
 } from 'lucide-react';
 import Loading from '../common/Loading';
 import Modal from '../common/Modal';
 import EmployeeForm from './EmployeeForm';
 
+const TERMINATION_REASONS = {
+  termination: ['Misconduct', 'Poor Performance', 'Insubordination', 'Fraud / Dishonesty', 'Contract End'],
+  layoff: ['Redundancy', 'Restructuring', 'Company Downsizing', 'Position Eliminated', 'Budget Cut'],
+};
+
 export default function EmployeeList() {
+  const { user } = useAuth();
+  const { showSuccess, showError } = useApp();
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,6 +45,9 @@ export default function EmployeeList() {
   const [showForm, setShowForm] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
+  const [terminateModal, setTerminateModal] = useState({ show: false, employee: null });
+  const [terminateForm, setTerminateForm] = useState({ type: 'termination', reason: '', effectiveDate: '', notes: '' });
+  const [terminating, setTerminating] = useState(false);
   const [stats, setStats] = useState({
     totalEmployees: 0,
     totalSalary: 0,
@@ -124,6 +139,34 @@ export default function EmployeeList() {
     }
 
     setDeleteModal({ show: false, id: null, name: '' });
+  };
+
+  const openTerminateModal = (employee) => {
+    setTerminateForm({ type: 'termination', reason: '', effectiveDate: '', notes: '' });
+    setTerminateModal({ show: true, employee });
+  };
+
+  const handleTerminate = async () => {
+    if (!terminateForm.reason) {
+      showError('Please select a reason');
+      return;
+    }
+    setTerminating(true);
+    const result = await terminateEmployee(terminateModal.employee, {
+      type: terminateForm.type,
+      reason: terminateForm.reason,
+      effectiveDate: terminateForm.effectiveDate || null,
+      notes: terminateForm.notes || null,
+      archivedBy: user?.name || user?.username || 'Admin',
+    });
+    setTerminating(false);
+    if (result.success) {
+      showSuccess(`${terminateModal.employee.name} has been ${terminateForm.type === 'layoff' ? 'laid off' : 'terminated'} and archived.`);
+      setTerminateModal({ show: false, employee: null });
+      fetchEmployees();
+    } else {
+      showError(result.error || 'Failed to terminate employee');
+    }
   };
 
   const viewEmployeeDetails = (employee) => {
@@ -320,6 +363,13 @@ export default function EmployeeList() {
                   Edit
                 </button>
                 <button
+                  onClick={() => openTerminateModal(emp)}
+                  className="px-3 py-1.5 text-sm border border-orange-600 text-orange-700 rounded-lg hover:bg-orange-50"
+                  title="Terminate / Lay Off"
+                >
+                  <UserX className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => setDeleteModal({ show: true, id: emp.id, name: emp.name })}
                   className="px-3 py-1.5 text-sm border border-red-600 text-red-700 rounded-lg hover:bg-red-50"
                 >
@@ -444,10 +494,17 @@ export default function EmployeeList() {
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
-                          onClick={() => setDeleteModal({ 
-                            show: true, 
-                            id: employee.id, 
-                            name: employee.name 
+                          onClick={() => openTerminateModal(employee)}
+                          className="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                          title="Terminate / Lay Off"
+                        >
+                          <UserX className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeleteModal({
+                            show: true,
+                            id: employee.id,
+                            name: employee.name,
                           })}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
@@ -670,6 +727,130 @@ export default function EmployeeList() {
             fetchEmployees();
           }}
         />
+      )}
+
+      {/* Terminate / Lay Off Modal */}
+      {terminateModal.show && terminateModal.employee && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-red-600 px-6 py-4 rounded-t-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                    <UserX className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Terminate Employee</h2>
+                    <p className="text-orange-100 text-sm">{terminateModal.employee.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setTerminateModal({ show: false, employee: null })}
+                  className="text-white hover:bg-white hover:bg-opacity-20 p-2 rounded-lg transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Warning */}
+              <div className="bg-amber-50 border-l-4 border-amber-500 rounded-lg p-4 flex gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-amber-800">
+                  This will immediately archive <strong>{terminateModal.employee.name}</strong> and
+                  remove them from the active employee list. This action cannot be undone.
+                </p>
+              </div>
+
+              {/* Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Separation Type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {['termination', 'layoff'].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setTerminateForm(f => ({ ...f, type: t, reason: '' }))}
+                      className={`py-2.5 rounded-lg border-2 text-sm font-semibold capitalize transition-all ${
+                        terminateForm.type === t
+                          ? t === 'termination'
+                            ? 'border-red-500 bg-red-50 text-red-700'
+                            : 'border-orange-500 bg-orange-50 text-orange-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      {t === 'termination' ? '🚫 Termination' : '📦 Layoff'}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  {terminateForm.type === 'termination'
+                    ? 'Employee-caused — misconduct, performance, fraud, etc.'
+                    : 'Company-caused — redundancy, restructuring, budget cuts, etc.'}
+                </p>
+              </div>
+
+              {/* Reason */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reason <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={terminateForm.reason}
+                  onChange={(e) => setTerminateForm(f => ({ ...f, reason: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                >
+                  <option value="">Select a reason...</option>
+                  {TERMINATION_REASONS[terminateForm.type].map((r) => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Effective Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Last Working Date</label>
+                <input
+                  type="date"
+                  value={terminateForm.effectiveDate}
+                  onChange={(e) => setTerminateForm(f => ({ ...f, effectiveDate: e.target.value }))}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm"
+                />
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Additional Notes</label>
+                <textarea
+                  rows="3"
+                  value={terminateForm.notes}
+                  onChange={(e) => setTerminateForm(f => ({ ...f, notes: e.target.value }))}
+                  placeholder="Any additional details about this separation..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm resize-none"
+                />
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setTerminateModal({ show: false, employee: null })}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleTerminate}
+                  disabled={terminating || !terminateForm.reason}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-red-600 text-white rounded-lg hover:from-orange-600 hover:to-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-semibold"
+                >
+                  <UserX className="w-4 h-4" />
+                  {terminating ? 'Processing...' : terminateForm.type === 'layoff' ? 'Confirm Layoff' : 'Confirm Termination'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

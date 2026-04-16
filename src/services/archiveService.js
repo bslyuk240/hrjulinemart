@@ -161,6 +161,60 @@ export const updateArchivedEmployeeNotes = async (id, notes) => {
 };
 
 /**
+ * Terminate (sack/lay off) an employee — admin-initiated, archives immediately
+ */
+export const terminateEmployee = async (employee, terminationData) => {
+  try {
+    const archiveData = {
+      employee_id: employee.id,
+      name: employee.name,
+      email: employee.email,
+      position: employee.position,
+      department: employee.department,
+      salary: employee.salary,
+      join_date: employee.join_date,
+      employee_code: employee.employee_code,
+      phone: employee.phone,
+      profile_pic: employee.profile_pic,
+      bank_name: employee.bank_name,
+      bank_account: employee.bank_account,
+      payment_mode: employee.payment_mode,
+      last_working_date: terminationData.effectiveDate || null,
+      separation_type: terminationData.type,       // 'termination' | 'layoff'
+      termination_reason: terminationData.reason,
+      archived_by: terminationData.archivedBy || 'Admin',
+      notes: terminationData.notes || null,
+    };
+
+    const { data: archived, error: archiveError } = await supabase
+      .from(TABLES.ARCHIVED_EMPLOYEES)
+      .insert([archiveData])
+      .select();
+
+    if (archiveError) return handleSupabaseError(archiveError);
+
+    // Remove from active employees
+    const { error: deleteError } = await supabase
+      .from(TABLES.EMPLOYEES)
+      .delete()
+      .eq('id', employee.id);
+
+    if (deleteError) {
+      // Rollback the archive insert
+      await supabase.from(TABLES.ARCHIVED_EMPLOYEES).delete().eq('id', archived[0].id);
+      return handleSupabaseError(deleteError);
+    }
+
+    return handleSupabaseSuccess({
+      archived: archived[0],
+      message: 'Employee terminated and archived successfully',
+    });
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
  * Get archive statistics
  */
 export const getArchiveStats = async () => {
@@ -175,11 +229,13 @@ export const getArchiveStats = async () => {
 
     const stats = {
       total: data.length,
-      withResignation: data.filter(e => e.resignation_id !== null).length,
+      resignations: data.filter(e => e.separation_type === 'resignation').length,
+      terminations: data.filter(e => e.separation_type === 'termination').length,
+      layoffs: data.filter(e => e.separation_type === 'layoff').length,
       thisMonth: data.filter(e => {
         const archivedDate = new Date(e.archived_at);
         const now = new Date();
-        return archivedDate.getMonth() === now.getMonth() && 
+        return archivedDate.getMonth() === now.getMonth() &&
                archivedDate.getFullYear() === now.getFullYear();
       }).length,
       thisYear: data.filter(e => {

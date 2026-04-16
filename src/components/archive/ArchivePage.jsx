@@ -37,9 +37,12 @@ export default function ArchivePage() {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [deleteModal, setDeleteModal] = useState({ show: false, id: null, name: '' });
   const [reinstateModal, setReinstateModal] = useState({ show: false, employee: null });
+  const [filterType, setFilterType] = useState('');
   const [stats, setStats] = useState({
     total: 0,
-    withResignation: 0,
+    resignations: 0,
+    terminations: 0,
+    layoffs: 0,
     thisMonth: 0,
     thisYear: 0,
   });
@@ -51,7 +54,7 @@ export default function ArchivePage() {
 
   useEffect(() => {
     handleSearch();
-  }, [searchTerm, archivedEmployees]);
+  }, [searchTerm, filterType, archivedEmployees]);
 
   const fetchArchivedEmployees = async () => {
     setLoading(true);
@@ -74,14 +77,36 @@ export default function ArchivePage() {
   };
 
   const handleSearch = async () => {
-    if (!searchTerm.trim()) {
-      setFilteredEmployees(archivedEmployees);
-      return;
+    let base = archivedEmployees;
+
+    if (searchTerm.trim()) {
+      const result = await searchArchivedEmployees(searchTerm);
+      if (result.success) base = result.data;
     }
 
-    const result = await searchArchivedEmployees(searchTerm);
-    if (result.success) {
-      setFilteredEmployees(result.data);
+    if (filterType) {
+      base = base.filter((e) => e.separation_type === filterType);
+    }
+
+    setFilteredEmployees(base);
+  };
+
+  const getSeparationBadge = (type) => {
+    switch (type) {
+      case 'termination':
+        return 'bg-red-100 text-red-700';
+      case 'layoff':
+        return 'bg-orange-100 text-orange-700';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  const getSeparationLabel = (type) => {
+    switch (type) {
+      case 'termination': return '🚫 Termination';
+      case 'layoff': return '📦 Layoff';
+      default: return '📝 Resignation';
     }
   };
 
@@ -164,59 +189,71 @@ export default function ArchivePage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
-          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-6 text-white shadow-lg">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm">Total Archived</p>
-                <p className="text-3xl font-bold mt-2">{stats.total}</p>
+                <p className="text-purple-100 text-xs">Total Archived</p>
+                <p className="text-3xl font-bold mt-1">{stats.total}</p>
               </div>
-              <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-                <Archive className="w-8 h-8" />
+              <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                <Archive className="w-6 h-6" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-gray-500 to-gray-600 rounded-lg p-4 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm">With Resignation</p>
-                <p className="text-3xl font-bold mt-2">{stats.withResignation}</p>
+                <p className="text-gray-100 text-xs">Resignations</p>
+                <p className="text-3xl font-bold mt-1">{stats.resignations}</p>
               </div>
-              <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-                <FileText className="w-8 h-8" />
+              <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                <FileText className="w-6 h-6" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-lg p-4 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm">This Month</p>
-                <p className="text-3xl font-bold mt-2">{stats.thisMonth}</p>
+                <p className="text-red-100 text-xs">Terminations</p>
+                <p className="text-3xl font-bold mt-1">{stats.terminations}</p>
               </div>
-              <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-                <Calendar className="w-8 h-8" />
+              <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                <RefreshCw className="w-6 h-6" />
               </div>
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-6 text-white shadow-lg">
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg p-4 text-white shadow-lg">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-100 text-sm">This Year</p>
-                <p className="text-3xl font-bold mt-2">{stats.thisYear}</p>
+                <p className="text-orange-100 text-xs">Layoffs</p>
+                <p className="text-3xl font-bold mt-1">{stats.layoffs}</p>
               </div>
-              <div className="bg-white bg-opacity-20 p-3 rounded-lg">
-                <Calendar className="w-8 h-8" />
+              <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-lg p-4 text-white shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-green-100 text-xs">This Month</p>
+                <p className="text-3xl font-bold mt-1">{stats.thisMonth}</p>
+              </div>
+              <div className="bg-white bg-opacity-20 p-2 rounded-lg">
+                <Calendar className="w-6 h-6" />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Search Bar */}
+        {/* Search + Filter Bar */}
         <div className="bg-white rounded-lg shadow-md p-4">
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
@@ -227,9 +264,19 @@ export default function ArchivePage() {
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+            >
+              <option value="">All Types</option>
+              <option value="resignation">📝 Resignations</option>
+              <option value="termination">🚫 Terminations</option>
+              <option value="layoff">📦 Layoffs</option>
+            </select>
             <button
-              onClick={() => setSearchTerm('')}
-              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              onClick={() => { setSearchTerm(''); setFilterType(''); }}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm"
             >
               Clear
             </button>
@@ -248,7 +295,9 @@ export default function ArchivePage() {
                     <p className="text-base font-semibold text-gray-900">{emp.name}</p>
                     <p className="text-sm text-gray-500">{emp.employee_code}</p>
                   </div>
-                  <span className="text-xs text-gray-500">{emp.department || '—'}</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${getSeparationBadge(emp.separation_type)}`}>
+                    {getSeparationLabel(emp.separation_type)}
+                  </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
                   <div>
@@ -294,6 +343,7 @@ export default function ArchivePage() {
                   <th className="px-6 py-4 text-left text-sm font-semibold">Employee</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold">Position</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold">Department</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold">Type</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold">Archived Date</th>
                   <th className="px-6 py-4 text-center text-sm font-semibold">Actions</th>
                 </tr>
@@ -301,7 +351,7 @@ export default function ArchivePage() {
               <tbody className="divide-y divide-gray-200">
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-12 text-center">
+                    <td colSpan="6" className="px-6 py-12 text-center">
                       <div className="flex flex-col items-center justify-center text-gray-400">
                         <Archive className="w-16 h-16 mb-4" />
                         <p className="text-lg font-medium">No archived employees found</p>
@@ -338,6 +388,11 @@ export default function ArchivePage() {
                       </td>
                       <td className="px-6 py-4 text-center text-sm text-gray-700">
                         {employee.department || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getSeparationBadge(employee.separation_type)}`}>
+                          {getSeparationLabel(employee.separation_type)}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-center text-sm text-gray-700">
                         {formatDate(employee.archived_at)}
@@ -435,13 +490,21 @@ export default function ArchivePage() {
                     <p className="font-medium text-gray-900">{selectedEmployee.employee_code || 'N/A'}</p>
                   </div>
                   <div>
+                    <p className="text-sm text-gray-600">Separation Type</p>
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getSeparationBadge(selectedEmployee.separation_type)}`}>
+                      {getSeparationLabel(selectedEmployee.separation_type)}
+                    </span>
+                  </div>
+                  <div>
                     <p className="text-sm text-gray-600">Join Date</p>
                     <p className="font-medium text-gray-900">{formatDate(selectedEmployee.join_date)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm text-gray-600">Resignation Date</p>
-                    <p className="font-medium text-gray-900">{formatDate(selectedEmployee.resignation_date)}</p>
-                  </div>
+                  {selectedEmployee.resignation_date && (
+                    <div>
+                      <p className="text-sm text-gray-600">Resignation Date</p>
+                      <p className="font-medium text-gray-900">{formatDate(selectedEmployee.resignation_date)}</p>
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm text-gray-600">Last Working Date</p>
                     <p className="font-medium text-gray-900">{formatDate(selectedEmployee.last_working_date)}</p>
@@ -455,6 +518,18 @@ export default function ArchivePage() {
                   <p className="text-sm text-gray-600 mb-2">Resignation Reason</p>
                   <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                     <p className="text-gray-900">{selectedEmployee.resignation_reason}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Termination / Layoff Reason */}
+              {selectedEmployee.termination_reason && (
+                <div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    {selectedEmployee.separation_type === 'layoff' ? 'Layoff Reason' : 'Termination Reason'}
+                  </p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <p className="text-gray-900">{selectedEmployee.termination_reason}</p>
                   </div>
                 </div>
               )}
