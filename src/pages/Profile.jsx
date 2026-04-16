@@ -264,34 +264,25 @@ export default function Profile() {
     setSaving(true);
 
     try {
-      const employeeId = user.employee_id || user.id;
-      // Verify current password
-      const { data: employee } = await supabase
-        .from('employees')
-        .select('password')
-        .eq('id', employeeId)
-        .single();
+      // Password change is handled server-side via Edge Function (bcrypt)
+      // The current password is verified server-side — never compared in the browser
+      const { data, error } = await supabase.functions.invoke('change-password', {
+        body: {
+          userId: user.type === 'admin' ? user.id : (user.employee_id || user.id),
+          userType: user.type || 'employee',
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        },
+      });
 
-      if (employee.password !== passwordData.currentPassword) {
-        alert('Current password is incorrect');
+      if (error || !data?.success) {
+        alert(data?.error || 'Failed to change password. Please try again.');
         setSaving(false);
         return;
       }
 
-      // Update to new password
-      const { error } = await supabase
-        .from('employees')
-        .update({ password: passwordData.newPassword })
-        .eq('id', employeeId);
-
-      if (error) throw error;
-
       alert('Password changed successfully!');
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
       console.error('Error changing password:', error);
       alert('Failed to change password');

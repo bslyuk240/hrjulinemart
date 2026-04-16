@@ -2,7 +2,50 @@ import React from 'react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogIn, User, Lock, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { LogIn, User, Lock, Eye, EyeOff, AlertCircle, Clock } from 'lucide-react';
+
+// ── Brute-force protection ──────────────────────────────────────────────────
+const LOCKOUT_KEY   = 'login_lockout';
+const MAX_ATTEMPTS  = 5;
+const LOCKOUT_MS    = 15 * 60 * 1000; // 15 minutes
+
+function getLockoutState() {
+  try {
+    const raw = sessionStorage.getItem(LOCKOUT_KEY);
+    if (!raw) return { attempts: 0, lockedUntil: null };
+    return JSON.parse(raw);
+  } catch { return { attempts: 0, lockedUntil: null }; }
+}
+
+function saveLockoutState(state) {
+  sessionStorage.setItem(LOCKOUT_KEY, JSON.stringify(state));
+}
+
+function isLockedOut() {
+  const { lockedUntil } = getLockoutState();
+  if (!lockedUntil) return false;
+  return new Date(lockedUntil) > new Date();
+}
+
+function recordFailedAttempt() {
+  const state = getLockoutState();
+  const attempts = (state.attempts || 0) + 1;
+  const lockedUntil = attempts >= MAX_ATTEMPTS
+    ? new Date(Date.now() + LOCKOUT_MS).toISOString()
+    : state.lockedUntil;
+  saveLockoutState({ attempts, lockedUntil });
+  return attempts;
+}
+
+function resetLockout() {
+  sessionStorage.removeItem(LOCKOUT_KEY);
+}
+
+function getLockoutMinutesLeft() {
+  const { lockedUntil } = getLockoutState();
+  if (!lockedUntil) return 0;
+  return Math.ceil((new Date(lockedUntil) - new Date()) / 60000);
+}
 
 export default function Login() {
   const [identifier, setIdentifier] = useState('');
@@ -10,36 +53,67 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+  const [locked, setLocked] = useState(isLockedOut());
+  const [minutesLeft, setMinutesLeft] = useState(getLockoutMinutesLeft());
+
   const { login, user } = useAuth();
   const navigate = useNavigate();
 
   // Redirect if already logged in
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
+    if (user) navigate('/dashboard');
   }, [user, navigate]);
+
+  // Countdown timer while locked out
+  useEffect(() => {
+    if (!locked) return;
+    const id = setInterval(() => {
+      if (!isLockedOut()) {
+        setLocked(false);
+        setError('');
+        resetLockout();
+        clearInterval(id);
+      } else {
+        setMinutesLeft(getLockoutMinutesLeft());
+      }
+    }, 10000);
+    return () => clearInterval(id);
+  }, [locked]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    // Validation
-    if (!identifier.trim() || !password.trim()) {
-      setError('Please enter both username/email and password');
-      setLoading(false);
+    // Lockout check
+    if (isLockedOut()) {
+      setLocked(true);
+      setMinutesLeft(getLockoutMinutesLeft());
+      setError(`Too many failed attempts. Try again in ${getLockoutMinutesLeft()} minute(s).`);
       return;
     }
 
+    if (!identifier.trim() || !password.trim()) {
+      setError('Please enter both username/email and password');
+      return;
+    }
+
+    setLoading(true);
     try {
       const result = await login(identifier, password);
 
       if (result.success) {
+        resetLockout();
         navigate('/dashboard');
       } else {
-        setError(result.error || 'Invalid credentials. Please try again.');
+        const attempts = recordFailedAttempt();
+        if (isLockedOut()) {
+          setLocked(true);
+          setMinutesLeft(getLockoutMinutesLeft());
+          setError(`Too many failed attempts. Account locked for ${getLockoutMinutesLeft()} minute(s).`);
+        } else {
+          const remaining = MAX_ATTEMPTS - attempts;
+          setError(`${result.error || 'Invalid credentials.'} ${remaining > 0 ? `${remaining} attempt(s) remaining.` : ''}`);
+        }
       }
     } catch (err) {
       setError('An unexpected error occurred. Please try again.');
@@ -80,8 +154,19 @@ export default function Login() {
             <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back!</h2>
             <p className="text-gray-600 mb-6">Sign in to access your account</p>
 
+            {/* Lockout Banner */}
+            {locked && (
+              <div className="mb-6 p-4 bg-orange-50 border border-orange-200 rounded-lg flex items-start space-x-3">
+                <Clock className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-orange-800">Account temporarily locked</p>
+                  <p className="text-sm text-orange-700 mt-0.5">Too many failed attempts. Try again in <strong>{minutesLeft} minute(s)</strong>.</p>
+                </div>
+              </div>
+            )}
+
             {/* Error Message */}
-            {error && (
+            {error && !locked && (
               <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <p className="text-sm text-red-700">{error}</p>
@@ -143,7 +228,7 @@ export default function Login() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || locked}
                 className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
               >
                 {loading ? (

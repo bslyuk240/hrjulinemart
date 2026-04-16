@@ -5,6 +5,8 @@ import Header from './Header';
 import Sidebar from './Sidebar';
 import PullToRefresh from '../common/PullToRefresh';
 import PushNotificationBanner from '../common/PushNotificationBanner';
+import AppUpdateBanner from '../common/AppUpdateBanner';
+import ChangelogModal from '../common/ChangelogModal';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export default function Layout() {
@@ -113,6 +115,12 @@ export default function Layout() {
           </div>
         ))}
       </div>
+
+      {/* App update banner (replaces window.confirm) */}
+      <AppUpdateBanner />
+
+      {/* Changelog popup — shown once per version */}
+      <ChangelogModal />
     </div>
   );
 }

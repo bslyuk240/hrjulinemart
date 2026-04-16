@@ -8,40 +8,43 @@ ReactDOM.createRoot(document.getElementById('root')).render(
     <App />
   </React.StrictMode>
 );
-// Register Service Worker for PWA
+
+// ── Service Worker & PWA update handling ─────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
-        const promptUpdate = () => {
-          // Lightweight prompt; can be replaced with in-app toast
-          const ok = window.confirm('An update is available. Reload now?');
-          if (ok && registration.waiting) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
+
+        // Signal to the React app that an update is waiting
+        const notifyUpdate = () => {
+          window.dispatchEvent(new Event('sw-update-available'));
         };
 
-        // If there's a waiting worker, prompt immediately
+        // If a worker is already waiting (e.g. page refreshed after update)
         if (registration.waiting) {
-          promptUpdate();
+          notifyUpdate();
         }
 
-        // Listen for future updates
+        // Listen for new workers being installed
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing;
           if (!newWorker) return;
           newWorker.addEventListener('statechange', () => {
-            if (
-              newWorker.state === 'installed' &&
-              navigator.serviceWorker.controller
-            ) {
-              promptUpdate();
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              notifyUpdate();
             }
           });
         });
 
-        // Reload when controller changes after skipWaiting
+        // Listen for the React app requesting the update to happen
+        window.addEventListener('sw-do-update', () => {
+          if (registration.waiting) {
+            registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        });
+
+        // Reload when the new worker takes control
         let refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
           if (refreshing) return;
@@ -50,7 +53,7 @@ if ('serviceWorker' in navigator) {
         });
       })
       .catch((error) => {
-        console.log('SW registration failed:', error);
+        console.warn('SW registration failed:', error);
       });
   });
 }

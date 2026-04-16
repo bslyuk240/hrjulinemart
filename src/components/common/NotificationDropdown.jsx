@@ -54,10 +54,9 @@ export default function NotificationDropdown() {
         }
       });
 
-      // Request notification permission
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
-        try { Notification.requestPermission(); } catch (_) { /* noop */ }
-      }
+      // NOTE: We do NOT auto-request notification permission here.
+      // Permission is requested via the explicit PushNotificationBanner
+      // or the Profile → Notifications tab to ensure a real user gesture.
 
       return () => {
         unsubscribeFromNotifications(subscription);
