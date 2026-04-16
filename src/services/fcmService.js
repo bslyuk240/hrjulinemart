@@ -2,8 +2,6 @@ import { getToken, onMessage } from 'firebase/messaging';
 import { getFirebaseMessaging } from './firebase';
 import { supabase } from './supabase';
 
-const VAPID_KEY = 'BLWHVdSWd5P-_Xc_OHMJa5IdbM2LkRbYOuulxHA7hBe8xdH-9uq6zZjfwOR52mgqAaW97mThO89gVwyQ8RTdpsU';
-
 /**
  * Initialize FCM for a logged-in user:
  * 1. Request browser notification permission
@@ -18,21 +16,20 @@ export const initFCM = async (userId) => {
     const messaging = await getFirebaseMessaging();
     if (!messaging) return null;
 
-    // Ask permission
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.info('Push notification permission denied');
       return null;
     }
 
-    // Get device token
-    const token = await getToken(messaging, { vapidKey: VAPID_KEY });
+    const token = await getToken(messaging, {
+      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+    });
     if (!token) return null;
 
-    // Persist token
     await saveFCMToken(userId, token);
 
-    // Show foreground push as native browser notification
+    // Show foreground messages as native browser notifications
     onMessage(messaging, (payload) => {
       const title = payload.notification?.title || 'JulineMart HR';
       const body  = payload.notification?.body  || '';
@@ -52,9 +49,6 @@ export const initFCM = async (userId) => {
   }
 };
 
-/**
- * Save (or upsert) an FCM token for a user
- */
 export const saveFCMToken = async (userId, token) => {
   try {
     await supabase
@@ -68,9 +62,6 @@ export const saveFCMToken = async (userId, token) => {
   }
 };
 
-/**
- * Remove all FCM tokens for a user (call on logout)
- */
 export const removeFCMTokens = async (userId) => {
   try {
     await supabase.from('fcm_tokens').delete().eq('user_id', userId);

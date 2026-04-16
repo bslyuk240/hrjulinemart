@@ -2,13 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getMessaging, isSupported } from 'firebase/messaging';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAP23B4a7P7GxCh25RItkq_Rg_EpFpoWhI",
-  authDomain: "hr-app-c0346.firebaseapp.com",
-  projectId: "hr-app-c0346",
-  storageBucket: "hr-app-c0346.firebasestorage.app",
-  messagingSenderId: "741953152967",
-  appId: "1:741953152967:web:8b8865300579e2bb29dbe2",
-  measurementId: "G-3P001YKY4D",
+  apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:        import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId:         import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket:     import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId:             import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId:     import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 const app = initializeApp(firebaseConfig);
