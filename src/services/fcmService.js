@@ -126,16 +126,21 @@ export const saveFCMToken = async (userId, token) => {
   try {
     const timestamp = new Date().toISOString();
 
-    // Refresh the specific device token rather than relying on a conflict
-    // constraint that may differ between environments.
-    const { error: deleteError } = await supabase
+    // Avoid delete permissions entirely. If the exact token already exists,
+    // keep it; otherwise insert a fresh row.
+    const { data: existingRows, error: lookupError } = await supabase
       .from('fcm_tokens')
-      .delete()
+      .select('id')
       .eq('user_id', userId)
-      .eq('token', token);
-    if (deleteError) {
-      console.error('FCM token cleanup error:', deleteError.message, deleteError.details);
+      .eq('token', token)
+      .limit(1);
+    if (lookupError) {
+      console.error('FCM token lookup error:', lookupError.message, lookupError.details);
       return false;
+    }
+
+    if ((existingRows || []).length > 0) {
+      return true;
     }
 
     const { error } = await supabase
