@@ -231,44 +231,55 @@ export default function EmployeeDashboard() {
 
       {/* Pinned Announcement Banner */}
       {pinnedAnn && !annDismissed && (
-        <div className={`rounded-xl px-5 py-4 flex items-start gap-4 shadow-sm border ${
+        <div className={`relative rounded-xl px-3 py-3 md:px-5 md:py-4 shadow-sm border ${
           pinnedAnn.priority === 'urgent'
             ? 'bg-red-50 border-red-200'
             : 'bg-amber-50 border-amber-200'
         }`}>
-          <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
-            pinnedAnn.priority === 'urgent' ? 'bg-red-100' : 'bg-amber-100'
-          }`}>
-            {pinnedAnn.priority === 'urgent'
-              ? <AlertCircle className="w-5 h-5 text-red-600" />
-              : <Megaphone className="w-5 h-5 text-amber-600" />}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-              <Pin className="w-3.5 h-3.5 text-gray-400" />
-              <span className={`text-xs font-semibold uppercase tracking-wide ${
-                pinnedAnn.priority === 'urgent' ? 'text-red-600' : 'text-amber-700'
-              }`}>
-                {pinnedAnn.priority === 'urgent' ? 'Urgent Notice' : 'Pinned Announcement'}
-              </span>
+          {/* Dismiss — absolute so it never pushes content */}
+          <button
+            onClick={() => setAnnDismissed(true)}
+            className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1 rounded"
+            aria-label="Dismiss"
+          >
+            <X className="w-4 h-4" />
+          </button>
+
+          <div className="flex items-start gap-3 pr-7">
+            {/* Icon */}
+            <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
+              pinnedAnn.priority === 'urgent' ? 'bg-red-100' : 'bg-amber-100'
+            }`}>
+              {pinnedAnn.priority === 'urgent'
+                ? <AlertCircle className="w-5 h-5 text-red-600" />
+                : <Megaphone className="w-5 h-5 text-amber-600" />}
             </div>
-            <p className="font-semibold text-gray-900">{pinnedAnn.title}</p>
-            <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{pinnedAnn.body}</p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => navigate('/announcements')}
-              className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
-                pinnedAnn.priority === 'urgent'
-                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
-                  : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-              }`}
-            >
-              View all
-            </button>
-            <button onClick={() => setAnnDismissed(true)} className="text-gray-400 hover:text-gray-600 p-1">
-              <X className="w-4 h-4" />
-            </button>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 mb-0.5">
+                <Pin className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                <span className={`text-xs font-semibold uppercase tracking-wide ${
+                  pinnedAnn.priority === 'urgent' ? 'text-red-600' : 'text-amber-700'
+                }`}>
+                  {pinnedAnn.priority === 'urgent' ? 'Urgent Notice' : 'Pinned Announcement'}
+                </span>
+              </div>
+              <p className="font-semibold text-gray-900 text-sm md:text-base leading-snug">
+                {pinnedAnn.title}
+              </p>
+              <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{pinnedAnn.body}</p>
+              <button
+                onClick={() => navigate('/announcements')}
+                className={`mt-2 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                  pinnedAnn.priority === 'urgent'
+                    ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                    : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                }`}
+              >
+                View all
+              </button>
+            </div>
           </div>
         </div>
       )}

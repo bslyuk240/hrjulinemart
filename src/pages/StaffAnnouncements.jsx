@@ -50,14 +50,14 @@ export default function StaffAnnouncements() {
   const rest = announcements.filter((a) => !a.pinned);
 
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-6">
+    <div className="max-w-3xl mx-auto space-y-5 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
           <Megaphone className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Announcements</h1>
           <p className="text-sm text-gray-500">
             Showing notices for{' '}
             <span className="font-medium text-gray-700">
@@ -121,7 +121,7 @@ function AnnouncementCard({ ann }) {
         ann.priority === 'urgent' ? 'bg-red-500' : ann.pinned ? 'bg-amber-400' : 'bg-purple-500'
       }`} />
 
-      <div className="p-5">
+      <div className="p-4 md:p-5">
         {/* Badges */}
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {ann.pinned && (
@@ -161,12 +161,12 @@ function AnnouncementCard({ ann }) {
         )}
 
         {/* Footer */}
-        <div className="flex items-center gap-4 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-4 pt-3 border-t border-gray-100 text-xs text-gray-400">
           <span className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" />
+            <Clock className="w-3.5 h-3.5 flex-shrink-0" />
             {fmtDate(ann.created_at)}
           </span>
-          <span>From: {ann.created_by}</span>
+          <span className="break-words">From: {ann.created_by}</span>
         </div>
       </div>
     </div>

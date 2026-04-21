@@ -1,4 +1,4 @@
-const CACHE_NAME = 'julinemart-hr-v4';
+const CACHE_NAME = 'julinemart-hr-v5';
 const URLS_TO_CACHE = ['/', '/index.html'];
 
 self.addEventListener('install', (event) => {
@@ -26,6 +26,51 @@ self.addEventListener('message', (event) => {
   if (event && event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
+});
+
+// ── Push Notifications ─────────────────────────────────────────────────────
+// Handles FCM Web Push payloads when the app is in the background / closed.
+self.addEventListener('push', (event) => {
+  if (!event.data) return;
+
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch (_) {
+    payload = { notification: { title: 'JulineMart HR', body: event.data.text() } };
+  }
+
+  const title   = payload.notification?.title || 'JulineMart HR';
+  const body    = payload.notification?.body  || '';
+  const data    = payload.data || {};
+  const options = {
+    body,
+    icon:               '/icon-192x192.png',
+    badge:              '/icon-192x192.png',
+    tag:                data.type || 'hr-notification',
+    data,
+    requireInteraction: false,
+    vibrate:            [150, 50, 150],
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Open / focus the app when the user taps a notification
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const link = event.notification.data?.link || '/';
+
+  event.waitUntil(
+    clients
+      .matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        for (const client of clientList) {
+          if ('focus' in client) return client.focus();
+        }
+        if (clients.openWindow) return clients.openWindow(link);
+      })
+  );
 });
 
 // Prefer network for navigation (index.html), fallback to cache when offline

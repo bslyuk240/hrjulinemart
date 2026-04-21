@@ -140,24 +140,24 @@ export default function Announcements() {
   };
 
   return (
-    <div className="p-4 md:p-6 max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center space-x-3">
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
           <Megaphone className="w-5 h-5 text-white" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Announcements</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Announcements</h1>
           <p className="text-sm text-gray-500">Compose and send notices to staff via email + in-app</p>
         </div>
       </div>
 
       {/* Composer */}
       <form onSubmit={handleSend} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+        <div className="bg-gradient-to-r from-purple-50 to-blue-50 px-4 py-3 md:px-6 md:py-4 border-b border-gray-200">
           <h2 className="font-semibold text-gray-800">New Announcement</h2>
         </div>
-        <div className="p-6 space-y-5">
+        <div className="p-4 md:p-6 space-y-4 md:space-y-5">
           {/* Title */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Title *</label>
@@ -303,7 +303,7 @@ export default function Announcements() {
 
       {/* History */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+        <div className="px-4 py-3 md:px-6 md:py-4 border-b border-gray-200 flex items-center justify-between">
           <h2 className="font-semibold text-gray-800">Sent Announcements</h2>
           <span className="text-sm text-gray-400">{announcements.length} total</span>
         </div>
@@ -320,10 +320,11 @@ export default function Announcements() {
         ) : (
           <ul className="divide-y divide-gray-100">
             {announcements.map((ann) => (
-              <li key={ann.id} className="px-6 py-4 hover:bg-gray-50 transition-colors">
-                <div className="flex items-start justify-between gap-4">
+              <li key={ann.id} className="px-4 py-3 md:px-6 md:py-4 hover:bg-gray-50 transition-colors">
+                <div className="flex items-start gap-3">
+                  {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <div className="flex flex-wrap items-center gap-1.5 mb-1">
                       {ann.pinned && (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-xs font-medium">
                           📌 Pinned
@@ -341,16 +342,18 @@ export default function Announcements() {
                         {ann.target_department || 'All Staff'}
                       </span>
                     </div>
-                    <p className="font-semibold text-gray-800 truncate">{ann.title}</p>
-                    <p className="text-sm text-gray-500 line-clamp-2 mt-0.5">{ann.body}</p>
-                    <div className="flex items-center space-x-3 mt-2 text-xs text-gray-400">
-                      <span className="flex items-center">
-                        <Clock className="w-3 h-3 mr-1" />{fmtDate(ann.created_at)}
+                    <p className="font-semibold text-gray-800 text-sm md:text-base break-words">{ann.title}</p>
+                    <p className="text-sm text-gray-500 line-clamp-2 mt-0.5 break-words">{ann.body}</p>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-2 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />{fmtDate(ann.created_at)}
                       </span>
                       <span>By {ann.created_by}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+
+                  {/* Actions — stacked vertically so they never overflow */}
+                  <div className="flex flex-col items-center gap-1 flex-shrink-0">
                     <button
                       onClick={() => handleTogglePin(ann)}
                       title={ann.pinned ? 'Unpin' : 'Pin to dashboard'}
