@@ -314,7 +314,7 @@ export default function Profile() {
     setNotifLoading(true);
     setNotifStatus('');
     setNotifMessage('');
-    // Must match Supabase auth user id — same key used by notifications + send-push lookups
+    // user.id is employee_id (bigint) — same as notifications + fcm_tokens.user_id
     const fcmUserId = user?.id;
     try {
       console.log('[FCM Debug] Starting FCM init for user:', fcmUserId);
@@ -342,6 +342,10 @@ export default function Profile() {
         saved: result.saved,
         token: result.token ? `${result.token.substring(0, 30)}…` : null,
       });
+      if (result.debug) {
+        console.log('[FCM Debug] structured (copy):', JSON.stringify(result.debug, null, 2));
+        console.log('[FCM Debug] Or run: copy(JSON.stringify(window.__FCM_DEBUG_LAST, null, 2))');
+      }
 
       setNotifPermission(result.permission || (Notification.permission || 'default'));
 
@@ -353,7 +357,10 @@ export default function Profile() {
         if (result.permission === 'denied') {
           setNotifMessage('Notifications are blocked. Go to your browser/OS settings and allow notifications for this site.');
         } else if (result.permission === 'granted') {
-          setNotifMessage(result.error || 'Permission is granted, but your device token could not be saved.');
+          const hint = result.debug?.hint ? ` ${result.debug.hint}` : '';
+          setNotifMessage(
+            (result.error || 'Permission is granted, but your device token could not be saved.') + hint,
+          );
         } else {
           setNotifMessage(result.error || 'Could not get a push token. Check the browser console for details.');
         }

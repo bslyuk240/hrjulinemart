@@ -5,6 +5,59 @@ import { supabase } from './supabase';
 /** Scope separate from `/sw.js` so both service workers can coexist. */
 const FCM_SW_SCOPE = '/firebase-cloud-messaging-push-scope/';
 
+function maskKey(key) {
+  const s = String(key || '');
+  if (s.length < 12) return s ? '(too short)' : '(empty)';
+  return `${s.slice(0, 8)}…${s.slice(-4)}`;
+}
+
+function hintForFirebaseCode(code, message) {
+  const c = String(code || '');
+  const m = String(message || '').toLowerCase();
+  if (c.includes('token-subscribe-failed') || m.includes('token-subscribe')) {
+    return [
+      'Google rejected FCM registration (often HTTP 401 on fcmregistrations.googleapis.com).',
+      'Check GCP: FCM Registration API enabled; browser API key allows that API + Firebase Installations; billing on project.',
+      'Not related to Supabase or FIREBASE_PRIVATE_KEY (those are for sending only).',
+    ].join(' ');
+  }
+  if (c.includes('failed-service-worker-registration')) {
+    return 'Service worker registration failed. Check firebase-messaging-sw.js is served and scope is correct.';
+  }
+  if (m.includes('vapid') || c.includes('invalid-vapid')) {
+    return 'Regenerate Web Push certificate (VAPID) in Firebase Console → Cloud Messaging and update VITE_FIREBASE_VAPID_KEY.';
+  }
+  return 'Search Firebase error code in Firebase docs or paste debug JSON for support.';
+}
+
+/**
+ * Safe snapshot for logs (no full secrets). Call from console: getFcmClientDebugSnapshot()
+ */
+export function getFcmClientDebugSnapshot() {
+  const pid = String(import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim();
+  return {
+    t: new Date().toISOString(),
+    origin: typeof window !== 'undefined' ? window.location.origin : null,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
+    vite: {
+      VITE_FIREBASE_PROJECT_ID: pid || null,
+      VITE_FIREBASE_API_KEY_masked: maskKey(import.meta.env.VITE_FIREBASE_API_KEY),
+      VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || null,
+      VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID || null,
+      VITE_FIREBASE_VAPID_KEY_len: String(import.meta.env.VITE_FIREBASE_VAPID_KEY || '').length,
+    },
+    fcmRegistrationsUrl: pid
+      ? `https://fcmregistrations.googleapis.com/v1/projects/${pid}/registrations`
+      : null,
+  };
+}
+
+function attachDebugToWindow(payload) {
+  if (typeof window !== 'undefined') {
+    window.__FCM_DEBUG_LAST = payload;
+  }
+}
+
 /**
  * Register the Firebase messaging worker in its own scope (not `navigator.serviceWorker.ready`,
  * which is the app’s `/sw.js` PWA worker — passing that to FCM breaks token subscription).
@@ -95,6 +148,8 @@ export const initFCM = async (userId, options = {}) => {
       permission: 'unsupported',
       token: null,
       error: null,
+      /** Structured diagnostics — paste JSON when asking for help */
+      debug: null,
     };
 
     if (typeof window === 'undefined') {
@@ -153,22 +208,57 @@ export const initFCM = async (userId, options = {}) => {
       result.error =
         swErr?.message ||
         'Could not register the Firebase messaging service worker.';
+      result.debug = {
+        stage: 'service_worker',
+        snapshot: getFcmClientDebugSnapshot(),
+        cause: swErr?.message || String(swErr),
+      };
+      attachDebugToWindow(result.debug);
+      console.error('[FCM Debug] Full:', result.debug);
       return result;
     }
 
-    const token = await getToken(messaging, {
-      vapidKey,
-      serviceWorkerRegistration: swRegistration,
-    });
+    let token;
+    try {
+      token = await getToken(messaging, {
+        vapidKey,
+        serviceWorkerRegistration: swRegistration,
+      });
+    } catch (tokenErr) {
+      const code = tokenErr?.code || tokenErr?.name || 'unknown';
+      const msg = tokenErr?.message || String(tokenErr);
+      const snapshot = getFcmClientDebugSnapshot();
+      result.permission = Notification.permission;
+      result.error = `${msg} (code: ${code})`;
+      result.debug = {
+        stage: 'getToken',
+        firebaseErrorCode: code,
+        firebaseMessage: msg,
+        hint: hintForFirebaseCode(code, msg),
+        snapshot,
+        stack: tokenErr?.stack || null,
+      };
+      attachDebugToWindow(result.debug);
+      console.error('[FCM Debug] getToken failed:', code, msg);
+      console.error('[FCM Debug] Paste for support:', result.debug);
+      return result;
+    }
+
     if (!token) {
       result.error = 'FCM token could not be created. Check your VAPID key and service worker.';
       console.warn('FCM: getToken returned null (SW not ready or VAPID mismatch?)');
+      result.debug = {
+        stage: 'getToken_null',
+        snapshot: getFcmClientDebugSnapshot(),
+      };
+      attachDebugToWindow(result.debug);
       return result;
     }
 
     result.token = token;
 
-    const saved = await saveFCMToken(userId, token);
+    const saveResult = await saveFCMToken(userId, token);
+    const saved = saveResult.ok;
     result.saved = saved;
 
     // Show foreground messages as native browser notifications
@@ -186,26 +276,45 @@ export const initFCM = async (userId, options = {}) => {
 
     result.success = saved;
     if (!saved) {
-      result.error = 'The device token was created, but saving it to the database failed.';
+      result.error =
+        saveResult.errorMessage ||
+        'The device token was created, but saving it to the database failed.';
+      result.debug = {
+        stage: 'supabase_insert',
+        snapshot: getFcmClientDebugSnapshot(),
+        supabase: saveResult.errorDetail || null,
+        hint: 'Check fcm_tokens RLS and that user_id matches JWT app_metadata.employee_id.',
+      };
+      attachDebugToWindow(result.debug);
+      console.error('[FCM Debug] DB save failed:', result.debug);
       console.error('FCM: token obtained but DB save failed for user', userId);
     }
 
     return result;
   } catch (err) {
     console.warn('FCM init error:', err);
+    const debug = {
+      stage: 'unexpected',
+      snapshot: getFcmClientDebugSnapshot(),
+      message: err?.message || String(err),
+      code: err?.code || err?.name,
+      stack: err?.stack,
+    };
+    attachDebugToWindow(debug);
+    console.error('[FCM Debug] unexpected:', debug);
     return {
       success: false,
       saved: false,
       permission: Notification?.permission || 'unknown',
       token: null,
       error: err?.message || 'Failed to initialize push notifications.',
+      debug,
     };
   }
 };
 
 /**
  * Persist an FCM token in the fcm_tokens table.
- * Returns true on success, false on failure.
  */
 export const saveFCMToken = async (userId, token) => {
   try {
@@ -221,11 +330,21 @@ export const saveFCMToken = async (userId, token) => {
       .limit(1);
     if (lookupError) {
       console.error('FCM token lookup error:', lookupError.message, lookupError.details);
-      return false;
+      return {
+        ok: false,
+        errorMessage: `Token lookup failed: ${lookupError.message}`,
+        errorDetail: {
+          step: 'select',
+          message: lookupError.message,
+          code: lookupError.code,
+          details: lookupError.details,
+          hint: lookupError.code === '42501' ? 'RLS blocked SELECT on fcm_tokens.' : null,
+        },
+      };
     }
 
     if ((existingRows || []).length > 0) {
-      return true;
+      return { ok: true };
     }
 
     const { error } = await supabase
@@ -233,12 +352,31 @@ export const saveFCMToken = async (userId, token) => {
       .insert([{ user_id: userId, token, updated_at: timestamp }]);
     if (error) {
       console.error('FCM token save error:', error.message, error.details);
-      return false;
+      return {
+        ok: false,
+        errorMessage: `Database save failed: ${error.message}`,
+        errorDetail: {
+          step: 'insert',
+          message: error.message,
+          code: error.code,
+          details: error.details,
+          hint:
+            error.code === '42501'
+              ? 'RLS blocked INSERT — check fcm_tokens policies vs app_metadata.employee_id.'
+              : error.message?.includes('violates foreign key')
+                ? 'user_id may not exist in referenced table — check fcm_tokens schema.'
+                : null,
+        },
+      };
     }
-    return true;
+    return { ok: true };
   } catch (err) {
     console.warn('FCM token save exception:', err);
-    return false;
+    return {
+      ok: false,
+      errorMessage: err?.message || String(err),
+      errorDetail: { step: 'exception', message: err?.message },
+    };
   }
 };
 
