@@ -40,14 +40,30 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import './styles/index.css';
 
 /**
- * Listens for Supabase PASSWORD_RECOVERY events and redirects to /reset-password.
- * This handles the case where the email link points to the site root (if the
- * /reset-password redirect URL hasn't been whitelisted in Supabase Auth yet).
+ * Handles Supabase PASSWORD_RECOVERY redirects.
+ *
+ * Two entry points:
+ *  1. Email link goes to /reset-password directly (our edge-function button) → no action needed.
+ *  2. Email link goes to the site root (Supabase dashboard test emails use the Site URL) →
+ *     the URL hash contains `type=recovery`; we catch it immediately on mount AND via the
+ *     onAuthStateChange event so there is no flash of the dashboard.
  */
 function AuthEventRouter() {
   const { authEvent, clearAuthEvent } = useAuth();
   const navigate = useNavigate();
 
+  // ── Immediate hash check on mount ─────────────────────────────────────────
+  // Runs before any auth state is processed, so the user never sees /dashboard.
+  useEffect(() => {
+    const hash = window.location.hash || '';
+    if (hash.includes('type=recovery')) {
+      navigate('/reset-password', { replace: true });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Auth-event fallback ────────────────────────────────────────────────────
+  // Catches PASSWORD_RECOVERY if the hash check above didn't fire (e.g. token
+  // was already consumed and session was restored via cookie/storage).
   useEffect(() => {
     if (authEvent === 'PASSWORD_RECOVERY') {
       clearAuthEvent();
