@@ -53,21 +53,28 @@ function AuthEventRouter() {
   const navigate = useNavigate();
 
   // ── Immediate hash check on mount ─────────────────────────────────────────
-  // Runs before any auth state is processed, so the user never sees /dashboard.
+  // Only redirects when NOT already on /reset-password — navigating to the
+  // same path with { replace: true } strips the hash fragment, which breaks
+  // Supabase's detectSessionInUrl before it can exchange the access token.
   useEffect(() => {
     const hash = window.location.hash || '';
-    if (hash.includes('type=recovery')) {
+    const onResetPage = window.location.pathname === '/reset-password';
+    if (hash.includes('type=recovery') && !onResetPage) {
       navigate('/reset-password', { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Auth-event fallback ────────────────────────────────────────────────────
-  // Catches PASSWORD_RECOVERY if the hash check above didn't fire (e.g. token
-  // was already consumed and session was restored via cookie/storage).
+  // Catches PASSWORD_RECOVERY fired by onAuthStateChange (e.g. token already
+  // consumed and session restored via cookie/storage). Same guard: skip if
+  // already on the reset page — the page itself handles the session.
   useEffect(() => {
     if (authEvent === 'PASSWORD_RECOVERY') {
       clearAuthEvent();
-      navigate('/reset-password', { replace: true });
+      const onResetPage = window.location.pathname === '/reset-password';
+      if (!onResetPage) {
+        navigate('/reset-password', { replace: true });
+      }
     }
   }, [authEvent, clearAuthEvent, navigate]);
 

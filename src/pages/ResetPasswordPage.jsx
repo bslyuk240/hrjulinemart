@@ -17,7 +17,14 @@ export default function ResetPasswordPage() {
     // Supabase JS automatically parses the #access_token hash from the URL
     // and fires PASSWORD_RECOVERY via onAuthStateChange.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && session)) {
+      // PASSWORD_RECOVERY  – normal path (hash processed before listener registered)
+      // SIGNED_IN          – fired when detectSessionInUrl exchanges the token
+      // INITIAL_SESSION    – fired when listener registers after session already set
+      if (
+        event === 'PASSWORD_RECOVERY' ||
+        event === 'INITIAL_SESSION' ||
+        (event === 'SIGNED_IN' && session)
+      ) {
         setSessionReady(true);
       }
     });
