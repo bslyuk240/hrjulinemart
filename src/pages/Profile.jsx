@@ -314,8 +314,8 @@ export default function Profile() {
     setNotifLoading(true);
     setNotifStatus('');
     setNotifMessage('');
-    // Use employee_id for admin users (FCM tokens are keyed on employee/user id)
-    const fcmUserId = user?.employee_id || user?.id;
+    // Must match Supabase auth user id — same key used by notifications + send-push lookups
+    const fcmUserId = user?.id;
     try {
       console.log('[FCM Debug] Starting FCM init for user:', fcmUserId);
       console.log('[FCM Debug] Notification API supported:', 'Notification' in window);

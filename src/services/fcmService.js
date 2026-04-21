@@ -2,11 +2,45 @@ import { getToken, onMessage } from 'firebase/messaging';
 import { getFirebaseMessaging } from './firebase';
 import { supabase } from './supabase';
 
+/** Scope separate from `/sw.js` so both service workers can coexist. */
+const FCM_SW_SCOPE = '/firebase-cloud-messaging-push-scope/';
+
+/**
+ * Register the Firebase messaging worker in its own scope (not `navigator.serviceWorker.ready`,
+ * which is the app’s `/sw.js` PWA worker — passing that to FCM breaks token subscription).
+ */
+async function getFcmServiceWorkerRegistration() {
+  let reg = await navigator.serviceWorker.getRegistration(FCM_SW_SCOPE);
+  if (!reg) {
+    reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
+      scope: FCM_SW_SCOPE,
+    });
+  }
+  await reg.update();
+  if (reg.active) return reg;
+
+  const sw = reg.installing || reg.waiting;
+  if (!sw) return reg;
+
+  await new Promise((resolve) => {
+    if (sw.state === 'activated') {
+      resolve();
+      return;
+    }
+    sw.addEventListener('statechange', function onState() {
+      if (sw.state === 'activated') {
+        sw.removeEventListener('statechange', onState);
+        resolve();
+      }
+    });
+  });
+  return reg;
+}
+
 /**
  * Initialize FCM for a logged-in user:
  * 1. Optionally request browser notification permission
- * 2. Register / reuse the existing service worker so Firebase uses it
- *    (avoids Firebase looking for the missing /firebase-messaging-sw.js)
+ * 2. Register `firebase-messaging-sw.js` under a dedicated scope (alongside `/sw.js`)
  * 3. Get FCM device token
  * 4. Save token to Supabase so the send-push edge function can target it
  * 5. Listen for foreground messages and show them as native notifications
@@ -46,6 +80,14 @@ export const initFCM = async (userId, options = {}) => {
       return result;
     }
 
+    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+    if (!vapidKey || String(vapidKey).trim() === '') {
+      result.permission = Notification.permission;
+      result.error =
+        'Missing VITE_FIREBASE_VAPID_KEY (Web Push certificate in Firebase Console → Cloud Messaging).';
+      return result;
+    }
+
     const currentPermission = Notification.permission;
     const permission = currentPermission === 'granted'
       ? currentPermission
@@ -61,18 +103,20 @@ export const initFCM = async (userId, options = {}) => {
       return result;
     }
 
-    // Get (or register) our service worker and pass it to getToken so
-    // Firebase doesn't fall back to looking for /firebase-messaging-sw.js
     let swRegistration;
     try {
-      swRegistration = await navigator.serviceWorker.ready;
-    } catch (_) {
-      // In rare cases serviceWorker.ready rejects; fall back gracefully
-      swRegistration = undefined;
+      swRegistration = await getFcmServiceWorkerRegistration();
+    } catch (swErr) {
+      console.error('[FCM Debug] FCM service worker registration failed:', swErr);
+      result.permission = Notification.permission;
+      result.error =
+        swErr?.message ||
+        'Could not register the Firebase messaging service worker.';
+      return result;
     }
 
     const token = await getToken(messaging, {
-      vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
+      vapidKey,
       serviceWorkerRegistration: swRegistration,
     });
     if (!token) {
