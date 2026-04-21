@@ -2,8 +2,15 @@ import { getToken, onMessage } from 'firebase/messaging';
 import { getFirebaseMessaging } from './firebase';
 import { supabase } from './supabase';
 
-/** Scope separate from `/sw.js` so both service workers can coexist. */
-const FCM_SW_SCOPE = '/firebase-cloud-messaging-push-scope/';
+/**
+ * Default: nested scope so `/sw.js` (PWA) can own `/`.
+ * Set VITE_FCM_ROOT_SERVICE_WORKER=true (and usually VITE_DISABLE_PWA_SERVICE_WORKER=true)
+ * on a preview build to test FCM with messaging SW at `/` only.
+ */
+const FCM_SW_SCOPE =
+  import.meta.env.VITE_FCM_ROOT_SERVICE_WORKER === 'true'
+    ? '/'
+    : '/firebase-cloud-messaging-push-scope/';
 
 function maskKey(key) {
   const s = String(key || '');
@@ -45,6 +52,10 @@ export function getFcmClientDebugSnapshot() {
       VITE_FIREBASE_MESSAGING_SENDER_ID: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || null,
       VITE_FIREBASE_APP_ID: import.meta.env.VITE_FIREBASE_APP_ID || null,
       VITE_FIREBASE_VAPID_KEY_len: String(import.meta.env.VITE_FIREBASE_VAPID_KEY || '').length,
+      VITE_FCM_ROOT_SERVICE_WORKER:
+        import.meta.env.VITE_FCM_ROOT_SERVICE_WORKER === 'true',
+      VITE_DISABLE_PWA_SERVICE_WORKER:
+        import.meta.env.VITE_DISABLE_PWA_SERVICE_WORKER === 'true',
     },
     fcmRegistrationsUrl: pid
       ? `https://fcmregistrations.googleapis.com/v1/projects/${pid}/registrations`
@@ -63,6 +74,11 @@ function attachDebugToWindow(payload) {
  * which is the app’s `/sw.js` PWA worker — passing that to FCM breaks token subscription).
  */
 async function getFcmServiceWorkerRegistration() {
+  if (import.meta.env.VITE_FCM_ROOT_SERVICE_WORKER === 'true') {
+    console.warn(
+      '[FCM] VITE_FCM_ROOT_SERVICE_WORKER: registering firebase-messaging-sw.js at scope / (diagnostic).',
+    );
+  }
   let reg = await navigator.serviceWorker.getRegistration(FCM_SW_SCOPE);
   if (!reg) {
     reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {

@@ -10,7 +10,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
 );
 
 // ── Service Worker & PWA update handling ─────────────────────────────────────
-if ('serviceWorker' in navigator) {
+// Set VITE_DISABLE_PWA_SERVICE_WORKER=true at build time to skip /sw.js (FCM A/B test vs root-scoped messaging worker).
+const disablePwaServiceWorker =
+  import.meta.env.VITE_DISABLE_PWA_SERVICE_WORKER === 'true';
+if (disablePwaServiceWorker) {
+  console.warn('[PWA] VITE_DISABLE_PWA_SERVICE_WORKER: /sw.js will not register.');
+}
+
+if ('serviceWorker' in navigator && !disablePwaServiceWorker) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
