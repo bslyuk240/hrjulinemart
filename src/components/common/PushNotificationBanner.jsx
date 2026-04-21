@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bell, BellOff, X, Loader } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { initFCM } from '../../services/fcmService';
@@ -11,6 +11,7 @@ export default function PushNotificationBanner() {
   const [loading, setLoading]       = useState(false);
   const [dismissed, setDismissed]   = useState(false);
   const [status, setStatus]         = useState(''); // 'success' | 'error'
+  const syncedForUser = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -18,6 +19,24 @@ export default function PushNotificationBanner() {
     if (!('Notification' in window)) { setPermission('unsupported'); return; }
     setPermission(Notification.permission);
   }, [user]);
+
+  useEffect(() => {
+    if (!user || permission !== 'granted') return;
+    if (syncedForUser.current === user.id) return;
+
+    syncedForUser.current = user.id;
+    initFCM(user.id, { promptForPermission: false })
+      .then((result) => {
+        if (!result.success) {
+          console.warn('FCM silent sync failed:', result.error);
+          setStatus('error');
+        }
+      })
+      .catch((err) => {
+        console.warn('FCM silent sync failed:', err);
+        setStatus('error');
+      });
+  }, [user, dismissed, permission]);
 
   const dismiss = () => {
     sessionStorage.setItem(DISMISSED_KEY, '1');
@@ -28,15 +47,14 @@ export default function PushNotificationBanner() {
     setLoading(true);
     setStatus('');
     try {
-      const token = await initFCM(user.id);
-      if (token) {
+      const result = await initFCM(user.id, { promptForPermission: true });
+      if (result.success) {
         setPermission('granted');
         setStatus('success');
         // Auto-hide after 3 s
         setTimeout(dismiss, 3000);
       } else {
-        // Permission may have been denied
-        setPermission(Notification.permission);
+        setPermission(result.permission || Notification.permission);
         setStatus('error');
       }
     } catch (err) {
@@ -56,6 +74,25 @@ export default function PushNotificationBanner() {
         <div className="flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg pointer-events-auto">
           <Bell className="w-5 h-5 flex-shrink-0" />
           <p className="text-sm font-medium">Push notifications enabled ✓</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (permission === 'granted' && status === 'error') {
+    return (
+      <div className="fixed top-16 inset-x-0 z-40 flex justify-center px-4">
+        <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 text-orange-900 px-4 py-3 rounded-xl shadow-md max-w-sm w-full">
+          <BellOff className="w-5 h-5 flex-shrink-0 mt-0.5 text-orange-500" />
+          <div className="flex-1 text-sm min-w-0">
+            <p className="font-semibold">Permission granted, token sync failed</p>
+            <p className="text-xs mt-0.5 text-orange-700">
+              Open Profile → Notifications and try enabling again.
+            </p>
+          </div>
+          <button onClick={dismiss} className="p-1 rounded hover:bg-orange-100 flex-shrink-0">
+            <X className="w-4 h-4 text-orange-500" />
+          </button>
         </div>
       </div>
     );

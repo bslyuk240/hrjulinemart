@@ -310,7 +310,7 @@ export default function Profile() {
     }
   }, [activeTab]);
 
-  const handleEnableNotifications = async () => {
+  const handleEnableNotifications = async (promptForPermission = true) => {
     setNotifLoading(true);
     setNotifStatus('');
     setNotifMessage('');
@@ -335,21 +335,27 @@ export default function Profile() {
         console.error('[FCM Debug] SW fetch error:', swErr);
       }
 
-      const token = await initFCM(fcmUserId);
-      console.log('[FCM Debug] initFCM result token:', token ? token.substring(0, 30) + '…' : null);
+      const result = await initFCM(fcmUserId, { promptForPermission });
+      console.log('[FCM Debug] initFCM result:', {
+        permission: result.permission,
+        success: result.success,
+        saved: result.saved,
+        token: result.token ? `${result.token.substring(0, 30)}…` : null,
+      });
 
-      if (token) {
-        setNotifPermission('granted');
+      setNotifPermission(result.permission || (Notification.permission || 'default'));
+
+      if (result.success) {
         setNotifStatus('success');
-        setNotifMessage('Push notifications enabled! You will receive alerts on this device.');
+        setNotifMessage('Push notifications are enabled in this browser and your device token is saved.');
       } else {
-        const perm = 'Notification' in window ? Notification.permission : 'unsupported';
-        setNotifPermission(perm);
         setNotifStatus('error');
-        if (perm === 'denied') {
+        if (result.permission === 'denied') {
           setNotifMessage('Notifications are blocked. Go to your browser/OS settings and allow notifications for this site.');
+        } else if (result.permission === 'granted') {
+          setNotifMessage(result.error || 'Permission is granted, but your device token could not be saved.');
         } else {
-          setNotifMessage('Could not get a push token. Check the browser console for details.');
+          setNotifMessage(result.error || 'Could not get a push token. Check the browser console for details.');
         }
       }
     } catch (err) {
@@ -359,6 +365,15 @@ export default function Profile() {
     }
     setNotifLoading(false);
   };
+
+  useEffect(() => {
+    if (activeTab !== 'notifications') return;
+    if (notifPermission !== 'granted') return;
+    if (notifStatus === 'success' || notifLoading) return;
+
+    handleEnableNotifications(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, notifPermission]);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-NG', {
@@ -873,7 +888,7 @@ export default function Profile() {
                 )}
 
                 {/* Granted */}
-                {notifPermission === 'granted' && notifStatus !== 'error' && (
+                {notifPermission === 'granted' && notifStatus === 'success' && (
                   <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-xl p-4">
                     <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div>
@@ -881,6 +896,16 @@ export default function Profile() {
                       <p className="text-sm text-green-700 mt-0.5">
                         {notifMessage || 'This device will receive alerts for leave, payroll, and more.'}
                       </p>
+                    </div>
+                  </div>
+                )}
+
+                {notifPermission === 'granted' && notifStatus === 'error' && notifMessage && (
+                  <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-xl p-4">
+                    <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-orange-900">Browser permission is on, but token sync failed</p>
+                      <p className="text-sm text-orange-700 mt-0.5">{notifMessage}</p>
                     </div>
                   </div>
                 )}
@@ -923,7 +948,7 @@ export default function Profile() {
                 {/* Re-enable button when in error state with permission still default/granted */}
                 {notifStatus === 'error' && notifPermission !== 'denied' && notifPermission !== 'unsupported' && (
                   <button
-                    onClick={handleEnableNotifications}
+                    onClick={() => handleEnableNotifications(false)}
                     disabled={notifLoading}
                     className="flex items-center gap-2 px-5 py-3 bg-purple-600 text-white font-semibold rounded-xl hover:bg-purple-700 disabled:opacity-60 transition-colors shadow mt-4"
                   >

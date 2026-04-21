@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import Header from './Header';
@@ -7,11 +7,15 @@ import PullToRefresh from '../common/PullToRefresh';
 import PushNotificationBanner from '../common/PushNotificationBanner';
 import AppUpdateBanner from '../common/AppUpdateBanner';
 import ChangelogModal from '../common/ChangelogModal';
+import { useAuth } from '../../context/AuthContext';
+import { initFCM } from '../../services/fcmService';
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from 'lucide-react';
 
 export default function Layout() {
   const { sidebarOpen, notifications, removeNotification, setSidebarOpen } = useApp();
+  const { user } = useAuth();
   const location = useLocation();
+  const syncedForUser = useRef(null);
 
   // Ensure sidebar is closed by default on mobile and closes on route change
   useEffect(() => {
@@ -33,6 +37,24 @@ export default function Layout() {
       setSidebarOpen(false);
     }
   }, [location, setSidebarOpen]);
+
+  useEffect(() => {
+    if (!user || typeof window === 'undefined') return;
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    if (syncedForUser.current === user.id) return;
+
+    syncedForUser.current = user.id;
+    initFCM(user.id, { promptForPermission: false })
+      .then((result) => {
+        if (!result.success) {
+          console.warn('FCM shell sync failed:', result.error);
+        }
+      })
+      .catch((err) => {
+        console.warn('FCM shell sync failed:', err);
+      });
+  }, [user]);
 
   const getNotificationIcon = (type) => {
     switch (type) {

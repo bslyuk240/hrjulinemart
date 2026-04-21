@@ -14,13 +14,22 @@ const sendPushToUsers = async (userIds, title, body, data = {}) => {
       .in('user_id', userIds);
 
     const tokens = (tokenRows || []).map((r) => r.token).filter(Boolean);
-    if (tokens.length === 0) return;
+    if (tokens.length === 0) {
+      console.warn('Push notification skipped: no FCM tokens found for recipients', userIds);
+      return false;
+    }
 
-    await supabase.functions.invoke('send-push', {
+    const { error } = await supabase.functions.invoke('send-push', {
       body: { tokens, title, body, data },
     });
+    if (error) {
+      console.warn('Push notification error:', error);
+      return false;
+    }
+    return true;
   } catch (err) {
     console.warn('Push notification error:', err);
+    return false;
   }
 };
 

@@ -4,25 +4,61 @@ import { supabase } from './supabase';
 
 /**
  * Initialize FCM for a logged-in user:
- * 1. Request browser notification permission
+ * 1. Optionally request browser notification permission
  * 2. Register / reuse the existing service worker so Firebase uses it
  *    (avoids Firebase looking for the missing /firebase-messaging-sw.js)
  * 3. Get FCM device token
  * 4. Save token to Supabase so the send-push edge function can target it
  * 5. Listen for foreground messages and show them as native notifications
  */
-export const initFCM = async (userId) => {
+export const initFCM = async (userId, options = {}) => {
+  const { promptForPermission = true } = options;
+
   try {
-    if (!('Notification' in window))     return null;
-    if (!('serviceWorker' in navigator)) return null;
+    const result = {
+      success: false,
+      saved: false,
+      permission: 'unsupported',
+      token: null,
+      error: null,
+    };
+
+    if (typeof window === 'undefined') {
+      result.error = 'Push notifications are only available in the browser.';
+      return result;
+    }
+
+    if (!('Notification' in window)) {
+      result.error = 'This browser does not support notifications.';
+      return result;
+    }
+
+    if (!('serviceWorker' in navigator)) {
+      result.permission = Notification.permission;
+      result.error = 'Service workers are not supported on this device.';
+      return result;
+    }
 
     const messaging = await getFirebaseMessaging();
-    if (!messaging) return null;
+    if (!messaging) {
+      result.permission = Notification.permission;
+      result.error = 'Push messaging is not supported in this browser.';
+      return result;
+    }
 
-    const permission = await Notification.requestPermission();
+    const currentPermission = Notification.permission;
+    const permission = currentPermission === 'granted'
+      ? currentPermission
+      : promptForPermission
+        ? await Notification.requestPermission()
+        : currentPermission;
+
+    result.permission = permission;
     if (permission !== 'granted') {
-      console.info('Push notification permission denied');
-      return null;
+      result.error = permission === 'denied'
+        ? 'Notification permission is blocked.'
+        : 'Notification permission is not granted.';
+      return result;
     }
 
     // Get (or register) our service worker and pass it to getToken so
@@ -40,16 +76,15 @@ export const initFCM = async (userId) => {
       serviceWorkerRegistration: swRegistration,
     });
     if (!token) {
+      result.error = 'FCM token could not be created. Check your VAPID key and service worker.';
       console.warn('FCM: getToken returned null (SW not ready or VAPID mismatch?)');
-      return null;
+      return result;
     }
 
+    result.token = token;
+
     const saved = await saveFCMToken(userId, token);
-    if (!saved) {
-      // Token was obtained but DB save failed — still return token so the
-      // banner shows success, but log clearly for debugging.
-      console.error('FCM: token obtained but DB save failed for user', userId);
-    }
+    result.saved = saved;
 
     // Show foreground messages as native browser notifications
     onMessage(messaging, (payload) => {
@@ -64,10 +99,22 @@ export const initFCM = async (userId) => {
       }
     });
 
-    return token;
+    result.success = saved;
+    if (!saved) {
+      result.error = 'The device token was created, but saving it to the database failed.';
+      console.error('FCM: token obtained but DB save failed for user', userId);
+    }
+
+    return result;
   } catch (err) {
     console.warn('FCM init error:', err);
-    return null;
+    return {
+      success: false,
+      saved: false,
+      permission: Notification?.permission || 'unknown',
+      token: null,
+      error: err?.message || 'Failed to initialize push notifications.',
+    };
   }
 };
 
@@ -77,12 +124,23 @@ export const initFCM = async (userId) => {
  */
 export const saveFCMToken = async (userId, token) => {
   try {
+    const timestamp = new Date().toISOString();
+
+    // Refresh the specific device token rather than relying on a conflict
+    // constraint that may differ between environments.
+    const { error: deleteError } = await supabase
+      .from('fcm_tokens')
+      .delete()
+      .eq('user_id', userId)
+      .eq('token', token);
+    if (deleteError) {
+      console.error('FCM token cleanup error:', deleteError.message, deleteError.details);
+      return false;
+    }
+
     const { error } = await supabase
       .from('fcm_tokens')
-      .upsert(
-        { user_id: userId, token, updated_at: new Date().toISOString() },
-        { onConflict: 'user_id,token' }
-      );
+      .insert([{ user_id: userId, token, updated_at: timestamp }]);
     if (error) {
       console.error('FCM token save error:', error.message, error.details);
       return false;
