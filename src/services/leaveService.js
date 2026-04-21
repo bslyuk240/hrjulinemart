@@ -1,6 +1,38 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 import { notifyNewLeaveRequest, notifyLeaveDecision, createNotification } from './notificationAPI';
 import { getEmployeeById, updateLeaveBalance } from './employeeService';
+import {
+  sendLeaveSubmittedEmail,
+  sendLeaveApprovedEmail,
+  sendLeaveRejectedEmail,
+} from './emailService';
+
+/** Fetch email addresses for all managers and admin-linked employees */
+const getManagerAdminEmails = async () => {
+  const { data: managers } = await supabase
+    .from(TABLES.EMPLOYEES)
+    .select('email')
+    .eq('is_manager', true);
+
+  const { data: adminUsers } = await supabase
+    .from(TABLES.ADMIN_USERS)
+    .select('employee_id');
+
+  const adminEmpIds = (adminUsers || []).map((a) => a.employee_id).filter(Boolean);
+  let adminEmails = [];
+  if (adminEmpIds.length > 0) {
+    const { data: adminEmps } = await supabase
+      .from(TABLES.EMPLOYEES)
+      .select('email')
+      .in('id', adminEmpIds);
+    adminEmails = (adminEmps || []).map((e) => e.email).filter(Boolean);
+  }
+
+  return [...new Set([
+    ...(managers || []).map((m) => m.email).filter(Boolean),
+    ...adminEmails,
+  ])];
+};
 
 /**
  * Get all leave requests
@@ -132,6 +164,23 @@ export const createLeaveRequest = async (leaveData) => {
       console.warn('Notification error (leave create):', e);
     }
 
+    // Email managers/admins about new leave request (non-blocking)
+    getManagerAdminEmails()
+      .then((emails) => {
+        if (emails.length > 0) {
+          return sendLeaveSubmittedEmail(
+            emails,
+            created.employee_name,
+            created.type,
+            created.start_date,
+            created.end_date,
+            created.days,
+            created.reason,
+          );
+        }
+      })
+      .catch((e) => console.warn('Email error (leave-submitted):', e));
+
     // Also notify the requesting employee for confirmation (visible on their bell)
     try {
       await createNotification({
@@ -247,6 +296,26 @@ export const approveLeaveRequest = async (id) => {
       console.warn('Notification error (leave approve):', e);
     }
 
+    // Email the employee (non-blocking)
+    supabase
+      .from(TABLES.EMPLOYEES)
+      .select('email')
+      .eq('id', updated.employee_id)
+      .single()
+      .then(({ data: emp }) => {
+        if (emp?.email) {
+          return sendLeaveApprovedEmail(
+            emp.email,
+            updated.employee_name,
+            updated.type,
+            updated.start_date,
+            updated.end_date,
+            updated.days,
+          );
+        }
+      })
+      .catch((e) => console.warn('Email error (leave-approved):', e));
+
     return handleSupabaseSuccess(updated);
   } catch (error) {
     return handleSupabaseError(error);
@@ -273,6 +342,26 @@ export const rejectLeaveRequest = async (id) => {
     } catch (e) {
       console.warn('Notification error (leave reject):', e);
     }
+
+    // Email the employee (non-blocking)
+    supabase
+      .from(TABLES.EMPLOYEES)
+      .select('email')
+      .eq('id', updated.employee_id)
+      .single()
+      .then(({ data: emp }) => {
+        if (emp?.email) {
+          return sendLeaveRejectedEmail(
+            emp.email,
+            updated.employee_name,
+            updated.type,
+            updated.start_date,
+            updated.end_date,
+          );
+        }
+      })
+      .catch((e) => console.warn('Email error (leave-rejected):', e));
+
     return handleSupabaseSuccess(updated);
   } catch (error) {
     return handleSupabaseError(error);

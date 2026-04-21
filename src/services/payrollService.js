@@ -1,5 +1,15 @@
 import { supabase } from './supabase';
 import { notifyPayrollGenerated } from './notificationAPI';
+import { sendPayslipReadyEmail } from './emailService';
+
+const MONTH_NAMES = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December',
+];
+const toMonthName = (m) => {
+  const idx = parseInt(m, 10);
+  return (!isNaN(idx) && idx >= 1 && idx <= 12) ? MONTH_NAMES[idx - 1] : String(m || '');
+};
 
 const TABLES = {
   PAYROLL: 'payrolls',
@@ -158,9 +168,28 @@ export const createPayroll = async (payrollData) => {
     try {
       await notifyPayrollGenerated([payroll.employee_id], payroll.month, payroll.year);
     } catch (e) {
-      // Non-blocking: log and continue
       console.warn('Notification error (payroll):', e);
     }
+
+    // Email the employee their payslip notification (non-blocking)
+    supabase
+      .from(TABLES.EMPLOYEES)
+      .select('email')
+      .eq('id', payroll.employee_id)
+      .single()
+      .then(({ data: emp }) => {
+        if (emp?.email) {
+          return sendPayslipReadyEmail(
+            emp.email,
+            payroll.employee_name,
+            toMonthName(payroll.month),
+            payroll.year,
+            payroll.net_salary,
+            payroll.payslip_no,
+          );
+        }
+      })
+      .catch((e) => console.warn('Email error (payslip-ready):', e));
 
     return {
       success: true,

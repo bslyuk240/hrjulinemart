@@ -1,5 +1,37 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 import { notifyNewResignation } from './notificationAPI';
+import {
+  sendResignationSubmittedEmail,
+  sendResignationApprovedEmail,
+  sendResignationRejectedEmail,
+} from './emailService';
+
+/** Fetch email addresses for all managers and admin-linked employees */
+const getManagerAdminEmails = async () => {
+  const { data: managers } = await supabase
+    .from(TABLES.EMPLOYEES)
+    .select('email')
+    .eq('is_manager', true);
+
+  const { data: adminUsers } = await supabase
+    .from(TABLES.ADMIN_USERS)
+    .select('employee_id');
+
+  const adminEmpIds = (adminUsers || []).map((a) => a.employee_id).filter(Boolean);
+  let adminEmails = [];
+  if (adminEmpIds.length > 0) {
+    const { data: adminEmps } = await supabase
+      .from(TABLES.EMPLOYEES)
+      .select('email')
+      .in('id', adminEmpIds);
+    adminEmails = (adminEmps || []).map((e) => e.email).filter(Boolean);
+  }
+
+  return [...new Set([
+    ...(managers || []).map((m) => m.email).filter(Boolean),
+    ...adminEmails,
+  ])];
+};
 
 /**
  * Get all resignations
@@ -111,6 +143,30 @@ export const submitResignation = async (resignationData) => {
     } catch (e) {
       console.warn('Notification error (resignation submit):', e);
     }
+
+    // Email managers/admins about the resignation + fetch employee position/dept (non-blocking)
+    Promise.all([
+      getManagerAdminEmails(),
+      supabase
+        .from(TABLES.EMPLOYEES)
+        .select('position, department')
+        .eq('id', created.employee_id)
+        .single(),
+    ])
+      .then(([emails, { data: emp }]) => {
+        if (emails.length > 0) {
+          return sendResignationSubmittedEmail(
+            emails,
+            created.employee_name,
+            emp?.position,
+            emp?.department,
+            created.last_working_date,
+            created.reason,
+          );
+        }
+      })
+      .catch((e) => console.warn('Email error (resignation-submitted):', e));
+
     return handleSupabaseSuccess(created);
   } catch (error) {
     return handleSupabaseError(error);
@@ -207,10 +263,19 @@ export const approveResignation = async (resignationId, employeeData) => {
       return handleSupabaseError(deleteError);
     }
 
-    return handleSupabaseSuccess({ 
-      resignation, 
+    // Email the employee their resignation acceptance (non-blocking)
+    if (employeeData.email) {
+      sendResignationApprovedEmail(
+        employeeData.email,
+        employeeData.name,
+        resignation.last_working_date,
+      ).catch((e) => console.warn('Email error (resignation-approved):', e));
+    }
+
+    return handleSupabaseSuccess({
+      resignation,
       archived: archived[0],
-      message: 'Resignation approved and employee archived successfully' 
+      message: 'Resignation approved and employee archived successfully'
     });
   } catch (error) {
     return handleSupabaseError(error);
@@ -224,7 +289,7 @@ export const rejectResignation = async (id, comments) => {
   try {
     const { data, error } = await supabase
       .from(TABLES.RESIGNATIONS)
-      .update({ 
+      .update({
         status: 'Rejected',
         comments: comments,
         updated_at: new Date().toISOString(),
@@ -236,7 +301,28 @@ export const rejectResignation = async (id, comments) => {
       return handleSupabaseError(error);
     }
 
-    return handleSupabaseSuccess(data[0]);
+    const rejected = data[0];
+
+    // Email the employee about the rejection (non-blocking)
+    if (rejected?.employee_id) {
+      supabase
+        .from(TABLES.EMPLOYEES)
+        .select('email')
+        .eq('id', rejected.employee_id)
+        .single()
+        .then(({ data: emp }) => {
+          if (emp?.email) {
+            return sendResignationRejectedEmail(
+              emp.email,
+              rejected.employee_name,
+              comments,
+            );
+          }
+        })
+        .catch((e) => console.warn('Email error (resignation-rejected):', e));
+    }
+
+    return handleSupabaseSuccess(rejected);
   } catch (error) {
     return handleSupabaseError(error);
   }

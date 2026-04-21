@@ -71,6 +71,40 @@ export const testEmailConfiguration = async (testRecipient) => postJson('/email/
   recipientEmail: testRecipient,
 });
 
+// ── Leave notifications ─────────────────────────────────────────────────────
+
+/** to: string[] — manager / admin emails */
+export const sendLeaveSubmittedEmail = (to, employeeName, leaveType, startDate, endDate, days, reason) =>
+  postJson('/email/leave-submitted', { to, employeeName, leaveType, startDate, endDate, days, reason });
+
+/** to: string — employee email */
+export const sendLeaveApprovedEmail = (to, employeeName, leaveType, startDate, endDate, days) =>
+  postJson('/email/leave-approved', { to, employeeName, leaveType, startDate, endDate, days });
+
+/** to: string — employee email */
+export const sendLeaveRejectedEmail = (to, employeeName, leaveType, startDate, endDate) =>
+  postJson('/email/leave-rejected', { to, employeeName, leaveType, startDate, endDate });
+
+// ── Payroll notification ────────────────────────────────────────────────────
+
+/** to: string — employee email */
+export const sendPayslipReadyEmail = (to, employeeName, month, year, netSalary, payslipNo) =>
+  postJson('/email/payslip-ready', { to, employeeName, month, year, netSalary, payslipNo });
+
+// ── Resignation notifications ───────────────────────────────────────────────
+
+/** to: string[] — manager / admin emails */
+export const sendResignationSubmittedEmail = (to, employeeName, position, department, lastWorkingDate, reason) =>
+  postJson('/email/resignation-submitted', { to, employeeName, position, department, lastWorkingDate, reason });
+
+/** to: string — employee email */
+export const sendResignationApprovedEmail = (to, employeeName, lastWorkingDate) =>
+  postJson('/email/resignation-approved', { to, employeeName, lastWorkingDate });
+
+/** to: string — employee email */
+export const sendResignationRejectedEmail = (to, employeeName, comments) =>
+  postJson('/email/resignation-rejected', { to, employeeName, comments });
+
 export const sendOnboardingApprovedEmail = async (
   candidateEmail,
   candidateName,
