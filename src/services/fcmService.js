@@ -38,6 +38,32 @@ async function getFcmServiceWorkerRegistration() {
 }
 
 /**
+ * The messaging service worker is built from Vite env at build time. If those vars
+ * were missing, the SW sends an empty API key to Google and registration returns 401.
+ */
+async function assertFirebaseMessagingSwConfigured() {
+  const res = await fetch('/firebase-messaging-sw.js', { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(
+      `firebase-messaging-sw.js HTTP ${res.status}. Rebuild the app so Vite emits this file.`,
+    );
+  }
+  const text = await res.text();
+  const apiKey = (text.match(/apiKey:\s*"([^"]*)"/) || [])[1] || '';
+  const projectId = (text.match(/projectId:\s*"([^"]*)"/) || [])[1] || '';
+  if (!apiKey || apiKey.length < 10) {
+    throw new Error(
+      'Firebase Web config is missing in the messaging service worker. Set VITE_FIREBASE_API_KEY, VITE_FIREBASE_PROJECT_ID, VITE_FIREBASE_MESSAGING_SENDER_ID, and VITE_FIREBASE_APP_ID in the build environment, then rebuild and redeploy.',
+    );
+  }
+  if (!projectId) {
+    throw new Error(
+      'Firebase projectId is missing in firebase-messaging-sw.js. Set VITE_FIREBASE_PROJECT_ID and redeploy.',
+    );
+  }
+}
+
+/**
  * Initialize FCM for a logged-in user:
  * 1. Optionally request browser notification permission
  * 2. Register `firebase-messaging-sw.js` under a dedicated scope (alongside `/sw.js`)
@@ -80,8 +106,8 @@ export const initFCM = async (userId, options = {}) => {
       return result;
     }
 
-    const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-    if (!vapidKey || String(vapidKey).trim() === '') {
+    const vapidKey = String(import.meta.env.VITE_FIREBASE_VAPID_KEY || '').trim();
+    if (!vapidKey) {
       result.permission = Notification.permission;
       result.error =
         'Missing VITE_FIREBASE_VAPID_KEY (Web Push certificate in Firebase Console → Cloud Messaging).';
@@ -106,6 +132,7 @@ export const initFCM = async (userId, options = {}) => {
     let swRegistration;
     try {
       swRegistration = await getFcmServiceWorkerRegistration();
+      await assertFirebaseMessagingSwConfigured();
     } catch (swErr) {
       console.error('[FCM Debug] FCM service worker registration failed:', swErr);
       result.permission = Notification.permission;
