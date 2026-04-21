@@ -56,11 +56,11 @@ export default function StaffAnnouncements() {
         <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
           <Megaphone className="w-5 h-5 text-white" />
         </div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-xl md:text-2xl font-bold text-gray-900">Announcements</h1>
           <p className="text-sm text-gray-500">
             Showing notices for{' '}
-            <span className="font-medium text-gray-700">
+            <span className="font-medium text-gray-700 break-words">
               {department ? department : 'All Staff'}
             </span>
           </p>

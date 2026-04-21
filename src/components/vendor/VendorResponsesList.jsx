@@ -170,7 +170,7 @@ export default function VendorResponsesList() {
   );
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-6 space-y-6">
+    <div className="bg-white rounded-2xl shadow-lg space-y-6 overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Recent Vendor Entries</h2>

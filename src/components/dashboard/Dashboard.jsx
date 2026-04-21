@@ -237,7 +237,7 @@ const fetchPayrollStats = async () => {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6 overflow-x-hidden">
+    <div className="space-y-4 md:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div>
         <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
@@ -246,7 +246,7 @@ const fetchPayrollStats = async () => {
 
       {/* Pinned Announcement Banner */}
       {pinnedAnn && !annDismissed && (
-        <div className={`relative rounded-xl px-3 py-3 md:px-5 md:py-4 shadow-sm border ${
+        <div className={`relative overflow-hidden rounded-xl px-3 py-3 md:px-5 md:py-4 shadow-sm border ${
           pinnedAnn.priority === 'urgent'
             ? 'bg-red-50 border-red-200'
             : 'bg-amber-50 border-amber-200'

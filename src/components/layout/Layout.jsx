@@ -75,9 +75,9 @@ export default function Layout() {
         <Sidebar />
 
         {/* Main Content */}
-        <main className="flex-1 transition-all duration-300 ml-0 lg:ml-64">
+        <main className="flex-1 min-w-0 overflow-x-hidden transition-all duration-300 ml-0 lg:ml-64">
           <PullToRefresh onRefresh={() => window.location.reload()}>
-            <div className="p-4 md:p-6">
+            <div className="w-full px-6 py-4 md:p-6">
               <Outlet />
             </div>
           </PullToRefresh>

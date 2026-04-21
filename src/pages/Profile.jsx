@@ -376,7 +376,7 @@ export default function Profile() {
   if (loading) return <Loading />;
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="w-full max-w-7xl mx-auto">
       {/* Header with Profile Picture */}
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-lg p-8 text-white shadow-lg mb-6">
         <div className="flex flex-col md:flex-row items-center gap-6">
