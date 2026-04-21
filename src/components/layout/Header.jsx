@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
+import { supabase } from '../../services/supabase';
 import { 
   Menu, 
   User, 
@@ -13,12 +14,18 @@ import NotificationDropdown from '../common/NotificationDropdown';
 
 export default function Header() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { toggleSidebar } = useApp();
   const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut({ scope: 'local' });
+    } catch (err) {
+      console.warn('Local logout fallback triggered:', err);
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {});
+    }
+
     navigate('/login');
   };
 
