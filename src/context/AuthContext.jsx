@@ -14,9 +14,11 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser]       = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [user, setUser]           = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [error, setError]         = useState(null);
+  // Surfaces special auth events (e.g. PASSWORD_RECOVERY) to App-level routers
+  const [authEvent, setAuthEvent] = useState(null);
 
   useEffect(() => {
     // ── 1. Load any existing session on mount ─────────────────────────────────
@@ -26,11 +28,14 @@ export const AuthProvider = ({ children }) => {
     });
 
     // ── 2. Keep state in sync with Supabase Auth events ───────────────────────
-    //   SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, USER_UPDATED, etc.
+    //   SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, USER_UPDATED, PASSWORD_RECOVERY…
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(buildUserFromSession(session?.user ?? null));
         setLoading(false);
+        if (event === 'PASSWORD_RECOVERY') {
+          setAuthEvent('PASSWORD_RECOVERY');
+        }
       }
     );
 
@@ -120,6 +125,8 @@ export const AuthProvider = ({ children }) => {
     isAdmin,
     isManager,
     isEmployee,
+    authEvent,
+    clearAuthEvent: () => setAuthEvent(null),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

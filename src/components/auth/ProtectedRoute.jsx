@@ -9,6 +9,7 @@ export default function ProtectedRoute({ children, requiredRole }) {
   // ✨ NEW: Define public paths that don't require authentication
   const publicPaths = [
     '/login',
+    '/reset-password',   // Password reset page — user arrives via email link
     '/onboarding',       // Matches /onboarding/:token
     '/reference',        // Matches /reference/:token
     '/onboarding-success',

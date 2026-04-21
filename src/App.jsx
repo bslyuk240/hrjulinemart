@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import Profile from './pages/Profile';
@@ -35,8 +35,28 @@ import OnboardingFormPage from './pages/OnboardingFormPage';
 import ReferenceFormPage from './pages/ReferenceFormPage';
 import OnboardingSuccessPage from './pages/OnboardingSuccessPage';
 import PublicVendorSourcingPage from './pages/PublicVendorSourcingPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 import './styles/index.css';
+
+/**
+ * Listens for Supabase PASSWORD_RECOVERY events and redirects to /reset-password.
+ * This handles the case where the email link points to the site root (if the
+ * /reset-password redirect URL hasn't been whitelisted in Supabase Auth yet).
+ */
+function AuthEventRouter() {
+  const { authEvent, clearAuthEvent } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (authEvent === 'PASSWORD_RECOVERY') {
+      clearAuthEvent();
+      navigate('/reset-password', { replace: true });
+    }
+  }, [authEvent, clearAuthEvent, navigate]);
+
+  return null;
+}
 
 // Role-based Dashboard Router
 function DashboardRouter() {
@@ -54,9 +74,14 @@ function App() {
     <AuthProvider>
       <AppProvider>
         <Router>
+          {/* Handles PASSWORD_RECOVERY event → navigates to /reset-password */}
+          <AuthEventRouter />
           <Routes>
             <Route path="/login" element={<Login />} />
-            
+
+            {/* Password reset — public so the recovery session link always works */}
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
+
             {/* ✨ Public routes (no login required) */}
             <Route path="/onboarding/:token" element={<OnboardingFormPage />} />
             <Route path="/reference/:token" element={<ReferenceFormPage />} />

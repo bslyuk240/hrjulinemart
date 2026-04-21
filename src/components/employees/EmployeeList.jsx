@@ -48,6 +48,8 @@ export default function EmployeeList() {
   const [terminateModal, setTerminateModal] = useState({ show: false, employee: null });
   const [terminateForm, setTerminateForm] = useState({ type: 'termination', reason: '', effectiveDate: '', notes: '' });
   const [terminating, setTerminating] = useState(false);
+  // Track per-employee reset email state: idle | sending | sent | error
+  const [resetState, setResetState] = useState({});
   const [stats, setStats] = useState({
     totalEmployees: 0,
     totalSalary: 0,
@@ -172,6 +174,26 @@ export default function EmployeeList() {
   const viewEmployeeDetails = (employee) => {
     setSelectedEmployee(employee);
     setShowDetailsModal(true);
+  };
+
+  const handleSendPasswordReset = async (email) => {
+    setResetState((prev) => ({ ...prev, [email]: 'sending' }));
+    try {
+      const { data, error } = await supabase.functions.invoke('send-password-reset', {
+        body: { email },
+      });
+      if (error || !data?.success) {
+        setResetState((prev) => ({ ...prev, [email]: 'error' }));
+        showError?.(data?.error || 'Failed to send reset email. Please try again.');
+      } else {
+        setResetState((prev) => ({ ...prev, [email]: 'sent' }));
+        showSuccess?.(`Password reset email sent to ${email}`);
+      }
+    } catch (err) {
+      console.error('sendPasswordReset error:', err);
+      setResetState((prev) => ({ ...prev, [email]: 'error' }));
+      showError?.('Failed to send reset email. Check your connection.');
+    }
   };
 
   const formatCurrency = (amount) => {
@@ -687,6 +709,39 @@ export default function EmployeeList() {
                       Permissions: {JSON.stringify(selectedEmployee.manager_permissions)}
                     </p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Admin-only: Send password reset link */}
+            {user?.type === 'admin' && selectedEmployee.can_login && (
+              <div className="border-t pt-5">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Account Actions</h3>
+                <div className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-xl p-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">Send Password Reset Link</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Emails a reset link to <span className="font-medium">{selectedEmployee.email}</span>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleSendPasswordReset(selectedEmployee.email)}
+                    disabled={resetState[selectedEmployee.email] === 'sending'}
+                    className={`ml-4 flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                      resetState[selectedEmployee.email] === 'sent'
+                        ? 'bg-green-100 text-green-700 cursor-default'
+                        : resetState[selectedEmployee.email] === 'error'
+                        ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                        : resetState[selectedEmployee.email] === 'sending'
+                        ? 'bg-purple-100 text-purple-500 cursor-wait'
+                        : 'bg-purple-600 text-white hover:bg-purple-700'
+                    }`}
+                  >
+                    {resetState[selectedEmployee.email] === 'sending' && 'Sending…'}
+                    {resetState[selectedEmployee.email] === 'sent'    && '✓ Email Sent'}
+                    {resetState[selectedEmployee.email] === 'error'   && 'Retry'}
+                    {!resetState[selectedEmployee.email]              && 'Send Reset Link'}
+                  </button>
                 </div>
               </div>
             )}
