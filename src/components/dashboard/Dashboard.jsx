@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../services/supabase';
-import { 
-  Users, 
-  DollarSign, 
+import { getPinnedAnnouncement } from '../../services/announcementService';
+import {
+  Users,
+  DollarSign,
   Calendar,
   TrendingUp,
   Building,
@@ -12,13 +14,19 @@ import {
   UserX,
   AlertCircle,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Megaphone,
+  Pin,
+  X,
 } from 'lucide-react';
 import Loading from '../common/Loading';
 import StatsCard from './StatsCard';
 import QuickActions from './QuickActions';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
+  const [pinnedAnn, setPinnedAnn] = useState(null);
+  const [annDismissed, setAnnDismissed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalEmployees: 0,
@@ -37,6 +45,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    getPinnedAnnouncement().then((r) => { if (r.success) setPinnedAnn(r.data); });
   }, []);
 
   const fetchDashboardData = async () => {
@@ -234,6 +243,50 @@ const fetchPayrollStats = async () => {
         <h1 className="text-xl lg:text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-gray-600 mt-1">Welcome back! Here's what's happening today.</p>
       </div>
+
+      {/* Pinned Announcement Banner */}
+      {pinnedAnn && !annDismissed && (
+        <div className={`rounded-xl px-5 py-4 flex items-start gap-4 shadow-sm border ${
+          pinnedAnn.priority === 'urgent'
+            ? 'bg-red-50 border-red-200'
+            : 'bg-amber-50 border-amber-200'
+        }`}>
+          <div className={`flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
+            pinnedAnn.priority === 'urgent' ? 'bg-red-100' : 'bg-amber-100'
+          }`}>
+            {pinnedAnn.priority === 'urgent'
+              ? <AlertCircle className="w-5 h-5 text-red-600" />
+              : <Megaphone className="w-5 h-5 text-amber-600" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-0.5">
+              <Pin className="w-3.5 h-3.5 text-gray-400" />
+              <span className={`text-xs font-semibold uppercase tracking-wide ${
+                pinnedAnn.priority === 'urgent' ? 'text-red-600' : 'text-amber-700'
+              }`}>
+                {pinnedAnn.priority === 'urgent' ? 'Urgent Notice' : 'Pinned Announcement'}
+              </span>
+            </div>
+            <p className="font-semibold text-gray-900">{pinnedAnn.title}</p>
+            <p className="text-sm text-gray-600 mt-0.5 line-clamp-2">{pinnedAnn.body}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => navigate('/announcements/manage')}
+              className={`text-xs font-medium px-3 py-1.5 rounded-lg transition-colors ${
+                pinnedAnn.priority === 'urgent'
+                  ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                  : 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+              }`}
+            >
+              View all
+            </button>
+            <button onClick={() => setAnnDismissed(true)} className="text-gray-400 hover:text-gray-600 p-1">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       <QuickActions />

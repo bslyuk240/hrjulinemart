@@ -30,6 +30,8 @@ import TrainingCourseEditor from './pages/TrainingCourseEditor';
 import TrainingReports from './pages/TrainingReports';
 
 // ✨ NEW: Onboarding imports
+import Announcements from './pages/Announcements';
+import StaffAnnouncements from './pages/StaffAnnouncements';
 import OnboardingDashboard from './pages/OnboardingDashboard';
 import OnboardingFormPage from './pages/OnboardingFormPage';
 import ReferenceFormPage from './pages/ReferenceFormPage';
@@ -327,6 +329,26 @@ function App() {
                     <Profile />
                   </ProtectedRoute>
                 } 
+              />
+
+              {/* Announcements - Admin composer */}
+              <Route
+                path="announcements/manage"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <Announcements />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Announcements - Staff board */}
+              <Route
+                path="announcements"
+                element={
+                  <ProtectedRoute requiredRole="employee">
+                    <StaffAnnouncements />
+                  </ProtectedRoute>
+                }
               />
 
               {/* Payslips - All roles */}

@@ -105,6 +105,12 @@ export const sendResignationApprovedEmail = (to, employeeName, lastWorkingDate) 
 export const sendResignationRejectedEmail = (to, employeeName, comments) =>
   postJson('/email/resignation-rejected', { to, employeeName, comments });
 
+// ── Announcement ────────────────────────────────────────────────────────────
+
+/** to: string — one employee email at a time (caller loops) */
+export const sendAnnouncementEmail = (to, employeeName, title, body, priority, senderName) =>
+  postJson('/email/announcement', { to, employeeName, title, body, priority, senderName });
+
 export const sendOnboardingApprovedEmail = async (
   candidateEmail,
   candidateName,

@@ -178,6 +178,9 @@ const buildOnboardingApprovedEmail = (candidateName, position, employeeCode) => 
   `.trim(),
 });
 
+// ── Announcement (→ individual employee) ───────────────────────────────────
+// NOTE: builder defined after helpers — hoisted here via forward ref in handler
+
 // ── Shared layout helpers ───────────────────────────────────────────────────
 const fmtDate = (d) => {
   try { return new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }); }
@@ -323,6 +326,32 @@ const buildResignationApprovedEmail = (employeeName, lastWorkingDate) => ({
     <p>Best regards,<br>HR Team<br>${COMPANY_NAME}</p>`
   ),
 });
+
+// ── Announcement (→ individual employee) ───────────────────────────────────
+const buildAnnouncementEmail = (employeeName, title, body, priority, senderName) => {
+  const isUrgent = priority === 'urgent';
+  const headerBg = isUrgent ? '#b91c1c' : '#4f46e5';
+  const urgentBadge = isUrgent
+    ? `<p style="display:inline-block;background:#fee2e2;color:#b91c1c;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:16px;">🔴 URGENT NOTICE</p>`
+    : `<p style="display:inline-block;background:#ede9fe;color:#4f46e5;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:bold;margin-bottom:16px;">📢 ANNOUNCEMENT</p>`;
+
+  // Convert newlines in body to <br> for HTML
+  const htmlBody = String(body || '').replace(/\n/g, '<br>');
+
+  return {
+    subject: isUrgent ? `🔴 URGENT: ${title}` : `📢 ${title} — ${COMPANY_NAME} HR`,
+    html: wrap(
+      headerBg, title, `${COMPANY_NAME} · ${senderName || 'HR Department'}`,
+      `${urgentBadge}
+      <p>Dear ${employeeName},</p>
+      <div style="background:#f9fafb;border-left:4px solid ${headerBg};padding:16px 20px;border-radius:0 6px 6px 0;margin:16px 0;line-height:1.8;">
+        ${htmlBody}
+      </div>
+      ${btn(`${APP_URL}/announcements`, 'View in HR Portal', headerBg)}
+      <p style="color:#6b7280;font-size:13px;">This message was sent to you via the ${COMPANY_NAME} HR System. Please do not reply to this email — contact HR directly for any queries.</p>`
+    ),
+  };
+};
 
 // ── Resignation Rejected (→ employee) ──────────────────────────────────────
 const buildResignationRejectedEmail = (employeeName, comments) => ({
@@ -501,6 +530,17 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildResignationApprovedEmail(employeeName, lastWorkingDate);
+      const info = await sendMail({ to, subject, html });
+      return jsonResponse(200, { success: true, messageId: info.messageId });
+    }
+
+    // ── Announcement (one employee per call) ──────────────────────────────
+    if (path.endsWith('/announcement')) {
+      const { to, employeeName, title, body, priority, senderName } = payload;
+      if (!to || !title || !body) {
+        return jsonResponse(400, { success: false, error: 'Missing required fields.' });
+      }
+      const { subject, html } = buildAnnouncementEmail(employeeName || 'Team Member', title, body, priority, senderName);
       const info = await sendMail({ to, subject, html });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }

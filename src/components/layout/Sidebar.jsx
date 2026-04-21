@@ -21,6 +21,7 @@ import {
   GraduationCap,
   ClipboardList,
   BarChart3,
+  Megaphone,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -123,6 +124,18 @@ export default function Sidebar() {
       name: 'Archive',
       path: '/archive',
       icon: Archive,
+      roles: ['admin'],
+    },
+    {
+      name: 'Announcements',
+      path: '/announcements',
+      icon: Megaphone,
+      roles: ['employee', 'manager'],
+    },
+    {
+      name: 'Announcements',
+      path: '/announcements/manage',
+      icon: Megaphone,
       roles: ['admin'],
     },
     {
