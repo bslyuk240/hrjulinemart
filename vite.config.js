@@ -1,9 +1,17 @@
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 
-function buildSwContent(env) {
-  return `importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf-8'))
+/** Keep SW `importScripts` on the same major Firebase as `dependencies.firebase` (v10 vs v12 mismatches can break token registration). */
+const firebaseCdnVersion = String(pkg.dependencies?.firebase ?? '12.12.0').replace(/^[\^~>=<\s]+/, '') || '12.12.0'
+
+function buildSwContent(env, firebaseVersion) {
+  return `importScripts('https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/${firebaseVersion}/firebase-messaging-compat.js');
 
 firebase.initializeApp({
   apiKey:            "${env.VITE_FIREBASE_API_KEY}",
@@ -54,8 +62,8 @@ self.addEventListener('notificationclick', (event) => {
  * - Build: emits firebase-messaging-sw.js as a static asset
  * Either way, env vars are injected at runtime — nothing hardcoded.
  */
-function firebaseSwPlugin(env) {
-  const swContent = buildSwContent(env);
+function firebaseSwPlugin(env, firebaseVersion) {
+  const swContent = buildSwContent(env, firebaseVersion);
   return {
     name: 'firebase-sw-generator',
 
@@ -85,7 +93,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      firebaseSwPlugin(env),
+      firebaseSwPlugin(env, firebaseCdnVersion),
     ],
     optimizeDeps: {
       include: ['lucide-react'],

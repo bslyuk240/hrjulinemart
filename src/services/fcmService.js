@@ -61,6 +61,20 @@ async function assertFirebaseMessagingSwConfigured() {
       'Firebase projectId is missing in firebase-messaging-sw.js. Set VITE_FIREBASE_PROJECT_ID and redeploy.',
     );
   }
+
+  const envProject = String(import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim();
+  const envKey = String(import.meta.env.VITE_FIREBASE_API_KEY || '').trim();
+  if (envProject && projectId !== envProject) {
+    throw new Error(
+      `firebase-messaging-sw.js uses projectId "${projectId}" but this bundle has VITE_FIREBASE_PROJECT_ID "${envProject}". Same deploy must rebuild JS and SW together — you may be caching an old worker or mixing two Firebase projects.`,
+    );
+  }
+  if (envKey && apiKey !== envKey) {
+    throw new Error(
+      'firebase-messaging-sw.js apiKey does not match VITE_FIREBASE_API_KEY. Hard-refresh (Ctrl+Shift+R), unregister service workers for this site, rebuild, and redeploy so the app and messaging SW share one Firebase web config.',
+    );
+  }
+  console.log('[FCM Debug] SW config matches bundle (projectId + apiKey).');
 }
 
 /**
