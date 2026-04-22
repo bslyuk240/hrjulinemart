@@ -21,6 +21,7 @@ import {
   getOnboardingStatistics,
   updateOnboardingStatus,
   deleteOnboardingProfile,
+  extendOnboardingLinkExpiry,
 } from '../services/onboardingService';
 import { sendOnboardingEmail } from '../services/emailService';
 import CreateOnboardingModal from '../components/onboarding/CreateOnboardingModal';
@@ -117,6 +118,43 @@ export default function OnboardingDashboard() {
     }
   };
 
+  const handleResendOnboardingLink = async (profile) => {
+    if (
+      !confirm(
+        `Resend the onboarding link to ${profile.full_name} at ${profile.email}?\n\n` +
+          'The same link will be emailed again and the 14-day access window will restart from today.'
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const ext = await extendOnboardingLinkExpiry(profile.id);
+      if (!ext.success) {
+        alert('Failed to refresh link access: ' + ext.error);
+        return;
+      }
+
+      const result = await sendOnboardingEmail(
+        profile.email,
+        profile.full_name,
+        profile.position,
+        profile.onboarding_token
+      );
+
+      if (result.success) {
+        await updateOnboardingStatus(profile.id, 'link_sent');
+        alert('Onboarding link resent successfully.');
+        fetchOnboardingData();
+      } else {
+        alert('Failed to send email: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error resending onboarding link:', error);
+      alert('Error resending onboarding link');
+    }
+  };
+
   const handleDeleteProfile = async (profileId) => {
     if (!confirm('Are you sure you want to delete this onboarding profile?')) return;
 
@@ -161,6 +199,10 @@ export default function OnboardingDashboard() {
       year: 'numeric',
     });
   };
+
+  /** Show resend only while the candidate has not yet submitted the onboarding form. */
+  const canResendOnboardingLink = (profile) =>
+    profile.status === 'link_sent' && !profile.form_submitted_at;
 
   if (loading) {
     return <Loading />;
@@ -335,7 +377,7 @@ export default function OnboardingDashboard() {
                           <Eye className="w-4 h-4 md:w-5 md:h-5" />
                         </button>
 
-                        {/* Send Link (only for draft status) */}
+                        {/* Send Link (draft) or Resend (link already sent) */}
                         {profile.status === 'draft' && (
                           <button
                             onClick={() => handleSendOnboardingLink(profile)}
@@ -343,6 +385,15 @@ export default function OnboardingDashboard() {
                             title="Send Onboarding Link"
                           >
                             <Send className="w-4 h-4 md:w-5 md:h-5" />
+                          </button>
+                        )}
+                        {canResendOnboardingLink(profile) && (
+                          <button
+                            onClick={() => handleResendOnboardingLink(profile)}
+                            className="p-1.5 md:p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                            title="Resend onboarding link (extends 14-day access from today)"
+                          >
+                            <Mail className="w-4 h-4 md:w-5 md:h-5" />
                           </button>
                         )}
 
@@ -428,6 +479,16 @@ export default function OnboardingDashboard() {
                         Send
                       </button>
                     )}
+                    {canResendOnboardingLink(profile) && (
+                      <button
+                        onClick={() => handleResendOnboardingLink(profile)}
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                        title="Resend onboarding link"
+                      >
+                        <Mail className="w-4 h-4" />
+                        Resend
+                      </button>
+                    )}
 
                     {(profile.status === 'draft' || profile.status === 'rejected') && (
                       <button
@@ -460,6 +521,7 @@ export default function OnboardingDashboard() {
       {showDetailsModal && selectedProfile && (
         <OnboardingDetailsModal
           profile={selectedProfile}
+          onRefreshList={fetchOnboardingData}
           onClose={() => {
             setShowDetailsModal(false);
             setSelectedProfile(null);

@@ -21,17 +21,22 @@ import {
   approveOnboarding,
   rejectOnboarding,
   updateOnboardingStatus,
+  extendOnboardingLinkExpiry,
 } from '../../services/onboardingService';
 import {
   getReferenceRequestsByProfile,
   getReferencesByProfile,
   createReferenceRequest,
 } from '../../services/referenceService';
-import { sendOnboardingApprovedEmail, sendReferenceRequestEmail } from '../../services/emailService';
+import {
+  sendOnboardingEmail,
+  sendOnboardingApprovedEmail,
+  sendReferenceRequestEmail,
+} from '../../services/emailService';
 import { getEmployeeById } from '../../services/employeeService';
 import { useAuth } from '../../context/AuthContext';
 
-export default function OnboardingDetailsModal({ profile, onClose }) {
+export default function OnboardingDetailsModal({ profile, onClose, onRefreshList }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [documents, setDocuments] = useState([]);
@@ -112,6 +117,45 @@ export default function OnboardingDetailsModal({ profile, onClose }) {
     } catch (error) {
       console.error('Error rejecting onboarding:', error);
       alert('Error rejecting onboarding');
+    }
+    setLoading(false);
+  };
+
+  const handleResendOnboardingLink = async () => {
+    if (
+      !confirm(
+        `Resend the onboarding link to ${profile.email}?\n\n` +
+          'The 14-day access window will restart from today.'
+      )
+    ) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const ext = await extendOnboardingLinkExpiry(profile.id);
+      if (!ext.success) {
+        alert('Failed to refresh link access: ' + ext.error);
+        return;
+      }
+
+      const result = await sendOnboardingEmail(
+        profile.email,
+        profile.full_name,
+        profile.position,
+        profile.onboarding_token
+      );
+
+      if (result.success) {
+        await updateOnboardingStatus(profile.id, 'link_sent');
+        alert('Onboarding link resent successfully.');
+        onRefreshList?.();
+      } else {
+        alert('Failed to send email: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error resending onboarding link:', error);
+      alert('Error resending onboarding link');
     }
     setLoading(false);
   };
@@ -268,6 +312,24 @@ export default function OnboardingDetailsModal({ profile, onClose }) {
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'details' && (
             <div className="space-y-6">
+              {profile.status === 'link_sent' && !profile.form_submitted_at && (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-900">
+                    Candidate can&apos;t find the link or the page won&apos;t open? Resend the same onboarding
+                    link and extend access by 14 days from today.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleResendOnboardingLink}
+                    disabled={loading}
+                    className="shrink-0 flex items-center justify-center gap-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {loading ? <Loader className="w-4 h-4 animate-spin" /> : <Mail className="w-4 h-4" />}
+                    Resend link
+                  </button>
+                </div>
+              )}
+
               {/* Personal Information */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>

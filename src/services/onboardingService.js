@@ -171,6 +171,21 @@ export const updateOnboardingProfile = async (id, profileData) => {
 };
 
 /**
+ * Extend onboarding link validity (e.g. when HR resends the link)
+ * @param {string} id - onboarding_profiles.id
+ * @param {number} [days=14] - new window from now
+ */
+export const extendOnboardingLinkExpiry = async (id, days = 14) => {
+  try {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + days);
+    return await updateOnboardingProfile(id, { token_expires_at: expiryDate.toISOString() });
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
  * Update onboarding profile by token (for candidate self-service)
  */
 export const updateOnboardingProfileByToken = async (token, profileData) => {
