@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../services/supabase';
+import { getDefaultLeaveBalance } from '../../services/systemSettingsService';
 import { X, User } from 'lucide-react';
 
 export default function EmployeeForm({ onClose, onSuccess, editEmployee = null }) {
   const [loading, setLoading] = useState(false);
+  const [defaultLeaveDays, setDefaultLeaveDays] = useState(21);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -24,6 +26,8 @@ export default function EmployeeForm({ onClose, onSuccess, editEmployee = null }
   });
 
   useEffect(() => {
+    let cancelled = false;
+
     if (editEmployee) {
       setFormData({
         name: editEmployee.name || '',
@@ -34,7 +38,7 @@ export default function EmployeeForm({ onClose, onSuccess, editEmployee = null }
         department: editEmployee.department || '',
         salary: editEmployee.salary || '',
         join_date: editEmployee.join_date || '',
-        leave_balance: editEmployee.leave_balance || 21,
+        leave_balance: editEmployee.leave_balance ?? 21,
         bank_name: editEmployee.bank_name || '',
         bank_account: editEmployee.bank_account || '',
         payment_mode: editEmployee.payment_mode || 'Bank',
@@ -45,7 +49,16 @@ export default function EmployeeForm({ onClose, onSuccess, editEmployee = null }
       });
     } else {
       generateEmployeeCode();
+      getDefaultLeaveBalance().then((days) => {
+        if (cancelled) return;
+        setDefaultLeaveDays(days);
+        setFormData((prev) => ({ ...prev, leave_balance: days }));
+      });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [editEmployee]);
 
   const generateEmployeeCode = async () => {
@@ -127,7 +140,10 @@ export default function EmployeeForm({ onClose, onSuccess, editEmployee = null }
         department: formData.department.trim(),
         salary: parseFloat(formData.salary),
         join_date: formData.join_date,
-        leave_balance: parseInt(formData.leave_balance) || 21,
+        leave_balance: (() => {
+          const n = parseInt(formData.leave_balance, 10);
+          return Number.isFinite(n) ? n : defaultLeaveDays;
+        })(),
         bank_name: formData.bank_name.trim(),
         bank_account: formData.bank_account.trim(),
         payment_mode: formData.payment_mode,

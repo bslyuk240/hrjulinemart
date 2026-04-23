@@ -1,4 +1,5 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
+import { getDefaultLeaveBalance } from './systemSettingsService';
 
 /**
  * Get all employees
@@ -46,6 +47,10 @@ export const getEmployeeById = async (id) => {
  */
 export const createEmployee = async (employeeData) => {
   try {
+    const leaveRaw = employeeData.leave_balance;
+    const leaveNum = leaveRaw === '' || leaveRaw === undefined || leaveRaw === null ? NaN : Number(leaveRaw);
+    const leave_balance = Number.isFinite(leaveNum) ? leaveNum : await getDefaultLeaveBalance();
+
     const { data, error } = await supabase
       .from(TABLES.EMPLOYEES)
       .insert([
@@ -56,7 +61,7 @@ export const createEmployee = async (employeeData) => {
           department: employeeData.department,
           salary: employeeData.salary,
           join_date: employeeData.join_date,
-          leave_balance: employeeData.leave_balance || 20,
+          leave_balance,
           employee_code: employeeData.employee_code,
           bank_name: employeeData.bank_name,
           bank_account: employeeData.bank_account,

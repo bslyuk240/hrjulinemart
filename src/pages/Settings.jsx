@@ -19,14 +19,22 @@ import {
   FileText,
   Settings as SettingsIcon,
   Users,
-  Briefcase
+  Briefcase,
+  RotateCcw,
 } from 'lucide-react';
 import Loading from '../components/common/Loading';
+import {
+  fetchSystemSettings as loadSystemSettingsFromSupabase,
+  saveSystemSettings,
+  resetAllLeaveAllowancesToDefault,
+  getFiscalYearIndex,
+} from '../services/systemSettingsService';
 
 export default function Settings() {
   const { user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [resettingLeave, setResettingLeave] = useState(false);
   const [activeTab, setActiveTab] = useState('profile');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -65,6 +73,7 @@ export default function Settings() {
     working_hours_end: '17:00',
     overtime_rate: 1.5,
     fiscal_year_start: '01-01',
+    last_leave_reset_fiscal_year: null,
   });
 
   // Payroll Settings State (Admin Only)
@@ -132,8 +141,10 @@ export default function Settings() {
   };
 
   const fetchSystemSettings = async () => {
-    // Placeholder - you can create a settings table in Supabase
-    // For now using default values
+    const result = await loadSystemSettingsFromSupabase();
+    if (result.success && result.data) {
+      setSystemSettings((prev) => ({ ...prev, ...result.data }));
+    }
   };
 
   const fetchPayrollSettings = async () => {
@@ -255,11 +266,56 @@ export default function Settings() {
     e.preventDefault();
     setSaving(true);
 
-    // Save to settings table
-    setTimeout(() => {
-      alert('System settings saved!');
+    try {
+      const result = await saveSystemSettings(systemSettings);
+      if (!result.success) {
+        throw new Error(result.error || 'Save failed');
+      }
+      if (result.data) {
+        setSystemSettings((prev) => ({ ...prev, ...result.data }));
+      }
+      alert('System settings saved.');
+    } catch (err) {
+      console.error(err);
+      alert(
+        err.message?.includes('relation') || err.message?.includes('does not exist')
+          ? 'Database table missing: apply the Supabase migration for system_settings (see supabase/migrations).'
+          : err.message || 'Failed to save system settings.'
+      );
+    } finally {
       setSaving(false);
-    }, 1000);
+    }
+  };
+
+  const handleResetAllLeaveAllowances = async () => {
+    const days = Number(systemSettings.default_leave_balance);
+    if (!Number.isFinite(days) || days < 0) {
+      alert('Set a valid default leave balance first, then save settings.');
+      return;
+    }
+
+    const fy = getFiscalYearIndex(new Date(), systemSettings.fiscal_year_start);
+    const msg = `Set every employee’s leave balance to ${days} days (current fiscal year index ${fy})? This cannot be undone.`;
+    if (!window.confirm(msg)) return;
+
+    setResettingLeave(true);
+    try {
+      const result = await resetAllLeaveAllowancesToDefault(days, fy);
+      if (!result.success) {
+        throw new Error(result.error || 'Reset failed');
+      }
+      await fetchSystemSettings();
+      alert('All employees’ leave balances were reset to the default allowance.');
+    } catch (err) {
+      console.error(err);
+      alert(
+        err.message?.includes('not authorized')
+          ? 'Only admins can reset leave allowances.'
+          : err.message || 'Failed to reset leave balances. If this persists, apply the latest Supabase migration (reset_employee_leave_allowances).'
+      );
+    } finally {
+      setResettingLeave(false);
+    }
   };
 
   const handlePayrollSettingsUpdate = async (e) => {
@@ -637,6 +693,27 @@ export default function Settings() {
             {activeTab === 'system' && isAdmin() && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">System Settings</h2>
+                {(() => {
+                  const currentFiscalYear = getFiscalYearIndex(
+                    new Date(),
+                    systemSettings.fiscal_year_start
+                  );
+                  const lastReset = systemSettings.last_leave_reset_fiscal_year;
+                  const suggestAnnualReset =
+                    lastReset != null &&
+                    Number.isFinite(Number(lastReset)) &&
+                    currentFiscalYear > Number(lastReset);
+                  return suggestAnnualReset ? (
+                    <div
+                      className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                      role="status"
+                    >
+                      A new fiscal year has started since the last leave reset (last reset: FY{' '}
+                      {lastReset}, current: FY {currentFiscalYear}). Use “Reset all leave balances” below
+                      so everyone matches the default allowance.
+                    </div>
+                  ) : null;
+                })()}
                 <form onSubmit={handleSystemSettingsUpdate} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -646,10 +723,20 @@ export default function Settings() {
                       <input
                         type="number"
                         value={systemSettings.default_leave_balance}
-                        onChange={(e) => setSystemSettings({ ...systemSettings, default_leave_balance: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          setSystemSettings({
+                            ...systemSettings,
+                            default_leave_balance: Number.isNaN(v) ? 0 : v,
+                          });
+                        }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         min="0"
                       />
+                      <p className="text-xs text-gray-500 mt-1">
+                        Saved to the database and used for new hires, onboarding approvals, and the bulk
+                        reset action.
+                      </p>
                     </div>
 
                     <div>
@@ -659,7 +746,13 @@ export default function Settings() {
                       <input
                         type="number"
                         value={systemSettings.working_days_per_week}
-                        onChange={(e) => setSystemSettings({ ...systemSettings, working_days_per_week: parseInt(e.target.value) })}
+                        onChange={(e) => {
+                          const v = parseInt(e.target.value, 10);
+                          setSystemSettings({
+                            ...systemSettings,
+                            working_days_per_week: Number.isNaN(v) ? 1 : v,
+                          });
+                        }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         min="1"
                         max="7"
@@ -698,7 +791,13 @@ export default function Settings() {
                         type="number"
                         step="0.1"
                         value={systemSettings.overtime_rate}
-                        onChange={(e) => setSystemSettings({ ...systemSettings, overtime_rate: parseFloat(e.target.value) })}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value);
+                          setSystemSettings({
+                            ...systemSettings,
+                            overtime_rate: Number.isNaN(v) ? 1 : v,
+                          });
+                        }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         min="1"
                       />
@@ -716,6 +815,30 @@ export default function Settings() {
                         placeholder="01-01"
                       />
                     </div>
+                  </div>
+
+                  <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-2">Leave year reset</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      At the start of each fiscal year (see Fiscal Year Start above), reset balances so
+                      every active employee receives the default allowance. Save your default above first
+                      if you changed it.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleResetAllLeaveAllowances}
+                      disabled={resettingLeave || saving}
+                      className="inline-flex items-center px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-800 text-sm font-medium hover:bg-gray-100 disabled:opacity-50"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      {resettingLeave ? 'Resetting…' : 'Reset all leave balances to default'}
+                    </button>
+                    {systemSettings.last_leave_reset_fiscal_year != null && (
+                      <p className="text-xs text-gray-500 mt-2">
+                        Last bulk reset recorded for fiscal year index{' '}
+                        {systemSettings.last_leave_reset_fiscal_year}.
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex justify-end">

@@ -61,6 +61,7 @@ export const TABLES = {
   RESIGNATIONS: 'resignations',
   ARCHIVED_EMPLOYEES: 'archived_employees',
   COMPANY_SETTINGS: 'company_settings',
+  SYSTEM_SETTINGS: 'system_settings',
   BLOG_BANNERS: 'blog_banners',
   MANAGERS_VIEW: 'managers_view',
   NOTIFICATIONS: 'notifications',

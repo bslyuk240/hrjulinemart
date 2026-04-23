@@ -1,4 +1,5 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
+import { getDefaultLeaveBalance } from './systemSettingsService';
 
 /**
  * =====================================================
@@ -275,6 +276,8 @@ export const approveOnboarding = async (id, approvedBy) => {
     const sequence = String((positionCount || 0) + 1).padStart(3, '0');
     const employeeCode = `${getInitials(profile.full_name)}${getPositionCode(profile.position)}${sequence}`;
 
+    const defaultLeave = await getDefaultLeaveBalance();
+
     // Create employee record
     const { data: employee, error: employeeError } = await supabase
       .from(TABLES.EMPLOYEES)
@@ -298,7 +301,7 @@ export const approveOnboarding = async (id, approvedBy) => {
           employee_code: employeeCode,
           password: 'employee123', // Default password
           can_login: false, // Require password reset
-          leave_balance: 20,
+          leave_balance: defaultLeave,
         },
       ])
       .select();
