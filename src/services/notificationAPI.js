@@ -475,22 +475,36 @@ export const notifyRequisitionStatus = async (employeeUserId, request, status) =
 
 /**
  * Requisition: chat message (notify other party)
+ * @param {string} [deepLink='/requisition-management'] — route for tap-through (managers/admins vs employees)
  */
-export const notifyRequisitionMessage = async (recipientUserIds, requestId, fromName, snippet) => {
+export const notifyRequisitionMessage = async (
+  recipientUserIds,
+  requestId,
+  fromName,
+  snippet,
+  deepLink = '/requisition-management'
+) => {
   try {
+    const title = 'New Message on Requisition';
+    const message = `${fromName}: ${snippet.substring(0, 80)}`;
     const notifications = recipientUserIds.map((userId) => ({
       user_id: userId,
       type: NOTIFICATION_TYPES.REQUISITION,
-      title: 'New Message on Requisition',
-      message: `${fromName}: ${snippet.substring(0, 80)}`,
+      title,
+      message,
       data: { request_id: requestId },
-      link: '/requisition-management',
+      link: deepLink,
     }));
     const { data, error } = await supabase
       .from(TABLES.NOTIFICATIONS)
       .insert(notifications)
       .select();
     if (error) return handleSupabaseError(error);
+
+    sendPushToUsers(recipientUserIds, title, message, {
+      type: NOTIFICATION_TYPES.REQUISITION,
+      link: deepLink,
+    });
     return handleSupabaseSuccess(data);
   } catch (error) {
     return handleSupabaseError(error);

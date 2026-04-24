@@ -1,6 +1,10 @@
 import { supabase } from './supabase';
 import { notifyNewRequisition, notifyRequisitionStatus, notifyRequisitionMessage, createNotification } from './notificationAPI';
 
+/** Notification / FCM use employees.id (same as Auth user.id), never admin_users.id. */
+const uniqueEmployeeIds = (ids) =>
+  [...new Set((ids || []).filter((id) => id != null && id !== ''))];
+
 // 🔹 Get employee ID by email
 export const getEmployeeIdByEmail = async (email) => {
   const { data, error } = await supabase
@@ -70,11 +74,19 @@ export const createRequest = async (requestData, employeeId) => {
     try {
       const { data: managers } = await supabase.from('employees').select('id').eq('is_manager', true);
       const { data: admins } = await supabase.from('admin_users').select('id, employee_id');
-      const approverIds = [
-        ...((managers || []).map(m => m.id)),
-        // Use employee_id as the canonical user_id for notifications
-        ...((admins || []).map(a => a.employee_id || a.id)),
-      ];
+      const adminEmployeeIds = (admins || []).map((a) => a.employee_id).filter((id) => id != null);
+      (admins || []).forEach((a) => {
+        if (a.employee_id == null) {
+          console.warn(
+            '[Requisition] admin_users row has no employee_id; notifications/push skipped for that admin row id',
+            a.id
+          );
+        }
+      });
+      const approverIds = uniqueEmployeeIds([
+        ...(managers || []).map((m) => m.id),
+        ...adminEmployeeIds,
+      ]);
       if (approverIds.length > 0) {
         await notifyNewRequisition(approverIds, created);
       }
@@ -323,16 +335,22 @@ export const addRequestNote = async (requestId, note, employeeId) => {
       if (employeeId === req.employee_id) {
         const { data: managers } = await supabase.from('employees').select('id').eq('is_manager', true);
         const { data: admins } = await supabase.from('admin_users').select('id, employee_id');
-        const recipients = [
-          ...((managers || []).map(m => m.id)),
-          // Use employee_id as the canonical user_id for notifications
-          ...((admins || []).map(a => a.employee_id || a.id)),
-        ];
+        const adminEmployeeIds = (admins || []).map((a) => a.employee_id).filter((id) => id != null);
+        const recipients = uniqueEmployeeIds([
+          ...(managers || []).map((m) => m.id),
+          ...adminEmployeeIds,
+        ]);
         if (recipients.length > 0) {
-          await notifyRequisitionMessage(recipients, requestId, 'Employee', note.trim());
+          await notifyRequisitionMessage(recipients, requestId, 'Employee', note.trim(), '/requisition-management');
         }
       } else {
-        await notifyRequisitionMessage([req.employee_id], requestId, 'Approver', note.trim());
+        await notifyRequisitionMessage(
+          [req.employee_id],
+          requestId,
+          'Approver',
+          note.trim(),
+          '/requisitions'
+        );
       }
     }
   } catch (e) {
