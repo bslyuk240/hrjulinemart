@@ -53,6 +53,30 @@ export const createReferenceRequest = async (requestData) => {
 };
 
 /**
+ * Extend reference link expiry from now (e.g. when resending the email).
+ */
+export const extendReferenceRequestExpiryFromNow = async (referenceRequestId, days = 14) => {
+  try {
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + days);
+    const { data, error } = await supabase
+      .from(TABLES.REFERENCE_REQUESTS)
+      .update({ token_expires_at: expiryDate.toISOString() })
+      .eq('id', referenceRequestId)
+      .select()
+      .single();
+
+    if (error) {
+      return handleSupabaseError(error);
+    }
+
+    return handleSupabaseSuccess(data);
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
  * Get all reference requests for an onboarding profile
  */
 export const getReferenceRequestsByProfile = async (onboardingProfileId) => {

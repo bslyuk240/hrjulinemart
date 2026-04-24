@@ -27,6 +27,7 @@ import {
   getReferenceRequestsByProfile,
   getReferencesByProfile,
   createReferenceRequest,
+  extendReferenceRequestExpiryFromNow,
 } from '../../services/referenceService';
 import {
   sendOnboardingEmail,
@@ -208,6 +209,45 @@ export default function OnboardingDetailsModal({ profile, onClose, onRefreshList
       alert('Error sending reference requests');
     }
     setLoading(false);
+  };
+
+  const handleResendReferenceEmail = async (req) => {
+    if (req.status === 'completed') {
+      alert('This reference has already been submitted.');
+      return;
+    }
+    if (!req.request_token || !req.referee_email) {
+      alert('Missing reference link data for this request.');
+      return;
+    }
+    if (!confirm(`Resend reference email to ${req.referee_email}?`)) return;
+
+    setLoading(true);
+    try {
+      const ext = await extendReferenceRequestExpiryFromNow(req.id, 14);
+      if (!ext.success) {
+        alert(ext.error || 'Could not refresh link expiry.');
+        return;
+      }
+      const emailResult = await sendReferenceRequestEmail(
+        req.referee_email,
+        req.referee_name,
+        profile.full_name,
+        profile.position,
+        req.request_token
+      );
+      if (!emailResult.success) {
+        alert(emailResult.error || 'Failed to send email.');
+        return;
+      }
+      alert('Reference email resent. The link expiry has been extended by 14 days.');
+      fetchProfileData();
+    } catch (error) {
+      console.error('Error resending reference email:', error);
+      alert('Error resending reference email');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSendApprovalEmail = async () => {
@@ -481,15 +521,27 @@ export default function OnboardingDetailsModal({ profile, onClose, onRefreshList
                   <div className="space-y-3">
                     {referenceRequests.map((req) => (
                       <div key={req.id} className="p-4 border border-gray-200 rounded-lg">
-                        <div className="flex items-start justify-between">
+                        <div className="flex items-start justify-between gap-3">
                           <div>
                             <p className="font-medium text-gray-900">{req.referee_name}</p>
                             <p className="text-sm text-gray-600">{req.company_name}</p>
                             <p className="text-xs text-gray-500">{req.referee_email}</p>
                           </div>
-                          <span className={`text-sm font-medium capitalize ${getStatusColor(req.status)}`}>
-                            {req.status.replace('_', ' ')}
-                          </span>
+                          <div className="flex flex-col items-end gap-2 shrink-0">
+                            <span className={`text-sm font-medium capitalize ${getStatusColor(req.status)}`}>
+                              {req.status.replace('_', ' ')}
+                            </span>
+                            {req.status !== 'completed' && req.status !== 'cancelled' && (
+                              <button
+                                type="button"
+                                onClick={() => handleResendReferenceEmail(req)}
+                                disabled={loading}
+                                className="text-xs px-3 py-1.5 rounded-md border border-purple-300 text-purple-700 hover:bg-purple-50 disabled:opacity-50"
+                              >
+                                Resend email
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))}

@@ -25,7 +25,33 @@ const getEmailConfig = () => {
 };
 
 const COMPANY_NAME = getEnv('COMPANY_NAME', getEnv('VITE_COMPANY_NAME', 'JulineMart'));
-const APP_URL = getEnv('APP_URL', getEnv('VITE_APP_URL', 'http://localhost:5173'));
+const RAW_APP_URL = getEnv('APP_URL', getEnv('VITE_APP_URL', 'http://localhost:5173'));
+
+/** Absolute site URL for links in email (relative or scheme-less URLs break many clients). */
+const normalizePublicAppUrl = (raw) => {
+  let u = String(raw || '').trim();
+  if (!u) return 'http://localhost:5173';
+  u = u.replace(/\/+$/, '');
+  if (!/^https?:\/\//i.test(u)) {
+    u = `https://${u}`;
+  }
+  return u;
+};
+
+const APP_URL = normalizePublicAppUrl(RAW_APP_URL);
+
+const escapeHtml = (s) => {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
+const publicReferenceUrl = (token) => `${APP_URL}/reference/${encodeURIComponent(token)}`;
+
 const FROM_EMAIL = getEnv('SMTP_USER', getEnv('VITE_SMTP_USER'));
 
 const ensureEmailConfig = () => {
@@ -80,7 +106,7 @@ const buildOnboardingEmail = (candidateName, position, onboardingToken) => {
 };
 
 const buildReferenceRequestEmail = (refereeName, candidateName, position, referenceToken) => {
-  const referenceUrl = `${APP_URL}/reference/${referenceToken}`;
+  const referenceUrl = publicReferenceUrl(referenceToken);
   const expiryDate = new Date();
   expiryDate.setDate(expiryDate.getDate() + 14);
   const formattedExpiry = expiryDate.toLocaleDateString('en-GB', {
@@ -89,8 +115,30 @@ const buildReferenceRequestEmail = (refereeName, candidateName, position, refere
     year: 'numeric',
   });
 
+  const rn = escapeHtml(refereeName);
+  const cn = escapeHtml(candidateName);
+  const pos = escapeHtml(position);
+  const co = escapeHtml(COMPANY_NAME);
+
+  const text = [
+    `Dear ${refereeName},`,
+    '',
+    `${candidateName} has applied for the position of ${position} with ${COMPANY_NAME} and has listed you as a referee.`,
+    '',
+    'Complete the reference form by opening this link in your browser:',
+    referenceUrl,
+    '',
+    `This link will expire on ${formattedExpiry}.`,
+    '',
+    'If the link does not open, copy the entire line above into your browser address bar.',
+    '',
+    `Thank you,`,
+    `HR Team — ${COMPANY_NAME}`,
+  ].join('\n');
+
   return {
     subject: `Employment Reference Request - ${candidateName}`,
+    text,
     html: `
 <!DOCTYPE html>
 <html>
@@ -105,15 +153,16 @@ const buildReferenceRequestEmail = (refereeName, candidateName, position, refere
       <h1 style="margin: 0;">Reference Request</h1>
     </div>
     <div style="padding: 20px;">
-      <p>Dear ${refereeName},</p>
-      <p>${candidateName} has applied for the position of <strong>${position}</strong> with ${COMPANY_NAME} and has listed you as a referee.</p>
+      <p>Dear ${rn},</p>
+      <p>${cn} has applied for the position of <strong>${pos}</strong> with ${co} and has listed you as a referee.</p>
       <p>Please complete the reference form using the link below:</p>
       <p style="text-align: center; margin: 24px 0;">
-        <a href="${referenceUrl}" style="display: inline-block; padding: 12px 20px; background: #4f46e5; color: #fff; text-decoration: none; border-radius: 6px;">Complete Reference Form</a>
+        <a href="${referenceUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 20px; background: #4f46e5; color: #fff !important; text-decoration: none; border-radius: 6px;">Complete Reference Form</a>
       </p>
+      <p style="word-break: break-all; font-size: 14px; color: #444;">If the button does not open, tap or copy this link:<br><a href="${referenceUrl}" target="_blank" rel="noopener noreferrer">${referenceUrl}</a></p>
       <p><strong>Important:</strong> This link will expire on ${formattedExpiry}.</p>
       <p>Thank you for your time and assistance.</p>
-      <p>Best regards,<br>HR Team<br>${COMPANY_NAME}</p>
+      <p>Best regards,<br>HR Team<br>${co}</p>
     </div>
   </div>
 </body>
@@ -123,10 +172,26 @@ const buildReferenceRequestEmail = (refereeName, candidateName, position, refere
 };
 
 const buildReferenceReminderEmail = (refereeName, candidateName, position, referenceToken) => {
-  const referenceUrl = `${APP_URL}/reference/${referenceToken}`;
+  const referenceUrl = publicReferenceUrl(referenceToken);
+  const rn = escapeHtml(refereeName);
+  const cn = escapeHtml(candidateName);
+  const pos = escapeHtml(position);
+  const co = escapeHtml(COMPANY_NAME);
+
+  const text = [
+    `Dear ${refereeName},`,
+    '',
+    `This is a reminder to complete the reference for ${candidateName} (${position}).`,
+    '',
+    referenceUrl,
+    '',
+    `Thank you,`,
+    `HR Team — ${COMPANY_NAME}`,
+  ].join('\n');
 
   return {
     subject: `Reminder: Reference Request for ${candidateName}`,
+    text,
     html: `
 <!DOCTYPE html>
 <html>
@@ -136,13 +201,14 @@ const buildReferenceReminderEmail = (refereeName, candidateName, position, refer
 </head>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; padding: 20px;">
   <div style="max-width: 600px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px;">
-    <p>Dear ${refereeName},</p>
-    <p>This is a reminder to complete the reference for <strong>${candidateName}</strong> (${position}).</p>
+    <p>Dear ${rn},</p>
+    <p>This is a reminder to complete the reference for <strong>${cn}</strong> (${pos}).</p>
     <p style="text-align: center; margin: 24px 0;">
-      <a href="${referenceUrl}" style="display: inline-block; padding: 12px 20px; background: #4f46e5; color: #fff; text-decoration: none; border-radius: 6px;">Complete Reference Form</a>
+      <a href="${referenceUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; padding: 12px 20px; background: #4f46e5; color: #fff !important; text-decoration: none; border-radius: 6px;">Complete Reference Form</a>
     </p>
+    <p style="word-break: break-all; font-size: 14px; color: #444;">Or open: <a href="${referenceUrl}" target="_blank" rel="noopener noreferrer">${referenceUrl}</a></p>
     <p>Thank you for your help.</p>
-    <p>Best regards,<br>HR Team<br>${COMPANY_NAME}</p>
+    <p>Best regards,<br>HR Team<br>${co}</p>
   </div>
 </body>
 </html>
@@ -373,13 +439,14 @@ const buildResignationRejectedEmail = (employeeName, comments) => ({
 
 // ───────────────────────────────────────────────────────────────────────────
 
-const sendMail = async ({ to, subject, html }) => {
+const sendMail = async ({ to, subject, html, text }) => {
   const transporter = nodemailer.createTransport(getEmailConfig());
   const info = await transporter.sendMail({
     from: `"${COMPANY_NAME} HR" <${FROM_EMAIL}>`,
     to,
     subject,
     html,
+    ...(text ? { text } : {}),
   });
   return info;
 };
@@ -419,8 +486,8 @@ export const handler = async (event) => {
       if (!refereeEmail || !refereeName || !candidateName || !position || !referenceToken) {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
-      const { subject, html } = buildReferenceRequestEmail(refereeName, candidateName, position, referenceToken);
-      const info = await sendMail({ to: refereeEmail, subject, html });
+      const { subject, html, text } = buildReferenceRequestEmail(refereeName, candidateName, position, referenceToken);
+      const info = await sendMail({ to: refereeEmail, subject, html, text });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Reference request sent successfully.' });
     }
 
@@ -429,8 +496,8 @@ export const handler = async (event) => {
       if (!refereeEmail || !refereeName || !candidateName || !position || !referenceToken) {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
-      const { subject, html } = buildReferenceReminderEmail(refereeName, candidateName, position, referenceToken);
-      const info = await sendMail({ to: refereeEmail, subject, html });
+      const { subject, html, text } = buildReferenceReminderEmail(refereeName, candidateName, position, referenceToken);
+      const info = await sendMail({ to: refereeEmail, subject, html, text });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Reference reminder sent successfully.' });
     }
 
