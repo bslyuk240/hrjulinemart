@@ -4,6 +4,8 @@ import { X, Sparkles, Shield, Bell, Users, FileText, Zap } from 'lucide-react';
 // ── Bump this version string with every release ──────────────────────────────
 export const APP_VERSION = '2.2.0';
 const CHANGELOG_KEY = `changelog_seen_${APP_VERSION}`;
+// Set when the user opts out of all future changelogs
+const CHANGELOG_DISABLED_KEY = 'changelog_disabled';
 
 const CHANGELOG = [
   {
@@ -47,8 +49,8 @@ export default function ChangelogModal() {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    // Show once per version, only after user is on a protected page (not login)
-    if (!sessionStorage.getItem(CHANGELOG_KEY) && !localStorage.getItem(CHANGELOG_KEY)) {
+    // Show once per version, persisted across sessions, unless globally disabled
+    if (!localStorage.getItem(CHANGELOG_KEY) && !localStorage.getItem(CHANGELOG_DISABLED_KEY)) {
       // Small delay so the app fully loads first
       const t = setTimeout(() => setOpen(true), 1500);
       return () => clearTimeout(t);
@@ -56,8 +58,9 @@ export default function ChangelogModal() {
   }, []);
 
   const dismiss = (dontShowAgain = false) => {
-    sessionStorage.setItem(CHANGELOG_KEY, '1');
-    if (dontShowAgain) localStorage.setItem(CHANGELOG_KEY, '1');
+    // Persist "seen" for this version so it never reappears on reopen
+    localStorage.setItem(CHANGELOG_KEY, '1');
+    if (dontShowAgain) localStorage.setItem(CHANGELOG_DISABLED_KEY, '1');
     setOpen(false);
   };
 
