@@ -17,6 +17,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
+    // Admin generateLink recovery emails use implicit hash tokens, not PKCE.
+    flowType: 'implicit',
   },
   db: {
     schema: 'public',

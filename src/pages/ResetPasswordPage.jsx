@@ -1,18 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
+import { getRecoveryUrlSnapshot } from '../utils/recoveryUrlSnapshot';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 const parseRecoveryContext = () => {
-  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-  const queryParams = new URLSearchParams(window.location.search);
+  const snapshot = getRecoveryUrlSnapshot();
+  const hashSource = window.location.hash || snapshot.hash || '';
+  const searchSource = window.location.search || snapshot.search || '';
+  const hashParams = new URLSearchParams(hashSource.replace(/^#/, ''));
+  const queryParams = new URLSearchParams(searchSource.replace(/^\?/, ''));
+  const type = hashParams.get('type') || queryParams.get('type');
   return {
     isRecovery:
-      hashParams.get('type') === 'recovery' ||
-      queryParams.get('type') === 'recovery' ||
-      Boolean(queryParams.get('code')),
+      type === 'recovery' ||
+      Boolean(queryParams.get('code')) ||
+      Boolean(queryParams.get('token_hash')) ||
+      (hashParams.has('access_token') && type === 'recovery'),
     code: queryParams.get('code'),
+    tokenHash: queryParams.get('token_hash'),
+    accessToken: hashParams.get('access_token'),
+    refreshToken: hashParams.get('refresh_token'),
   };
+};
+
+const stripAuthParamsFromUrl = () => {
+  const path = window.location.pathname;
+  window.history.replaceState({}, document.title, path);
 };
 
 export default function ResetPasswordPage() {
@@ -25,6 +39,8 @@ export default function ResetPasswordPage() {
   const [linkError, setLinkError] = useState('');
   const [sessionReady, setSessionReady] = useState(false);
   const readyRef = useRef(false);
+  // Snapshot URL auth params on first render — Supabase may strip the hash before effects run.
+  const recoveryContextRef = useRef(parseRecoveryContext());
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -37,6 +53,7 @@ export default function ResetPasswordPage() {
       readyRef.current = true;
       setSessionReady(true);
       setLinkError('');
+      stripAuthParamsFromUrl();
     };
 
     const markLinkError = (message) => {
@@ -45,7 +62,33 @@ export default function ResetPasswordPage() {
     };
 
     const bootstrapRecoverySession = async () => {
-      const { isRecovery, code } = parseRecoveryContext();
+      const { isRecovery, code, tokenHash, accessToken, refreshToken } = recoveryContextRef.current;
+
+      if (accessToken && refreshToken) {
+        const { error: setSessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (setSessionError) {
+          markLinkError('This reset link is invalid or has expired. Ask your admin to send a new one.');
+          return;
+        }
+        markReady();
+        return;
+      }
+
+      if (tokenHash) {
+        const { error: verifyError } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: 'recovery',
+        });
+        if (verifyError) {
+          markLinkError('This reset link is invalid or has expired. Ask your admin to send a new one.');
+          return;
+        }
+        markReady();
+        return;
+      }
 
       if (code) {
         const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
@@ -58,16 +101,14 @@ export default function ResetPasswordPage() {
       }
 
       const { data: { session: existingSession } } = await supabase.auth.getSession();
-      if (existingSession && isRecovery) {
+      if (existingSession) {
         markReady();
         return;
       }
 
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
         if (!session) return;
-        if (event === 'PASSWORD_RECOVERY') {
-          markReady();
-        } else if (event === 'SIGNED_IN' && isRecovery) {
+        if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
           markReady();
         }
       });
@@ -85,7 +126,7 @@ export default function ResetPasswordPage() {
             ? 'This reset link is invalid or has expired. Ask your admin to send a new one.'
             : 'Open the password reset link from your email to continue.'
         );
-      }, 8000);
+      }, 12000);
     };
 
     bootstrapRecoverySession();
