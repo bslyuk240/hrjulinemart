@@ -4,6 +4,8 @@ import {
   handleSupabaseError,
   handleSupabaseSuccess,
 } from './supabase';
+import { notifyTrainingCourseAssigned } from './notificationAPI';
+import { sendTrainingCourseAssignedEmail } from './emailService';
 
 const LESSON_TYPES = {
   CONTENT: 'content',
@@ -776,6 +778,47 @@ export const assignTrainingCourse = async ({
       .from(TABLES.TRAINING_ENROLLMENTS)
       .insert(rowsToInsert);
     if (error) return handleSupabaseError(error);
+
+    const assignedUserIds = rowsToInsert.map((row) => row.user_id);
+
+    // In-app + push notifications (non-blocking)
+    try {
+      const [{ data: course }, { data: employees }, assignerResult] = await Promise.all([
+        supabase.from(TABLES.TRAINING_COURSES).select('id,title').eq('id', courseId).single(),
+        supabase
+          .from(TABLES.EMPLOYEES)
+          .select('id,name,email')
+          .in('id', assignedUserIds),
+        assignedBy
+          ? supabase.from(TABLES.EMPLOYEES).select('name').eq('id', assignedBy).single()
+          : Promise.resolve({ data: null }),
+      ]);
+
+      const courseTitle = course?.title || 'Training Course';
+      const assignedByName = assignerResult?.data?.name || null;
+
+      await notifyTrainingCourseAssigned(
+        assignedUserIds.map((userId) => ({
+          userId,
+          courseId,
+          courseTitle,
+          dueDate,
+        }))
+      );
+
+      for (const employee of employees || []) {
+        if (!employee.email) continue;
+        sendTrainingCourseAssignedEmail(
+          employee.email,
+          employee.name || 'Team Member',
+          courseTitle,
+          dueDate,
+          assignedByName
+        ).catch((e) => console.warn('Email error (training-course-assigned):', e));
+      }
+    } catch (e) {
+      console.warn('Notification error (training assign):', e);
+    }
 
     return handleSupabaseSuccess({
       inserted: rowsToInsert.length,

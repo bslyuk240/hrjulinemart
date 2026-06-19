@@ -361,6 +361,24 @@ const buildPayslipReadyEmail = (employeeName, month, year, netSalary, payslipNo)
   };
 };
 
+// ── Training Course Assigned (→ employee) ───────────────────────────────────
+const buildTrainingCourseAssignedEmail = (employeeName, courseTitle, dueDate, assignedByName) => ({
+  subject: `New Training Assigned: ${courseTitle}`,
+  html: wrap(
+    '#7c3aed', 'Training Course Assigned', `${COMPANY_NAME} Learning & Development`,
+    `<p>Dear ${employeeName},</p>
+    <p>A training course has been assigned to you. Please log in to the HR portal to begin.</p>
+    ${infoTable(`
+      ${infoRow('Course', courseTitle)}
+      ${dueDate ? infoRow('Due Date', fmtDate(dueDate)) : ''}
+      ${assignedByName ? infoRow('Assigned By', assignedByName) : ''}
+    `)}
+    ${btn(`${APP_URL}/training`, 'Open Training Portal', '#7c3aed')}
+    <p style="color:#6b7280;font-size:13px;">Complete the course before the due date if one has been set.</p>
+    <p>Best regards,<br>HR Team<br>${COMPANY_NAME}</p>`
+  ),
+});
+
 // ── Resignation Submitted (→ managers / admins) ─────────────────────────────
 const buildResignationSubmittedEmail = (employeeName, position, department, lastWorkingDate, reason) => ({
   subject: `Resignation Notice – ${employeeName}`,
@@ -619,6 +637,22 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildResignationRejectedEmail(employeeName, comments);
+      const info = await sendMail({ to, subject, html });
+      return jsonResponse(200, { success: true, messageId: info.messageId });
+    }
+
+    // ── Training Course Assigned (to employee) ────────────────────────────
+    if (path.endsWith('/training-course-assigned')) {
+      const { to, employeeName, courseTitle, dueDate, assignedByName } = payload;
+      if (!to || !employeeName || !courseTitle) {
+        return jsonResponse(400, { success: false, error: 'Missing required fields.' });
+      }
+      const { subject, html } = buildTrainingCourseAssignedEmail(
+        employeeName,
+        courseTitle,
+        dueDate,
+        assignedByName
+      );
       const info = await sendMail({ to, subject, html });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }

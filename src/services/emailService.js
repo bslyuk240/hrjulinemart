@@ -122,3 +122,20 @@ export const sendOnboardingApprovedEmail = async (
   position,
   employeeCode,
 });
+
+// ── Training notifications ────────────────────────────────────────────────────
+
+/** to: string — employee email */
+export const sendTrainingCourseAssignedEmail = (
+  to,
+  employeeName,
+  courseTitle,
+  dueDate,
+  assignedByName
+) => postJson('/email/training-course-assigned', {
+  to,
+  employeeName,
+  courseTitle,
+  dueDate,
+  assignedByName,
+});

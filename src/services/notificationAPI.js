@@ -46,6 +46,7 @@ export const NOTIFICATION_TYPES = {
   SYSTEM: 'system',
   REQUISITION: 'requisition',
   VENDOR: 'vendor',
+  TRAINING: 'training',
 };
 
 /**
@@ -424,6 +425,63 @@ export const notifyVendorSubmission = async (recipientUserIds, vendorData) => {
 };
 
 /**
+ * Training: course assigned to employee(s)
+ */
+export const notifyTrainingCourseAssigned = async (assignments) => {
+  try {
+    if (!assignments?.length) return handleSupabaseSuccess([]);
+
+    const fmtDue = (dueDate) => {
+      if (!dueDate) return null;
+      try {
+        return new Date(dueDate).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        });
+      } catch {
+        return dueDate;
+      }
+    };
+
+    const notifications = assignments.map(({ userId, courseId, courseTitle, dueDate }) => {
+      const dueLabel = fmtDue(dueDate);
+      const message = dueLabel
+        ? `You have been assigned "${courseTitle}". Due by ${dueLabel}.`
+        : `You have been assigned "${courseTitle}".`;
+      return {
+        user_id: userId,
+        type: NOTIFICATION_TYPES.TRAINING,
+        title: 'New Training Course Assigned',
+        message,
+        data: { course_id: courseId, course_title: courseTitle, due_date: dueDate || null },
+        link: `/training/course/${courseId}`,
+      };
+    });
+
+    const { data, error } = await supabase.from(TABLES.NOTIFICATIONS).insert(notifications).select();
+    if (error) return handleSupabaseError(error);
+
+    for (const assignment of assignments) {
+      const dueLabel = fmtDue(assignment.dueDate);
+      const body = dueLabel
+        ? `You have been assigned "${assignment.courseTitle}". Due by ${dueLabel}.`
+        : `You have been assigned "${assignment.courseTitle}".`;
+      sendPushToUsers(
+        [assignment.userId],
+        'New Training Course Assigned',
+        body,
+        { type: NOTIFICATION_TYPES.TRAINING, link: `/training/course/${assignment.courseId}` }
+      );
+    }
+
+    return handleSupabaseSuccess(data);
+  } catch (error) {
+    return handleSupabaseError(error);
+  }
+};
+
+/**
  * Requisition: new request created (notify approvers)
  */
 export const notifyNewRequisition = async (recipientUserIds, request) => {
@@ -525,6 +583,7 @@ export const getNotificationIcon = (type) => {
     system: '🛠️',
     requisition: '🧾',
     vendor: '🤝',
+    training: '🎓',
   };
   return icons[type] || '🔔';
 }
@@ -542,6 +601,7 @@ export const getNotificationColor = (type) => {
     employee: 'bg-indigo-100 text-indigo-800',
     system: 'bg-gray-100 text-gray-800',
     vendor: 'bg-emerald-100 text-emerald-800',
+    training: 'bg-violet-100 text-violet-800',
   };
   return colors[type] || 'bg-gray-100 text-gray-800';
 }
