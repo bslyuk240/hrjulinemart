@@ -438,6 +438,21 @@ const buildAnnouncementEmail = (employeeName, title, body, priority, senderName)
   };
 };
 
+// ── Password Reset (→ employee, admin-triggered) ────────────────────────────
+const buildPasswordResetEmail = (employeeName, resetLink) => ({
+  subject: `Reset Your ${COMPANY_NAME} HR Portal Password`,
+  html: wrap(
+    '#4f46e5', 'Password Reset Request', `${COMPANY_NAME} HR · Account Security`,
+    `<p>Dear ${employeeName || 'Team Member'},</p>
+    <p>An administrator has requested a password reset for your HR portal account.</p>
+    <p>Click the button below to choose a new password. This link expires after a short time for security.</p>
+    ${btn(resetLink, 'Reset My Password', '#4f46e5')}
+    <p style="word-break:break-all;font-size:13px;color:#6b7280;">If the button does not work, copy and paste this link into your browser:<br>${resetLink}</p>
+    <p style="color:#6b7280;font-size:13px;">If you did not expect this email, please contact HR immediately.</p>
+    <p>Best regards,<br>HR Team<br>${COMPANY_NAME}</p>`
+  ),
+});
+
 // ── Resignation Rejected (→ employee) ──────────────────────────────────────
 const buildResignationRejectedEmail = (employeeName, comments) => ({
   subject: `Regarding Your Resignation Request`,
@@ -500,6 +515,42 @@ const insertEmailLog = async (row) => {
 const resolveEmailType = (path) => {
   const parts = String(path || '').split('/').filter(Boolean);
   return parts[parts.length - 1] || 'unknown';
+};
+
+const getAuthHeader = (event) => {
+  const headers = event.headers || {};
+  return headers.authorization || headers.Authorization || '';
+};
+
+const verifyAdminCaller = async (event) => {
+  const jwt = getAuthHeader(event).replace(/^Bearer\s+/i, '');
+  if (!jwt) return { error: 'Unauthorized — please sign in again.' };
+
+  const url = getEnv('SUPABASE_URL', getEnv('VITE_SUPABASE_URL'));
+  const anonKey = getEnv('SUPABASE_ANON_KEY', getEnv('VITE_SUPABASE_ANON_KEY'));
+  const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !anonKey || !serviceKey) {
+    return { error: 'Server misconfigured (Supabase keys missing).' };
+  }
+
+  const anonClient = createClient(url, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: { user }, error } = await anonClient.auth.getUser(jwt);
+  if (error || !user) return { error: 'Unauthorized — invalid session.' };
+  if (user.app_metadata?.type !== 'admin') {
+    return { error: 'Forbidden — admin access required.' };
+  }
+
+  const adminClient = createClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  return {
+    adminClient,
+    triggeredByEmployeeId: user.app_metadata?.employee_id || null,
+    triggeredByName: user.user_metadata?.full_name || user.email || 'Admin',
+  };
 };
 
 const sendMail = async ({ to, subject, html, text, logContext = null }) => {
@@ -788,6 +839,69 @@ export const handler = async (event) => {
         assignedByName
       );
       const info = await sendMail({ to, subject, html, logContext: emailLogContext });
+      return jsonResponse(200, { success: true, messageId: info.messageId });
+    }
+
+    // ── Password Reset (admin-triggered, uses HR SMTP + email_logs) ───────
+    if (path.endsWith('/password-reset')) {
+      const authResult = await verifyAdminCaller(event);
+      if (authResult.error) {
+        const status = authResult.error.includes('Forbidden') ? 403 : 401;
+        return jsonResponse(status, { success: false, error: authResult.error });
+      }
+
+      const { email, employeeName } = payload;
+      if (!email) {
+        return jsonResponse(400, { success: false, error: 'Missing email.' });
+      }
+
+      const normalizedEmail = String(email).trim().toLowerCase();
+      const redirectTo = `${APP_URL}/reset-password`;
+
+      const { data: linkData, error: linkError } = await authResult.adminClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: normalizedEmail,
+        options: { redirectTo },
+      });
+
+      if (linkError) {
+        await insertEmailLog({
+          email_type: 'password-reset',
+          recipient: normalizedEmail,
+          subject: `Reset Your ${COMPANY_NAME} HR Portal Password`,
+          status: 'failed',
+          error_message: linkError.message,
+          metadata: { employeeName: employeeName || null },
+          triggered_by_employee_id: authResult.triggeredByEmployeeId,
+          triggered_by_name: authResult.triggeredByName,
+        });
+        const notFound = /user not found|not found|no user/i.test(linkError.message || '');
+        const msg = notFound
+          ? 'No login account exists for this email. Ensure the employee has a Supabase Auth account with this address.'
+          : (linkError.message || 'Failed to generate reset link.');
+        return jsonResponse(404, { success: false, error: msg });
+      }
+
+      const resetLink = linkData?.properties?.action_link;
+      if (!resetLink) {
+        return jsonResponse(500, { success: false, error: 'Failed to generate password reset link.' });
+      }
+
+      const resetLogContext = {
+        email_type: 'password-reset',
+        metadata: stripSensitive({ email: normalizedEmail, employeeName: employeeName || null }),
+        triggered_by_employee_id: authResult.triggeredByEmployeeId,
+        triggered_by_name: authResult.triggeredByName,
+      };
+
+      const { subject, html } = buildPasswordResetEmail(employeeName || 'Team Member', resetLink);
+      const info = await sendMail({
+        to: normalizedEmail,
+        subject,
+        html,
+        logContext: resetLogContext,
+      });
+
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 

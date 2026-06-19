@@ -23,6 +23,8 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import Loading from '../common/Loading';
+import { sendPasswordResetEmail } from '../../services/emailService';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from '../../services/auditLogService';
 import Modal from '../common/Modal';
 import EmployeeForm from './EmployeeForm';
 
@@ -176,19 +178,25 @@ export default function EmployeeList() {
     setShowDetailsModal(true);
   };
 
-  const handleSendPasswordReset = async (email) => {
+  const handleSendPasswordReset = async (email, employeeName) => {
     setResetState((prev) => ({ ...prev, [email]: 'sending' }));
     try {
-      const { data, error } = await supabase.functions.invoke('send-password-reset', {
-        body: { email },
-      });
-      if (error || !data?.success) {
+      const result = await sendPasswordResetEmail(email, employeeName);
+      if (!result.success) {
         setResetState((prev) => ({ ...prev, [email]: 'error' }));
-        showError?.(data?.error || 'Failed to send reset email. Please try again.');
-      } else {
-        setResetState((prev) => ({ ...prev, [email]: 'sent' }));
-        showSuccess?.(`Password reset email sent to ${email}`);
+        showError?.(result.error || 'Failed to send reset email. Please try again.');
+        return;
       }
+
+      setResetState((prev) => ({ ...prev, [email]: 'sent' }));
+      showSuccess?.(`Password reset email sent to ${email}`);
+      logAudit({
+        action: AUDIT_ACTIONS.SEND,
+        entityType: AUDIT_ENTITIES.AUTH,
+        entityLabel: email,
+        summary: `Password reset email sent to ${employeeName || email}`,
+        details: { email, employeeName, messageId: result.messageId },
+      });
     } catch (err) {
       console.error('sendPasswordReset error:', err);
       setResetState((prev) => ({ ...prev, [email]: 'error' }));
@@ -725,7 +733,7 @@ export default function EmployeeList() {
                     </p>
                   </div>
                   <button
-                    onClick={() => handleSendPasswordReset(selectedEmployee.email)}
+                    onClick={() => handleSendPasswordReset(selectedEmployee.email, selectedEmployee.name)}
                     disabled={resetState[selectedEmployee.email] === 'sending'}
                     className={`ml-4 flex-shrink-0 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
                       resetState[selectedEmployee.email] === 'sent'

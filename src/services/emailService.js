@@ -5,10 +5,10 @@ const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
 
 const emailPathToType = (path) => path.replace(/^\/email\//, '');
 
-const postJson = async (path, payload) => {
+const postJson = async (path, payload, options = {}) => {
   const response = await fetch(buildApiUrl(path), {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...options.headers },
     body: JSON.stringify(payload),
   });
 
@@ -27,7 +27,7 @@ const postJson = async (path, payload) => {
         entityType: AUDIT_ENTITIES.EMAIL,
         entityLabel: emailPathToType(path),
         summary: `Email send failed: ${emailPathToType(path)}`,
-        details: { path, error: errorMsg, recipient: payload.to || payload.candidateEmail || payload.refereeEmail },
+        details: { path, error: errorMsg, recipient: payload.to || payload.email || payload.candidateEmail || payload.refereeEmail },
         status: 'failed',
       }).catch(() => {});
     }).catch(() => {});
@@ -152,3 +152,20 @@ export const sendTrainingCourseAssignedEmail = (
   dueDate,
   assignedByName,
 });
+
+// ── Password reset (admin-triggered) ────────────────────────────────────────
+
+/** Requires active admin session — sends via HR SMTP and logs to email_logs */
+export const sendPasswordResetEmail = async (email, employeeName) => {
+  const { supabase } = await import('./supabase');
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return { success: false, error: 'Not authenticated. Please sign in again.' };
+  }
+
+  return postJson(
+    '/email/password-reset',
+    { email, employeeName },
+    { headers: { Authorization: `Bearer ${session.access_token}` } }
+  );
+};
