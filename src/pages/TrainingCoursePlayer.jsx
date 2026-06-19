@@ -8,7 +8,9 @@ import {
   ChevronUp,
   CheckCircle2,
   ClipboardCheck,
+  Lock,
   PlayCircle,
+  XCircle,
 } from 'lucide-react';
 import {
   getTrainingCoursePlayerData,
@@ -102,6 +104,79 @@ const buildFlow = (course) => {
   return items;
 };
 
+// A step is "satisfied" when a lesson is completed or a quiz has a passing
+// attempt. Merely attempting (and failing) a quiz does not satisfy it.
+const isItemSatisfied = (item) => {
+  if (!item) return false;
+  if (item.type === 'lesson') return Boolean(item.lesson?.progress?.is_completed);
+  return Boolean(item.quiz?.latest_attempt?.pass);
+};
+
+// Hard gating: the first unsatisfied step is the learner's current frontier;
+// everything after it is locked until each preceding step is satisfied.
+const getFirstBlockedIndex = (flow) => {
+  const index = flow.findIndex((item) => !isItemSatisfied(item));
+  return index === -1 ? flow.length : index;
+};
+
+const getItemStatus = (item, index, firstBlockedIndex) => {
+  if (index > firstBlockedIndex) return 'locked';
+  if (item.type === 'lesson') {
+    return item.lesson?.progress?.is_completed ? 'done' : 'open';
+  }
+  if (item.quiz?.latest_attempt?.pass) return 'passed';
+  if (item.quiz?.latest_attempt) return 'failed';
+  return 'open';
+};
+
+function FlowStatusIcon({ status }) {
+  if (status === 'done' || status === 'passed') {
+    return <CheckCircle2 className="w-4 h-4 text-green-600 ml-auto shrink-0" />;
+  }
+  if (status === 'failed') {
+    return <XCircle className="w-4 h-4 text-red-600 ml-auto shrink-0" />;
+  }
+  if (status === 'locked') {
+    return <Lock className="w-4 h-4 text-gray-400 ml-auto shrink-0" />;
+  }
+  return null;
+}
+
+function FlowItems({ flow, activeIndex, firstBlockedIndex, onSelect }) {
+  return (
+    <div className="space-y-1">
+      {flow.map((item, index) => {
+        const isActive = index === activeIndex;
+        const status = getItemStatus(item, index, firstBlockedIndex);
+        const locked = status === 'locked';
+        return (
+          <button
+            key={item.id}
+            onClick={() => !locked && onSelect(index)}
+            disabled={locked}
+            className={`w-full text-left px-3 py-2 rounded-lg border ${
+              isActive
+                ? 'bg-purple-50 border-purple-300'
+                : 'border-transparent hover:bg-gray-50'
+            } ${locked ? 'opacity-60 cursor-not-allowed' : ''}`}
+          >
+            <p className="text-xs text-gray-500">{item.moduleTitle}</p>
+            <p className="text-sm text-gray-900 flex items-center gap-2">
+              {item.type === 'lesson' ? (
+                <BookOpen className="w-4 h-4 text-blue-500 shrink-0" />
+              ) : (
+                <ClipboardCheck className="w-4 h-4 text-purple-500 shrink-0" />
+              )}
+              <span className="truncate">{item.title}</span>
+              <FlowStatusIcon status={status} />
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function TrainingCoursePlayer() {
   const navigate = useNavigate();
   const { courseId } = useParams();
@@ -116,14 +191,13 @@ export default function TrainingCoursePlayer() {
 
   const flow = useMemo(() => (course ? buildFlow(course) : []), [course]);
   const activeItem = flow[activeIndex] || null;
+  const firstBlockedIndex = useMemo(() => getFirstBlockedIndex(flow), [flow]);
 
   const completionPercent = useMemo(() => {
-    if (!course) return 0;
-    const lessons = course.modules.flatMap((module) => module.lessons || []);
-    if (!lessons.length) return 0;
-    const completed = lessons.filter((lesson) => lesson.progress?.is_completed).length;
-    return Math.round((completed / lessons.length) * 100);
-  }, [course]);
+    if (!flow.length) return 0;
+    const satisfied = flow.filter(isItemSatisfied).length;
+    return Math.round((satisfied / flow.length) * 100);
+  }, [flow]);
   const activeFlowTitle = flow[activeIndex]?.title || '';
 
   const loadPlayer = async () => {
@@ -139,12 +213,11 @@ export default function TrainingCoursePlayer() {
     setCourse(payload);
 
     const flowRows = buildFlow(payload);
-    const firstIncomplete = flowRows.findIndex((row) => {
-      if (row.type === 'lesson') return !row.lesson?.progress?.is_completed;
-      if (row.type === 'quiz') return !row.quiz?.latest_attempt && !row.quiz?.latestAttempt;
-      return false;
-    });
-    setActiveIndex(firstIncomplete >= 0 ? firstIncomplete : 0);
+    const frontier = getFirstBlockedIndex(flowRows);
+    // Land on the current frontier; if everything is satisfied, show the last step.
+    setActiveIndex(
+      frontier >= flowRows.length ? Math.max(0, flowRows.length - 1) : frontier
+    );
     setLoading(false);
   };
 
@@ -223,39 +296,16 @@ export default function TrainingCoursePlayer() {
         </button>
 
         {mobileFlowOpen ? (
-          <div className="mt-3 max-h-[42vh] overflow-y-auto space-y-1 pr-1">
-            {flow.map((item, index) => {
-              const isActive = index === activeIndex;
-              const completed =
-                item.type === 'lesson'
-                  ? item.lesson?.progress?.is_completed
-                  : Boolean(item.quiz?.latest_attempt);
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveIndex(index);
-                    setMobileFlowOpen(false);
-                  }}
-                  className={`w-full text-left px-3 py-2 rounded-lg border ${
-                    isActive
-                      ? 'bg-purple-50 border-purple-300'
-                      : 'border-transparent hover:bg-gray-50'
-                  }`}
-                >
-                  <p className="text-xs text-gray-500">{item.moduleTitle}</p>
-                  <p className="text-sm text-gray-900 flex items-center gap-2">
-                    {item.type === 'lesson' ? (
-                      <BookOpen className="w-4 h-4 text-blue-500" />
-                    ) : (
-                      <ClipboardCheck className="w-4 h-4 text-purple-500" />
-                    )}
-                    {item.title}
-                    {completed ? <CheckCircle2 className="w-4 h-4 text-green-600 ml-auto" /> : null}
-                  </p>
-                </button>
-              );
-            })}
+          <div className="mt-3 max-h-[42vh] overflow-y-auto pr-1">
+            <FlowItems
+              flow={flow}
+              activeIndex={activeIndex}
+              firstBlockedIndex={firstBlockedIndex}
+              onSelect={(index) => {
+                setActiveIndex(index);
+                setMobileFlowOpen(false);
+              }}
+            />
           </div>
         ) : null}
       </section>
@@ -263,37 +313,12 @@ export default function TrainingCoursePlayer() {
       <div className="grid grid-cols-1 xl:grid-cols-[320px,1fr] gap-4">
         <aside className="hidden xl:block bg-white rounded-lg shadow-md p-3 max-h-[70vh] overflow-y-auto">
           <p className="text-xs uppercase text-gray-500 px-2 mb-2">Module / Lesson flow</p>
-          <div className="space-y-1">
-            {flow.map((item, index) => {
-              const isActive = index === activeIndex;
-              const completed =
-                item.type === 'lesson'
-                  ? item.lesson?.progress?.is_completed
-                  : Boolean(item.quiz?.latest_attempt);
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveIndex(index)}
-                  className={`w-full text-left px-3 py-2 rounded-lg border ${
-                    isActive
-                      ? 'bg-purple-50 border-purple-300'
-                      : 'border-transparent hover:bg-gray-50'
-                  }`}
-                >
-                  <p className="text-xs text-gray-500">{item.moduleTitle}</p>
-                  <p className="text-sm text-gray-900 flex items-center gap-2">
-                    {item.type === 'lesson' ? (
-                      <BookOpen className="w-4 h-4 text-blue-500" />
-                    ) : (
-                      <ClipboardCheck className="w-4 h-4 text-purple-500" />
-                    )}
-                    {item.title}
-                    {completed ? <CheckCircle2 className="w-4 h-4 text-green-600 ml-auto" /> : null}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
+          <FlowItems
+            flow={flow}
+            activeIndex={activeIndex}
+            firstBlockedIndex={firstBlockedIndex}
+            onSelect={setActiveIndex}
+          />
         </aside>
 
         <main className="bg-white rounded-lg shadow-md p-4 md:p-5 min-h-[55vh] xl:min-h-[70vh]">
@@ -352,29 +377,45 @@ export default function TrainingCoursePlayer() {
                 </section>
               )}
 
-              <button
-                onClick={markLessonCompleted}
-                disabled={savingProgress || activeItem.lesson.progress?.is_completed}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
-              >
-                <CheckCircle2 className="w-4 h-4" />
-                {activeItem.lesson.progress?.is_completed ? 'Completed' : 'Mark as complete'}
-              </button>
+              {!['content', 'video', 'resources'].includes(activeItem.lesson.lesson_type) && (
+                <p className="text-gray-600">This lesson has no displayable content.</p>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  onClick={markLessonCompleted}
+                  disabled={savingProgress || activeItem.lesson.progress?.is_completed}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  <CheckCircle2 className="w-4 h-4" />
+                  {activeItem.lesson.progress?.is_completed ? 'Completed' : 'Mark as complete'}
+                </button>
+                {!activeItem.lesson.progress?.is_completed && (
+                  <p className="text-xs text-gray-500">
+                    Mark this lesson complete to unlock the next step.
+                  </p>
+                )}
+              </div>
             </div>
           ) : (
             <QuizRunner
               quiz={activeItem?.quiz}
-              onSubmit={async (answers) => {
+              onSubmit={async (answers, startedAt) => {
                 const result = await submitTrainingQuizAttempt({
                   userId: user.id,
                   quizId: activeItem.quiz.id,
                   answers,
+                  startedAt,
                 });
                 if (!result.success) {
                   showError(result.error || 'Failed to submit quiz.');
                   return { success: false };
                 }
-                showSuccess(`Quiz submitted. Score: ${result.data.score}%`);
+                showSuccess(
+                  result.data.pass
+                    ? `Passed! Score: ${result.data.score}%`
+                    : `Score: ${result.data.score}% — below the ${result.data.passMark}% pass mark.`
+                );
                 await loadPlayer();
                 return { success: true, result: result.data };
               }}
@@ -393,8 +434,12 @@ export default function TrainingCoursePlayer() {
           Previous
         </button>
         <button
-          disabled={activeIndex >= flow.length - 1}
-          onClick={() => setActiveIndex((index) => Math.min(flow.length - 1, index + 1))}
+          disabled={activeIndex >= flow.length - 1 || activeIndex + 1 > firstBlockedIndex}
+          onClick={() =>
+            setActiveIndex((index) =>
+              Math.min(flow.length - 1, firstBlockedIndex, index + 1)
+            )
+          }
           className="inline-flex items-center gap-2 px-3 py-2 border rounded-lg disabled:opacity-50"
         >
           Next
@@ -409,13 +454,17 @@ function QuizRunner({ quiz, onSubmit }) {
   const [answers, setAnswers] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [latest, setLatest] = useState(null);
+  const [startedAt, setStartedAt] = useState(() => new Date().toISOString());
 
   useEffect(() => {
     setAnswers({});
     setLatest(quiz?.latest_attempt || null);
+    setStartedAt(new Date().toISOString());
   }, [quiz?.id]);
 
   if (!quiz) return <p className="text-gray-600">No quiz configured for this step.</p>;
+
+  const passed = Boolean(latest?.pass);
 
   const updateAnswer = (question, value) => {
     if (question.question_type !== 'multi') {
@@ -439,6 +488,18 @@ function QuizRunner({ quiz, onSubmit }) {
       <p className="text-sm text-gray-600">
         Pass mark: {quiz.pass_mark}% {quiz.time_limit_seconds ? `• Time limit: ${quiz.time_limit_seconds}s` : ''}
       </p>
+
+      {passed ? (
+        <div className="flex items-center gap-2 text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+          <CheckCircle2 className="w-4 h-4" />
+          You passed this assessment. You can review it or retake it.
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <Lock className="w-4 h-4" />
+          You must score at least {quiz.pass_mark}% to unlock the next step.
+        </div>
+      )}
 
       {(quiz.questions || []).length === 0 ? (
         <p className="text-gray-600">This quiz has no questions yet.</p>
@@ -510,7 +571,7 @@ function QuizRunner({ quiz, onSubmit }) {
           disabled={submitting || (quiz.questions || []).length === 0}
           onClick={async () => {
             setSubmitting(true);
-            const result = await onSubmit(answers);
+            const result = await onSubmit(answers, startedAt);
             setSubmitting(false);
             if (result?.success) {
               setLatest(result.result?.attempt || null);
@@ -518,7 +579,7 @@ function QuizRunner({ quiz, onSubmit }) {
           }}
           className="px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700 disabled:opacity-50"
         >
-          {submitting ? 'Submitting...' : 'Submit Quiz'}
+          {submitting ? 'Submitting...' : passed ? 'Retake Quiz' : 'Submit Quiz'}
         </button>
         {latest && (
           <span

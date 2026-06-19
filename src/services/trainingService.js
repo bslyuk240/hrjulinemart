@@ -121,28 +121,88 @@ const buildQuizCourseMap = (quizzes, modules, lessons) => {
   return quizCourseMap;
 };
 
-const getCourseCompletionMap = (courses, modules, lessons, progressRows) => {
+const buildCourseQuizIdMap = (quizzes, modules, lessons) => {
+  const quizCourseMap = buildQuizCourseMap(quizzes || [], modules || [], lessons || []);
+  const quizIdsByCourseId = {};
+  for (const quiz of quizzes || []) {
+    const courseId = quizCourseMap[quiz.id];
+    if (!courseId) continue;
+    if (!quizIdsByCourseId[courseId]) quizIdsByCourseId[courseId] = [];
+    quizIdsByCourseId[courseId].push(quiz.id);
+  }
+  return quizIdsByCourseId;
+};
+
+// Completion counts both lessons and quizzes as steps: a course only reaches
+// 100% when every lesson is completed AND every attached quiz has a passing
+// attempt. Passing quizzes (rather than merely attempting them) is required.
+const getCourseCompletionMap = (
+  courses,
+  modules,
+  lessons,
+  progressRows,
+  quizzes = [],
+  attemptRows = []
+) => {
   const lessonsByCourseId = mapLessonsByCourseId(modules, lessons);
+  const quizIdsByCourseId = buildCourseQuizIdMap(quizzes, modules, lessons);
   const completedLessonSet = new Set(
     (progressRows || [])
       .filter((row) => row.is_completed)
       .map((row) => row.lesson_id)
   );
+  const passedQuizSet = new Set(
+    (attemptRows || []).filter((row) => row.pass).map((row) => row.quiz_id)
+  );
 
   const completionMap = {};
   for (const course of courses) {
     const courseLessons = lessonsByCourseId[course.id] || [];
-    if (!courseLessons.length) {
+    const courseQuizIds = quizIdsByCourseId[course.id] || [];
+    const totalSteps = courseLessons.length + courseQuizIds.length;
+    if (!totalSteps) {
       completionMap[course.id] = 0;
       continue;
     }
 
-    const completedCount = courseLessons.filter((lesson) =>
+    const completedLessons = courseLessons.filter((lesson) =>
       completedLessonSet.has(lesson.id)
     ).length;
-    completionMap[course.id] = Math.round((completedCount / courseLessons.length) * 100);
+    const passedQuizzes = courseQuizIds.filter((quizId) =>
+      passedQuizSet.has(quizId)
+    ).length;
+    completionMap[course.id] = Math.round(
+      ((completedLessons + passedQuizzes) / totalSteps) * 100
+    );
   }
   return completionMap;
+};
+
+// Fetch every quiz attached to a set of courses, whether the quiz targets the
+// course, one of its modules, or one of its lessons.
+const fetchScopedQuizzes = async (courseIds, moduleIds, lessonIds) => {
+  const orFilters = [];
+  if (courseIds.length) orFilters.push(`course_id.in.(${courseIds.join(',')})`);
+  if (moduleIds.length) orFilters.push(`module_id.in.(${moduleIds.join(',')})`);
+  if (lessonIds.length) orFilters.push(`lesson_id.in.(${lessonIds.join(',')})`);
+  if (!orFilters.length) return [];
+  const { data, error } = await supabase
+    .from(TABLES.TRAINING_QUIZZES)
+    .select('*')
+    .or(orFilters.join(','));
+  if (error) throw error;
+  return data || [];
+};
+
+const fetchUserAttempts = async (userId, quizIds) => {
+  if (!userId || !quizIds.length) return [];
+  const { data, error } = await supabase
+    .from(TABLES.TRAINING_QUIZ_ATTEMPTS)
+    .select('*')
+    .eq('user_id', userId)
+    .in('quiz_id', quizIds);
+  if (error) throw error;
+  return data || [];
 };
 
 export const getTrainingDashboardStats = async () => {
@@ -797,7 +857,21 @@ export const getEmployeeTrainingCourses = async (userId) => {
       progress = progressRows || [];
     }
 
-    const completionMap = getCourseCompletionMap(courses || [], modules, lessons, progress);
+    const moduleIdsForQuizzes = unique(modules.map((module) => module.id));
+    const quizzes = await fetchScopedQuizzes(courseIds, moduleIdsForQuizzes, lessonIds);
+    const attempts = await fetchUserAttempts(
+      userId,
+      unique(quizzes.map((quiz) => quiz.id))
+    );
+
+    const completionMap = getCourseCompletionMap(
+      courses || [],
+      modules,
+      lessons,
+      progress,
+      quizzes,
+      attempts
+    );
     const enrollmentByCourseId = {};
     for (const enrollment of enrollments || []) {
       enrollmentByCourseId[enrollment.course_id] = enrollment;
@@ -951,7 +1025,7 @@ export const saveTrainingLessonProgress = async ({
   }
 };
 
-export const submitTrainingQuizAttempt = async ({ userId, quizId, answers }) => {
+export const submitTrainingQuizAttempt = async ({ userId, quizId, answers, startedAt = null }) => {
   try {
     const { data: quiz, error: quizError } = await supabase
       .from(TABLES.TRAINING_QUIZZES)
@@ -997,7 +1071,7 @@ export const submitTrainingQuizAttempt = async ({ userId, quizId, answers }) => 
         {
           user_id: userId,
           quiz_id: quizId,
-          started_at: new Date().toISOString(),
+          started_at: startedAt || new Date().toISOString(),
           submitted_at: new Date().toISOString(),
           score,
           pass,
@@ -1080,18 +1154,17 @@ export const getEmployeeTrainingResults = async (userId) => {
       progressRows = progress || [];
     }
 
-    const quizIds = unique((attempts || []).map((attempt) => attempt.quiz_id));
-    let quizzes = [];
-    if (quizIds.length) {
-      const { data: quizRows, error: quizError } = await supabase
-        .from(TABLES.TRAINING_QUIZZES)
-        .select('*')
-        .in('id', quizIds);
-      if (quizError) return handleSupabaseError(quizError);
-      quizzes = quizRows || [];
-    }
+    const moduleIdsForQuizzes = unique(modules.map((module) => module.id));
+    const quizzes = await fetchScopedQuizzes(courseIds, moduleIdsForQuizzes, lessonIds);
 
-    const completionMap = getCourseCompletionMap(courses || [], modules, lessons, progressRows);
+    const completionMap = getCourseCompletionMap(
+      courses || [],
+      modules,
+      lessons,
+      progressRows,
+      quizzes,
+      attempts
+    );
     const courseById = {};
     for (const course of courses || []) courseById[course.id] = normalizeCourseRow(course);
 
@@ -1115,17 +1188,26 @@ export const getEmployeeTrainingResults = async (userId) => {
     const completionDateByCourse = {};
     const moduleById = new Map(modules.map((module) => [module.id, module]));
     const lessonById = new Map(lessons.map((lesson) => [lesson.id, lesson]));
+    const bumpCompletionDate = (courseId, candidate) => {
+      if (!courseId || !candidate) return;
+      const currentDate = completionDateByCourse[courseId];
+      if (!currentDate || new Date(candidate) > new Date(currentDate)) {
+        completionDateByCourse[courseId] = candidate;
+      }
+    };
+
     for (const row of progressRows || []) {
       if (!row.is_completed || !row.completed_at) continue;
       const lesson = lessonById.get(row.lesson_id);
       if (!lesson) continue;
       const module = moduleById.get(lesson.module_id);
       if (!module) continue;
-      const courseId = module.course_id;
-      const currentDate = completionDateByCourse[courseId];
-      if (!currentDate || new Date(row.completed_at) > new Date(currentDate)) {
-        completionDateByCourse[courseId] = row.completed_at;
-      }
+      bumpCompletionDate(module.course_id, row.completed_at);
+    }
+
+    for (const attempt of attempts || []) {
+      if (!attempt.pass) continue;
+      bumpCompletionDate(quizCourseMap[attempt.quiz_id], attempt.submitted_at);
     }
 
     const trackedCourseIds = unique(
@@ -1192,23 +1274,58 @@ export const getTrainingReports = async () => {
     const moduleById = new Map((modules || []).map((module) => [module.id, module]));
     const lessonById = new Map((lessons || []).map((lesson) => [lesson.id, lesson]));
     const quizCourseMap = buildQuizCourseMap(quizzes || [], modules || [], lessons || []);
+    const lessonsByCourse = mapLessonsByCourseId(modules || [], lessons || []);
+    const quizIdsByCourse = buildCourseQuizIdMap(quizzes || [], modules || [], lessons || []);
 
     const courseUsersStarted = {};
-    const courseUsersCompleted = {};
+    const completedLessonsByUser = {};
+    const passedQuizzesByUser = {};
+
     for (const row of progressRows || []) {
       const lesson = lessonById.get(row.lesson_id);
       if (!lesson) continue;
       const module = moduleById.get(lesson.module_id);
       if (!module) continue;
-      const courseId = module.course_id;
 
-      if (!courseUsersStarted[courseId]) courseUsersStarted[courseId] = new Set();
-      courseUsersStarted[courseId].add(row.user_id);
+      if (!courseUsersStarted[module.course_id]) courseUsersStarted[module.course_id] = new Set();
+      courseUsersStarted[module.course_id].add(row.user_id);
 
       if (row.is_completed) {
-        if (!courseUsersCompleted[courseId]) courseUsersCompleted[courseId] = new Set();
-        courseUsersCompleted[courseId].add(row.user_id);
+        if (!completedLessonsByUser[row.user_id]) completedLessonsByUser[row.user_id] = new Set();
+        completedLessonsByUser[row.user_id].add(row.lesson_id);
       }
+    }
+
+    for (const attempt of attempts || []) {
+      const courseId = quizCourseMap[attempt.quiz_id];
+      if (courseId) {
+        if (!courseUsersStarted[courseId]) courseUsersStarted[courseId] = new Set();
+        courseUsersStarted[courseId].add(attempt.user_id);
+      }
+      if (attempt.pass) {
+        if (!passedQuizzesByUser[attempt.user_id]) passedQuizzesByUser[attempt.user_id] = new Set();
+        passedQuizzesByUser[attempt.user_id].add(attempt.quiz_id);
+      }
+    }
+
+    // A user has completed a course only when every lesson is done and every
+    // attached quiz has been passed.
+    const courseUsersCompleted = {};
+    for (const course of courses || []) {
+      const courseLessons = lessonsByCourse[course.id] || [];
+      const courseQuizIds = quizIdsByCourse[course.id] || [];
+      const totalSteps = courseLessons.length + courseQuizIds.length;
+      if (!totalSteps) continue;
+
+      const completedSet = new Set();
+      for (const userId of courseUsersStarted[course.id] || []) {
+        const userLessons = completedLessonsByUser[userId] || new Set();
+        const userQuizzes = passedQuizzesByUser[userId] || new Set();
+        const allLessonsDone = courseLessons.every((lesson) => userLessons.has(lesson.id));
+        const allQuizzesPassed = courseQuizIds.every((quizId) => userQuizzes.has(quizId));
+        if (allLessonsDone && allQuizzesPassed) completedSet.add(userId);
+      }
+      courseUsersCompleted[course.id] = completedSet;
     }
 
     const attemptsByCourse = {};
@@ -1296,8 +1413,10 @@ export const getTrainingEmployeeReports = async () => {
     const lessonById = new Map((lessons || []).map((lesson) => [lesson.id, lesson]));
     const lessonsByCourse = mapLessonsByCourseId(modules || [], lessons || []);
     const quizCourseMap = buildQuizCourseMap(quizzes || [], modules || [], lessons || []);
+    const quizIdsByCourse = buildCourseQuizIdMap(quizzes || [], modules || [], lessons || []);
 
     const completedLessonSetByUser = {};
+    const passedQuizSetByUser = {};
     const completedAtByUserCourse = {};
     const progressExistsByUserCourse = {};
 
@@ -1334,6 +1453,20 @@ export const getTrainingEmployeeReports = async () => {
       const key = `${attempt.user_id}-${courseId}`;
       if (!attemptsByUserCourse[key]) attemptsByUserCourse[key] = [];
       attemptsByUserCourse[key].push(attempt);
+
+      if (attempt.pass) {
+        if (!passedQuizSetByUser[attempt.user_id]) {
+          passedQuizSetByUser[attempt.user_id] = new Set();
+        }
+        passedQuizSetByUser[attempt.user_id].add(attempt.quiz_id);
+
+        if (attempt.submitted_at) {
+          const existing = completedAtByUserCourse[key];
+          if (!existing || new Date(attempt.submitted_at) > new Date(existing)) {
+            completedAtByUserCourse[key] = attempt.submitted_at;
+          }
+        }
+      }
     }
 
     for (const key of Object.keys(attemptsByUserCourse)) {
@@ -1356,12 +1489,15 @@ export const getTrainingEmployeeReports = async () => {
         const attemptsForRow = attemptsByUserCourse[key] || [];
         const latestAttempt = attemptsForRow[0] || null;
         const completedLessonSet = completedLessonSetByUser[enrollment.user_id] || new Set();
+        const passedQuizSet = passedQuizSetByUser[enrollment.user_id] || new Set();
         const courseLessons = lessonsByCourse[enrollment.course_id] || [];
-        const completedCount = courseLessons.filter((lesson) =>
-          completedLessonSet.has(lesson.id)
-        ).length;
-        const completionPercent = courseLessons.length
-          ? Math.round((completedCount / courseLessons.length) * 100)
+        const courseQuizIds = quizIdsByCourse[enrollment.course_id] || [];
+        const totalSteps = courseLessons.length + courseQuizIds.length;
+        const completedCount =
+          courseLessons.filter((lesson) => completedLessonSet.has(lesson.id)).length +
+          courseQuizIds.filter((quizId) => passedQuizSet.has(quizId)).length;
+        const completionPercent = totalSteps
+          ? Math.round((completedCount / totalSteps) * 100)
           : 0;
 
         let status = enrollment.status || 'assigned';
