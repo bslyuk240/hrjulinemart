@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { notifyNewRequisition, notifyRequisitionStatus, notifyRequisitionMessage, createNotification } from './notificationAPI';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 
 /** Notification / FCM use employees.id (same as Auth user.id), never admin_users.id. */
 const uniqueEmployeeIds = (ids) =>
@@ -101,6 +102,15 @@ export const createRequest = async (requestData, employeeId) => {
     } catch (e) {
       console.warn('Requisition notify (create) error:', e);
     }
+
+    logAudit({
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: AUDIT_ENTITIES.REQUISITION,
+      entityId: created.id,
+      entityLabel: `${created.kind} — ${created.amount} ${created.currency}`,
+      summary: `Submitted ${created.kind} requisition for ${created.amount} ${created.currency}`,
+      details: created,
+    });
 
     return { success: true, data: created };
   } catch (error) {
@@ -216,6 +226,18 @@ export const updateRequestStatus = async (requestId, status, comment = null, emp
       }
     } catch (e) {
       console.warn('Requisition notify (status) error:', e);
+    }
+
+    const { data: req } = await supabase.from('requests').select('*').eq('id', requestId).single();
+    if (req) {
+      logAudit({
+        action: status === 'Approved' ? AUDIT_ACTIONS.APPROVE : status === 'Rejected' ? AUDIT_ACTIONS.REJECT : AUDIT_ACTIONS.UPDATE,
+        entityType: AUDIT_ENTITIES.REQUISITION,
+        entityId: req.id,
+        entityLabel: `${req.kind} — ${req.amount} ${req.currency}`,
+        summary: `Updated requisition status to ${status}`,
+        details: { request: req, status, comment },
+      });
     }
 
     return { success: true };

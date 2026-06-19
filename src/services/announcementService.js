@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { sendAnnouncementEmail } from './emailService';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 
 const TABLE = 'announcements';
 
@@ -61,6 +62,14 @@ export const createAnnouncement = async (announcement) => {
     .select()
     .single();
   if (error) return { success: false, error: error.message };
+  logAudit({
+    action: AUDIT_ACTIONS.CREATE,
+    entityType: AUDIT_ENTITIES.ANNOUNCEMENT,
+    entityId: data.id,
+    entityLabel: data.title,
+    summary: `Created announcement "${data.title}"`,
+    details: data,
+  });
   return { success: true, data };
 };
 

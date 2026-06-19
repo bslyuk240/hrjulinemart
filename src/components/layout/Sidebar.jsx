@@ -22,6 +22,7 @@ import {
   ClipboardList,
   BarChart3,
   Megaphone,
+  ScrollText,
 } from 'lucide-react';
 
 export default function Sidebar() {
@@ -148,6 +149,12 @@ export default function Sidebar() {
       name: 'Training Reports',
       path: '/training/admin/reports',
       icon: BarChart3,
+      roles: ['admin'],
+    },
+    {
+      name: 'Audit Log',
+      path: '/audit-log',
+      icon: ScrollText,
       roles: ['admin'],
     },
   ];

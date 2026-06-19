@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../services/supabase';
 import { buildUserFromSession } from '../services/authService';
 import { removeFCMTokens } from '../services/fcmService';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from '../services/auditLogService';
 
 const AuthContext = createContext(null);
 
@@ -73,13 +74,41 @@ export const AuthProvider = ({ children }) => {
     }
 
     // onAuthStateChange will set the user state; return success immediately
+    logAudit({
+      action: AUDIT_ACTIONS.LOGIN,
+      entityType: AUDIT_ENTITIES.AUTH,
+      entityId: userData.id,
+      entityLabel: userData.name || userData.email,
+      summary: `${userData.name || userData.email} signed in`,
+      details: { role: userData.role, type: userData.type },
+      actor: {
+        actor_id: userData.id,
+        actor_name: userData.name || userData.email,
+        actor_role: userData.type === 'admin' ? 'admin' : (userData.role || 'employee'),
+      },
+    });
+
     return { success: true, user: userData };
   };
 
   // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = async () => {
     try {
-      if (user?.id) removeFCMTokens(user.id).catch(() => {});
+      if (user?.id) {
+        logAudit({
+          action: AUDIT_ACTIONS.LOGOUT,
+          entityType: AUDIT_ENTITIES.AUTH,
+          entityId: user.id,
+          entityLabel: user.name || user.email,
+          summary: `${user.name || user.email} signed out`,
+          actor: {
+            actor_id: user.id,
+            actor_name: user.name || user.email,
+            actor_role: user.type === 'admin' ? 'admin' : (user.role || 'employee'),
+          },
+        });
+        removeFCMTokens(user.id).catch(() => {});
+      }
       await supabase.auth.signOut();
       // onAuthStateChange fires SIGNED_OUT → setUser(null)
     } catch (err) {

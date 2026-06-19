@@ -1,5 +1,6 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 import { NOTIFICATION_TYPES } from './notificationAPI';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 
 /**
  * Get all attendance records
@@ -145,6 +146,15 @@ export const clockIn = async (attendanceData) => {
       console.warn('Notification error (clock in):', e);
     }
 
+    logAudit({
+      action: AUDIT_ACTIONS.CLOCK_IN,
+      entityType: AUDIT_ENTITIES.ATTENDANCE,
+      entityId: rec.id,
+      entityLabel: rec.employee_name,
+      summary: `${rec.employee_name} clocked in at ${rec.clock_in} on ${rec.date}`,
+      details: rec,
+    });
+
     return handleSupabaseSuccess(rec);
   } catch (error) {
     return handleSupabaseError(error);
@@ -226,6 +236,15 @@ export const clockOut = async (attendanceId, notesAppend) => {
     } catch (e) {
       console.warn('Notification error (clock out):', e);
     }
+
+    logAudit({
+      action: AUDIT_ACTIONS.CLOCK_OUT,
+      entityType: AUDIT_ENTITIES.ATTENDANCE,
+      entityId: rec.id,
+      entityLabel: rec.employee_name,
+      summary: `${rec.employee_name} clocked out at ${rec.clock_out} on ${rec.date}`,
+      details: rec,
+    });
 
     return handleSupabaseSuccess(rec);
   } catch (error) {

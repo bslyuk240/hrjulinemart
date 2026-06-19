@@ -28,6 +28,7 @@ import TrainingResults from './pages/TrainingResults';
 import TrainingAdminDashboard from './pages/TrainingAdminDashboard';
 import TrainingCourseEditor from './pages/TrainingCourseEditor';
 import TrainingReports from './pages/TrainingReports';
+import AuditLogPage from './pages/AuditLogPage';
 
 // ✨ NEW: Onboarding imports
 import Announcements from './pages/Announcements';
@@ -277,6 +278,16 @@ function App() {
                 element={
                   <ProtectedRoute requiredRole="admin">
                     <TrainingReports />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* Audit Log - Admin only */}
+              <Route
+                path="audit-log"
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AuditLogPage />
                   </ProtectedRoute>
                 }
               />

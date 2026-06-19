@@ -1,5 +1,6 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 import { notifyNewLeaveRequest, notifyLeaveDecision, createNotification } from './notificationAPI';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 import { getEmployeeById, updateLeaveBalance } from './employeeService';
 import {
   sendLeaveSubmittedEmail,
@@ -195,6 +196,15 @@ export const createLeaveRequest = async (leaveData) => {
       console.warn('Notification error (leave submit self):', e);
     }
 
+    logAudit({
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: AUDIT_ENTITIES.LEAVE_REQUEST,
+      entityId: created.id,
+      entityLabel: `${created.type} — ${created.employee_name}`,
+      summary: `${created.employee_name} submitted a ${created.type} leave request (${created.start_date} to ${created.end_date})`,
+      details: created,
+    });
+
     return handleSupabaseSuccess(created);
   } catch (error) {
     return handleSupabaseError(error);
@@ -316,6 +326,15 @@ export const approveLeaveRequest = async (id) => {
       })
       .catch((e) => console.warn('Email error (leave-approved):', e));
 
+    logAudit({
+      action: AUDIT_ACTIONS.APPROVE,
+      entityType: AUDIT_ENTITIES.LEAVE_REQUEST,
+      entityId: updated.id,
+      entityLabel: `${updated.type} — ${updated.employee_name}`,
+      summary: `Approved leave request for ${updated.employee_name} (${updated.start_date} to ${updated.end_date})`,
+      details: updated,
+    });
+
     return handleSupabaseSuccess(updated);
   } catch (error) {
     return handleSupabaseError(error);
@@ -361,6 +380,15 @@ export const rejectLeaveRequest = async (id) => {
         }
       })
       .catch((e) => console.warn('Email error (leave-rejected):', e));
+
+    logAudit({
+      action: AUDIT_ACTIONS.REJECT,
+      entityType: AUDIT_ENTITIES.LEAVE_REQUEST,
+      entityId: updated.id,
+      entityLabel: `${updated.type} — ${updated.employee_name}`,
+      summary: `Rejected leave request for ${updated.employee_name} (${updated.start_date} to ${updated.end_date})`,
+      details: updated,
+    });
 
     return handleSupabaseSuccess(updated);
   } catch (error) {

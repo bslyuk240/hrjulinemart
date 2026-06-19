@@ -3,6 +3,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL
 
 const buildApiUrl = (path) => `${API_BASE_URL}${path}`;
 
+const emailPathToType = (path) => path.replace(/^\/email\//, '');
+
 const postJson = async (path, payload) => {
   const response = await fetch(buildApiUrl(path), {
     method: 'POST',
@@ -18,9 +20,20 @@ const postJson = async (path, payload) => {
   }
 
   if (!response.ok) {
+    const errorMsg = data.error || 'Failed to send email.';
+    import('./auditLogService').then(({ logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES }) => {
+      logAudit({
+        action: AUDIT_ACTIONS.SEND,
+        entityType: AUDIT_ENTITIES.EMAIL,
+        entityLabel: emailPathToType(path),
+        summary: `Email send failed: ${emailPathToType(path)}`,
+        details: { path, error: errorMsg, recipient: payload.to || payload.candidateEmail || payload.refereeEmail },
+        status: 'failed',
+      }).catch(() => {});
+    }).catch(() => {});
     return {
       success: false,
-      error: data.error || 'Failed to send email.',
+      error: errorMsg,
     };
   }
 

@@ -6,6 +6,7 @@ import {
 } from './supabase';
 import { notifyTrainingCourseAssigned } from './notificationAPI';
 import { sendTrainingCourseAssignedEmail } from './emailService';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 
 const LESSON_TYPES = {
   CONTENT: 'content',
@@ -780,6 +781,7 @@ export const assignTrainingCourse = async ({
     if (error) return handleSupabaseError(error);
 
     const assignedUserIds = rowsToInsert.map((row) => row.user_id);
+    let courseTitle = 'Training Course';
 
     // In-app + push notifications (non-blocking)
     try {
@@ -794,14 +796,15 @@ export const assignTrainingCourse = async ({
           : Promise.resolve({ data: null }),
       ]);
 
-      const courseTitle = course?.title || 'Training Course';
+      const courseTitleResolved = course?.title || 'Training Course';
+      courseTitle = courseTitleResolved;
       const assignedByName = assignerResult?.data?.name || null;
 
       await notifyTrainingCourseAssigned(
         assignedUserIds.map((userId) => ({
           userId,
           courseId,
-          courseTitle,
+          courseTitle: courseTitleResolved,
           dueDate,
         }))
       );
@@ -811,7 +814,7 @@ export const assignTrainingCourse = async ({
         sendTrainingCourseAssignedEmail(
           employee.email,
           employee.name || 'Team Member',
-          courseTitle,
+          courseTitleResolved,
           dueDate,
           assignedByName
         ).catch((e) => console.warn('Email error (training-course-assigned):', e));
@@ -819,6 +822,21 @@ export const assignTrainingCourse = async ({
     } catch (e) {
       console.warn('Notification error (training assign):', e);
     }
+
+    logAudit({
+      action: AUDIT_ACTIONS.ASSIGN,
+      entityType: AUDIT_ENTITIES.TRAINING_ENROLLMENT,
+      entityId: courseId,
+      entityLabel: courseTitle,
+      summary: `Assigned training course "${courseTitle}" to ${rowsToInsert.length} employee(s)`,
+      details: {
+        course_id: courseId,
+        course_title: courseTitle,
+        due_date: dueDate,
+        assigned_user_ids: assignedUserIds,
+        assigned_by: assignedBy,
+      },
+    });
 
     return handleSupabaseSuccess({
       inserted: rowsToInsert.length,

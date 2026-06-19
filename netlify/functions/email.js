@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { createClient } from '@supabase/supabase-js';
 
 const jsonResponse = (statusCode, body) => ({
   statusCode,
@@ -457,16 +458,112 @@ const buildResignationRejectedEmail = (employeeName, comments) => ({
 
 // ───────────────────────────────────────────────────────────────────────────
 
-const sendMail = async ({ to, subject, html, text }) => {
+let supabaseAdmin = null;
+
+const getSupabaseAdmin = () => {
+  if (supabaseAdmin) return supabaseAdmin;
+  const url = getEnv('SUPABASE_URL', getEnv('VITE_SUPABASE_URL'));
+  const key = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+  if (!url || !key) return null;
+  supabaseAdmin = createClient(url, key, { auth: { persistSession: false } });
+  return supabaseAdmin;
+};
+
+const stripSensitive = (payload) => {
+  if (!payload || typeof payload !== 'object') return null;
+  const clone = { ...payload };
+  for (const key of Object.keys(clone)) {
+    const lower = key.toLowerCase();
+    if (lower.includes('password') || lower.includes('token') || key.startsWith('_')) {
+      delete clone[key];
+    }
+  }
+  return clone;
+};
+
+const insertEmailLog = async (row) => {
+  const client = getSupabaseAdmin();
+  if (!client) {
+    console.warn('Email log skipped: SUPABASE_SERVICE_ROLE_KEY not configured');
+    return;
+  }
+  try {
+    const { error } = await client.from('email_logs').insert([
+      { ...row, created_at: new Date().toISOString() },
+    ]);
+    if (error) console.error('Email log insert failed:', error.message);
+  } catch (err) {
+    console.error('Email log insert failed:', err);
+  }
+};
+
+const resolveEmailType = (path) => {
+  const parts = String(path || '').split('/').filter(Boolean);
+  return parts[parts.length - 1] || 'unknown';
+};
+
+const sendMail = async ({ to, subject, html, text, logContext = null }) => {
   const transporter = nodemailer.createTransport(getEmailConfig());
-  const info = await transporter.sendMail({
-    from: `"${COMPANY_NAME} HR" <${FROM_EMAIL}>`,
-    to,
-    subject,
-    html,
-    ...(text ? { text } : {}),
-  });
-  return info;
+  const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
+
+  if (!recipients.length) {
+    if (logContext) {
+      await insertEmailLog({
+        email_type: logContext.email_type,
+        recipient: '(none)',
+        subject,
+        status: 'skipped',
+        error_message: 'No recipients',
+        metadata: logContext.metadata || null,
+        triggered_by_employee_id: logContext.triggered_by_employee_id || null,
+        triggered_by_name: logContext.triggered_by_name || null,
+      });
+    }
+    return { messageId: null, skipped: true };
+  }
+
+  try {
+    const info = await transporter.sendMail({
+      from: `"${COMPANY_NAME} HR" <${FROM_EMAIL}>`,
+      to: recipients,
+      subject,
+      html,
+      ...(text ? { text } : {}),
+    });
+
+    if (logContext) {
+      for (const recipient of recipients) {
+        await insertEmailLog({
+          email_type: logContext.email_type,
+          recipient,
+          subject,
+          message_id: info.messageId || null,
+          status: 'sent',
+          metadata: logContext.metadata || null,
+          triggered_by_employee_id: logContext.triggered_by_employee_id || null,
+          triggered_by_name: logContext.triggered_by_name || null,
+        });
+      }
+    }
+
+    return info;
+  } catch (err) {
+    if (logContext) {
+      for (const recipient of recipients) {
+        await insertEmailLog({
+          email_type: logContext.email_type,
+          recipient,
+          subject,
+          status: 'failed',
+          error_message: err.message || 'Send failed',
+          metadata: logContext.metadata || null,
+          triggered_by_employee_id: logContext.triggered_by_employee_id || null,
+          triggered_by_name: logContext.triggered_by_name || null,
+        });
+      }
+    }
+    throw err;
+  }
 };
 
 export const handler = async (event) => {
@@ -487,6 +584,13 @@ export const handler = async (event) => {
   }
 
   const path = event.path || '';
+  const emailType = resolveEmailType(path);
+  const emailLogContext = {
+    email_type: emailType,
+    metadata: stripSensitive(payload),
+    triggered_by_employee_id: payload.triggeredByEmployeeId || null,
+    triggered_by_name: payload.triggeredByName || null,
+  };
 
   try {
     if (path.endsWith('/onboarding')) {
@@ -495,7 +599,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildOnboardingEmail(candidateName, position, onboardingToken);
-      const info = await sendMail({ to: candidateEmail, subject, html });
+      const info = await sendMail({ to: candidateEmail, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Onboarding email sent successfully.' });
     }
 
@@ -505,7 +609,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html, text } = buildReferenceRequestEmail(refereeName, candidateName, position, referenceToken);
-      const info = await sendMail({ to: refereeEmail, subject, html, text });
+      const info = await sendMail({ to: refereeEmail, subject, html, text, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Reference request sent successfully.' });
     }
 
@@ -515,7 +619,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html, text } = buildReferenceReminderEmail(refereeName, candidateName, position, referenceToken);
-      const info = await sendMail({ to: refereeEmail, subject, html, text });
+      const info = await sendMail({ to: refereeEmail, subject, html, text, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Reference reminder sent successfully.' });
     }
 
@@ -532,6 +636,16 @@ export const handler = async (event) => {
         subject: 'Test Email - HR System',
         text: 'This is a test email to verify SMTP settings.',
       });
+      await insertEmailLog({
+        email_type: emailType,
+        recipient: recipientEmail,
+        subject: 'Test Email - HR System',
+        message_id: info.messageId || null,
+        status: 'sent',
+        metadata: emailLogContext.metadata,
+        triggered_by_employee_id: emailLogContext.triggered_by_employee_id,
+        triggered_by_name: emailLogContext.triggered_by_name,
+      });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Email configuration is working.' });
     }
 
@@ -541,7 +655,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildOnboardingApprovedEmail(candidateName, position, employeeCode);
-      const info = await sendMail({ to: candidateEmail, subject, html });
+      const info = await sendMail({ to: candidateEmail, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId, message: 'Onboarding approval email sent successfully.' });
     }
 
@@ -553,10 +667,20 @@ export const handler = async (event) => {
       }
       const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
       if (recipients.length === 0) {
+        await insertEmailLog({
+          email_type: emailType,
+          recipient: '(none)',
+          subject: `Leave Request – ${employeeName}`,
+          status: 'skipped',
+          error_message: 'No recipients',
+          metadata: emailLogContext.metadata,
+          triggered_by_employee_id: emailLogContext.triggered_by_employee_id,
+          triggered_by_name: emailLogContext.triggered_by_name,
+        });
         return jsonResponse(200, { success: true, message: 'No recipients — skipped.' });
       }
       const { subject, html } = buildLeaveSubmittedEmail(employeeName, leaveType, startDate, endDate, days, reason);
-      const info = await sendMail({ to: recipients, subject, html });
+      const info = await sendMail({ to: recipients, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -567,7 +691,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildLeaveApprovedEmail(employeeName, leaveType, startDate, endDate, days);
-      const info = await sendMail({ to, subject, html });
+      const info = await sendMail({ to, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -578,7 +702,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildLeaveRejectedEmail(employeeName, leaveType, startDate, endDate);
-      const info = await sendMail({ to, subject, html });
+      const info = await sendMail({ to, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -589,7 +713,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildPayslipReadyEmail(employeeName, month, year, netSalary, payslipNo);
-      const info = await sendMail({ to, subject, html });
+      const info = await sendMail({ to, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -601,10 +725,20 @@ export const handler = async (event) => {
       }
       const recipients = Array.isArray(to) ? to.filter(Boolean) : [to].filter(Boolean);
       if (recipients.length === 0) {
+        await insertEmailLog({
+          email_type: emailType,
+          recipient: '(none)',
+          subject: `Resignation Notice – ${employeeName}`,
+          status: 'skipped',
+          error_message: 'No recipients',
+          metadata: emailLogContext.metadata,
+          triggered_by_employee_id: emailLogContext.triggered_by_employee_id,
+          triggered_by_name: emailLogContext.triggered_by_name,
+        });
         return jsonResponse(200, { success: true, message: 'No recipients — skipped.' });
       }
       const { subject, html } = buildResignationSubmittedEmail(employeeName, position, department, lastWorkingDate, reason);
-      const info = await sendMail({ to: recipients, subject, html });
+      const info = await sendMail({ to: recipients, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -615,7 +749,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildResignationApprovedEmail(employeeName, lastWorkingDate);
-      const info = await sendMail({ to, subject, html });
+      const info = await sendMail({ to, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -626,7 +760,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildAnnouncementEmail(employeeName || 'Team Member', title, body, priority, senderName);
-      const info = await sendMail({ to, subject, html });
+      const info = await sendMail({ to, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -637,7 +771,7 @@ export const handler = async (event) => {
         return jsonResponse(400, { success: false, error: 'Missing required fields.' });
       }
       const { subject, html } = buildResignationRejectedEmail(employeeName, comments);
-      const info = await sendMail({ to, subject, html });
+      const info = await sendMail({ to, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 
@@ -653,7 +787,7 @@ export const handler = async (event) => {
         dueDate,
         assignedByName
       );
-      const info = await sendMail({ to, subject, html });
+      const info = await sendMail({ to, subject, html, logContext: emailLogContext });
       return jsonResponse(200, { success: true, messageId: info.messageId });
     }
 

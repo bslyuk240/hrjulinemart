@@ -5,6 +5,7 @@ import {
   sendResignationApprovedEmail,
   sendResignationRejectedEmail,
 } from './emailService';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 
 /** Fetch email addresses for all managers and admin-linked employees */
 const getManagerAdminEmails = async () => {
@@ -167,6 +168,15 @@ export const submitResignation = async (resignationData) => {
       })
       .catch((e) => console.warn('Email error (resignation-submitted):', e));
 
+    logAudit({
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: AUDIT_ENTITIES.RESIGNATION,
+      entityId: created.id,
+      entityLabel: created.employee_name,
+      summary: `${created.employee_name} submitted a resignation notice`,
+      details: created,
+    });
+
     return handleSupabaseSuccess(created);
   } catch (error) {
     return handleSupabaseError(error);
@@ -272,6 +282,15 @@ export const approveResignation = async (resignationId, employeeData) => {
       ).catch((e) => console.warn('Email error (resignation-approved):', e));
     }
 
+    logAudit({
+      action: AUDIT_ACTIONS.APPROVE,
+      entityType: AUDIT_ENTITIES.RESIGNATION,
+      entityId: resignation.id,
+      entityLabel: employeeData.name,
+      summary: `Approved resignation for ${employeeData.name} and archived employee record`,
+      details: { resignation, archived: archived[0] },
+    });
+
     return handleSupabaseSuccess({
       resignation,
       archived: archived[0],
@@ -321,6 +340,15 @@ export const rejectResignation = async (id, comments) => {
         })
         .catch((e) => console.warn('Email error (resignation-rejected):', e));
     }
+
+    logAudit({
+      action: AUDIT_ACTIONS.REJECT,
+      entityType: AUDIT_ENTITIES.RESIGNATION,
+      entityId: rejected.id,
+      entityLabel: rejected.employee_name,
+      summary: `Rejected resignation for ${rejected.employee_name}`,
+      details: { ...rejected, comments },
+    });
 
     return handleSupabaseSuccess(rejected);
   } catch (error) {

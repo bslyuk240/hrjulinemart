@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { notifyPayrollGenerated } from './notificationAPI';
 import { sendPayslipReadyEmail } from './emailService';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 
 const MONTH_NAMES = [
   'January','February','March','April','May','June',
@@ -190,6 +191,15 @@ export const createPayroll = async (payrollData) => {
         }
       })
       .catch((e) => console.warn('Email error (payslip-ready):', e));
+
+    logAudit({
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: AUDIT_ENTITIES.PAYROLL,
+      entityId: data.id,
+      entityLabel: `${payroll.employee_name} — ${toMonthName(payroll.month)} ${payroll.year}`,
+      summary: `Generated payslip ${payroll.payslip_no} for ${payroll.employee_name}`,
+      details: data,
+    });
 
     return {
       success: true,

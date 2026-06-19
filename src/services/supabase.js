@@ -78,6 +78,8 @@ export const TABLES = {
   TRAINING_ENROLLMENTS: 'training_enrollments',
   TRAINING_PROGRESS: 'training_progress',
   TRAINING_QUIZ_ATTEMPTS: 'training_quiz_attempts',
+  AUDIT_LOGS: 'audit_logs',
+  EMAIL_LOGS: 'email_logs',
 };
 
 // Export default client

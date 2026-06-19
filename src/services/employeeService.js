@@ -1,5 +1,6 @@
 import { supabase, TABLES, handleSupabaseError, handleSupabaseSuccess } from './supabase';
 import { getDefaultLeaveBalance } from './systemSettingsService';
+import { logAudit, AUDIT_ACTIONS, AUDIT_ENTITIES } from './auditLogService';
 
 /**
  * Get all employees
@@ -80,7 +81,17 @@ export const createEmployee = async (employeeData) => {
       return handleSupabaseError(error);
     }
 
-    return handleSupabaseSuccess(data[0]);
+    const created = data[0];
+    logAudit({
+      action: AUDIT_ACTIONS.CREATE,
+      entityType: AUDIT_ENTITIES.EMPLOYEE,
+      entityId: created.id,
+      entityLabel: created.name,
+      summary: `Created employee record for ${created.name}`,
+      details: { ...created, password: '[redacted]' },
+    });
+
+    return handleSupabaseSuccess(created);
   } catch (error) {
     return handleSupabaseError(error);
   }
@@ -119,7 +130,17 @@ export const updateEmployee = async (id, employeeData) => {
       return handleSupabaseError(error);
     }
 
-    return handleSupabaseSuccess(data[0]);
+    const updated = data[0];
+    logAudit({
+      action: AUDIT_ACTIONS.UPDATE,
+      entityType: AUDIT_ENTITIES.EMPLOYEE,
+      entityId: updated.id,
+      entityLabel: updated.name,
+      summary: `Updated employee record for ${updated.name}`,
+      details: { ...updated, password: updated.password ? '[redacted]' : undefined },
+    });
+
+    return handleSupabaseSuccess(updated);
   } catch (error) {
     return handleSupabaseError(error);
   }
@@ -130,6 +151,7 @@ export const updateEmployee = async (id, employeeData) => {
  */
 export const deleteEmployee = async (id) => {
   try {
+    const existing = await getEmployeeById(id);
     const { error } = await supabase
       .from(TABLES.EMPLOYEES)
       .delete()
@@ -138,6 +160,15 @@ export const deleteEmployee = async (id) => {
     if (error) {
       return handleSupabaseError(error);
     }
+
+    logAudit({
+      action: AUDIT_ACTIONS.DELETE,
+      entityType: AUDIT_ENTITIES.EMPLOYEE,
+      entityId: id,
+      entityLabel: existing.data?.name || `Employee #${id}`,
+      summary: `Deleted employee record for ${existing.data?.name || id}`,
+      details: existing.data ? { ...existing.data, password: '[redacted]' } : { id },
+    });
 
     return handleSupabaseSuccess({ message: 'Employee deleted successfully' });
   } catch (error) {
