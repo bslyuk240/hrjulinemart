@@ -475,12 +475,20 @@ const buildResignationRejectedEmail = (employeeName, comments) => ({
 
 let supabaseAdmin = null;
 
+const getSupabaseConfig = () => ({
+  url: getEnv('SUPABASE_URL', getEnv('VITE_SUPABASE_URL')),
+  anonKey:
+    getEnv('SUPABASE_ANON_KEY') ||
+    getEnv('VITE_SUPABASE_ANON_KEY') ||
+    getEnv('SUPABASE_KEY'),
+  serviceKey: getEnv('SUPABASE_SERVICE_ROLE_KEY'),
+});
+
 const getSupabaseAdmin = () => {
   if (supabaseAdmin) return supabaseAdmin;
-  const url = getEnv('SUPABASE_URL', getEnv('VITE_SUPABASE_URL'));
-  const key = getEnv('SUPABASE_SERVICE_ROLE_KEY');
-  if (!url || !key) return null;
-  supabaseAdmin = createClient(url, key, { auth: { persistSession: false } });
+  const { url, serviceKey } = getSupabaseConfig();
+  if (!url || !serviceKey) return null;
+  supabaseAdmin = createClient(url, serviceKey, { auth: { persistSession: false } });
   return supabaseAdmin;
 };
 
@@ -526,11 +534,13 @@ const verifyAdminCaller = async (event) => {
   const jwt = getAuthHeader(event).replace(/^Bearer\s+/i, '');
   if (!jwt) return { error: 'Unauthorized — please sign in again.' };
 
-  const url = getEnv('SUPABASE_URL', getEnv('VITE_SUPABASE_URL'));
-  const anonKey = getEnv('SUPABASE_ANON_KEY', getEnv('VITE_SUPABASE_ANON_KEY'));
-  const serviceKey = getEnv('SUPABASE_SERVICE_ROLE_KEY');
+  const { url, anonKey, serviceKey } = getSupabaseConfig();
   if (!url || !anonKey || !serviceKey) {
-    return { error: 'Server misconfigured (Supabase keys missing).' };
+    const missing = [];
+    if (!url) missing.push('SUPABASE_URL');
+    if (!anonKey) missing.push('SUPABASE_ANON_KEY or SUPABASE_KEY');
+    if (!serviceKey) missing.push('SUPABASE_SERVICE_ROLE_KEY');
+    return { error: `Server misconfigured: missing ${missing.join(', ')}.` };
   }
 
   const anonClient = createClient(url, anonKey, {
