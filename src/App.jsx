@@ -63,7 +63,7 @@ function AuthEventRouter() {
     const hash = window.location.hash || '';
     const onResetPage = window.location.pathname === '/reset-password';
     if (hash.includes('type=recovery') && !onResetPage) {
-      navigate('/reset-password', { replace: true });
+      navigate(`/reset-password${hash}`, { replace: true });
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -75,8 +75,9 @@ function AuthEventRouter() {
     if (authEvent === 'PASSWORD_RECOVERY') {
       clearAuthEvent();
       const onResetPage = window.location.pathname === '/reset-password';
+      const hash = window.location.hash || '';
       if (!onResetPage) {
-        navigate('/reset-password', { replace: true });
+        navigate(hash ? `/reset-password${hash}` : '/reset-password', { replace: true });
       }
     }
   }, [authEvent, clearAuthEvent, navigate]);

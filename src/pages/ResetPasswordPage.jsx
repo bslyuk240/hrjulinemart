@@ -1,40 +1,100 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase';
 import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
+const parseRecoveryContext = () => {
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const queryParams = new URLSearchParams(window.location.search);
+  return {
+    isRecovery:
+      hashParams.get('type') === 'recovery' ||
+      queryParams.get('type') === 'recovery' ||
+      Boolean(queryParams.get('code')),
+    code: queryParams.get('code'),
+  };
+};
+
 export default function ResetPasswordPage() {
-  const [password, setPassword]             = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword]     = useState(false);
-  const [loading, setLoading]               = useState(false);
-  const [success, setSuccess]               = useState(false);
-  const [error, setError]                   = useState('');
-  const [sessionReady, setSessionReady]     = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+  const [linkError, setLinkError] = useState('');
+  const [sessionReady, setSessionReady] = useState(false);
+  const readyRef = useRef(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Supabase JS automatically parses the #access_token hash from the URL
-    // and fires PASSWORD_RECOVERY via onAuthStateChange.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // PASSWORD_RECOVERY  – normal path (hash processed before listener registered)
-      // SIGNED_IN          – fired when detectSessionInUrl exchanges the token
-      // INITIAL_SESSION    – fired when listener registers after session already set
-      if (
-        event === 'PASSWORD_RECOVERY' ||
-        event === 'INITIAL_SESSION' ||
-        (event === 'SIGNED_IN' && session)
-      ) {
-        setSessionReady(true);
+    let active = true;
+    let timeoutId;
+    let unsubscribe = () => {};
+
+    const markReady = () => {
+      if (!active || readyRef.current) return;
+      readyRef.current = true;
+      setSessionReady(true);
+      setLinkError('');
+    };
+
+    const markLinkError = (message) => {
+      if (!active || readyRef.current) return;
+      setLinkError(message);
+    };
+
+    const bootstrapRecoverySession = async () => {
+      const { isRecovery, code } = parseRecoveryContext();
+
+      if (code) {
+        const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+        if (exchangeError) {
+          markLinkError('This reset link is invalid or has expired. Ask your admin to send a new one.');
+          return;
+        }
+        markReady();
+        return;
       }
-    });
 
-    // Also catch sessions that were already resolved before this mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) setSessionReady(true);
-    });
+      const { data: { session: existingSession } } = await supabase.auth.getSession();
+      if (existingSession && isRecovery) {
+        markReady();
+        return;
+      }
 
-    return () => subscription.unsubscribe();
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (!session) return;
+        if (event === 'PASSWORD_RECOVERY') {
+          markReady();
+        } else if (event === 'SIGNED_IN' && isRecovery) {
+          markReady();
+        }
+      });
+      unsubscribe = () => subscription.unsubscribe();
+
+      timeoutId = setTimeout(async () => {
+        if (!active || readyRef.current) return;
+        const { data: { session: lateSession } } = await supabase.auth.getSession();
+        if (lateSession) {
+          markReady();
+          return;
+        }
+        markLinkError(
+          isRecovery
+            ? 'This reset link is invalid or has expired. Ask your admin to send a new one.'
+            : 'Open the password reset link from your email to continue.'
+        );
+      }, 8000);
+    };
+
+    bootstrapRecoverySession();
+
+    return () => {
+      active = false;
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -50,26 +110,45 @@ export default function ResetPasswordPage() {
       return;
     }
 
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      setError('Your reset session has expired. Please open the link from your email again.');
+      return;
+    }
+
     setLoading(true);
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setLoading(false);
 
     if (updateError) {
+      const msg = updateError.message || '';
       setError(
-        updateError.message?.includes('expired') || updateError.message?.includes('invalid')
+        msg.toLowerCase().includes('session')
+          ? 'Your reset session has expired. Please open the link from your email again.'
+          : msg.includes('expired') || msg.includes('invalid')
           ? 'This reset link has expired. Ask your admin to send a new one.'
-          : updateError.message || 'Failed to update password. Please try again.'
+          : msg || 'Failed to update password. Please try again.'
       );
       return;
     }
 
     setSuccess(true);
-    // Sign out so they start fresh with the new password
     await supabase.auth.signOut();
     setTimeout(() => navigate('/login'), 3000);
   };
 
-  // ── Loading — waiting for Supabase to process the URL hash ─────────────────
+  if (linkError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-600 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl p-10 text-center max-w-sm w-full">
+          <AlertCircle className="w-14 h-14 text-red-500 mx-auto mb-4" />
+          <h2 className="text-lg font-bold text-gray-800 mb-2">Reset link problem</h2>
+          <p className="text-gray-600 text-sm">{linkError}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!sessionReady) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-600 flex items-center justify-center p-4">
@@ -90,13 +169,10 @@ export default function ResetPasswordPage() {
     );
   }
 
-  // ── Main form ───────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-500 via-blue-500 to-indigo-600 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-2xl overflow-hidden">
-
-          {/* Header */}
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 px-8 py-6 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
               <Lock className="w-8 h-8 text-purple-600" />
@@ -107,7 +183,6 @@ export default function ResetPasswordPage() {
             <p className="text-purple-100 mt-1">Set your new password</p>
           </div>
 
-          {/* Body */}
           <div className="p-8">
             {success ? (
               <div className="text-center py-4">
@@ -129,7 +204,6 @@ export default function ResetPasswordPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* New password */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       New Password
@@ -160,7 +234,6 @@ export default function ResetPasswordPage() {
                     </div>
                   </div>
 
-                  {/* Confirm */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">
                       Confirm Password
@@ -186,15 +259,7 @@ export default function ResetPasswordPage() {
                     disabled={loading}
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                   >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Updating…
-                      </span>
-                    ) : 'Set New Password'}
+                    {loading ? 'Updating…' : 'Set New Password'}
                   </button>
                 </form>
               </>
