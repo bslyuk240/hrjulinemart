@@ -189,13 +189,19 @@ export default function EmployeeList() {
       }
 
       setResetState((prev) => ({ ...prev, [email]: 'sent' }));
-      showSuccess?.(`Password reset email sent to ${email}`);
+      showSuccess?.(
+        result.provisioned
+          ? `Login account created and password reset email sent to ${email}`
+          : `Password reset email sent to ${email}`
+      );
       logAudit({
-        action: AUDIT_ACTIONS.SEND,
+        action: result.provisioned ? AUDIT_ACTIONS.CREATE : AUDIT_ACTIONS.SEND,
         entityType: AUDIT_ENTITIES.AUTH,
         entityLabel: email,
-        summary: `Password reset email sent to ${employeeName || email}`,
-        details: { email, employeeName, messageId: result.messageId },
+        summary: result.provisioned
+          ? `Created login account and sent password reset to ${employeeName || email}`
+          : `Password reset email sent to ${employeeName || email}`,
+        details: { email, employeeName, messageId: result.messageId, provisioned: Boolean(result.provisioned) },
       });
     } catch (err) {
       console.error('sendPasswordReset error:', err);

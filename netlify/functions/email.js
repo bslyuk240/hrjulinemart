@@ -530,6 +530,54 @@ const getAuthHeader = (event) => {
   return headers.authorization || headers.Authorization || '';
 };
 
+const isAuthUserMissingError = (message) =>
+  /user not found|not found|no user|unable to find/i.test(String(message || ''));
+
+const fetchEmployeeByEmail = async (adminClient, email) => {
+  const { data, error } = await adminClient
+    .from('employees')
+    .select('id, name, email, department, position, is_manager, can_login')
+    .eq('email', email)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+};
+
+const provisionEmployeeAuthUser = async (adminClient, employee) => {
+  const email = String(employee.email).trim().toLowerCase();
+  const role = employee.is_manager ? 'manager' : 'employee';
+  const { data, error } = await adminClient.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: {
+      name: employee.name || '',
+      position: employee.position || '',
+      department: employee.department || '',
+    },
+    app_metadata: {
+      type: 'employee',
+      role,
+      employee_id: employee.id,
+    },
+  });
+
+  if (error) {
+    if (/already|exists|registered|duplicate/i.test(error.message || '')) {
+      return { ok: true, created: false };
+    }
+    return { ok: false, error };
+  }
+
+  return { ok: true, created: true, user: data.user };
+};
+
+const generateRecoveryLink = (adminClient, email, redirectTo) =>
+  adminClient.auth.admin.generateLink({
+    type: 'recovery',
+    email,
+    options: { redirectTo },
+  });
+
 const verifyAdminCaller = async (event) => {
   const jwt = getAuthHeader(event).replace(/^Bearer\s+/i, '');
   if (!jwt) return { error: 'Unauthorized — please sign in again.' };
@@ -867,12 +915,76 @@ export const handler = async (event) => {
 
       const normalizedEmail = String(email).trim().toLowerCase();
       const redirectTo = `${APP_URL}/reset-password`;
+      let provisioned = false;
 
-      const { data: linkData, error: linkError } = await authResult.adminClient.auth.admin.generateLink({
-        type: 'recovery',
-        email: normalizedEmail,
-        options: { redirectTo },
-      });
+      let { data: linkData, error: linkError } = await generateRecoveryLink(
+        authResult.adminClient,
+        normalizedEmail,
+        redirectTo
+      );
+
+      if (linkError && isAuthUserMissingError(linkError.message)) {
+        const employee = await fetchEmployeeByEmail(authResult.adminClient, normalizedEmail);
+
+        if (!employee) {
+          await insertEmailLog({
+            email_type: 'password-reset',
+            recipient: normalizedEmail,
+            subject: `Reset Your ${COMPANY_NAME} HR Portal Password`,
+            status: 'failed',
+            error_message: 'No employee record for this email',
+            metadata: { employeeName: employeeName || null },
+            triggered_by_employee_id: authResult.triggeredByEmployeeId,
+            triggered_by_name: authResult.triggeredByName,
+          });
+          return jsonResponse(404, {
+            success: false,
+            error: 'No employee record found for this email address.',
+          });
+        }
+
+        if (!employee.can_login) {
+          await insertEmailLog({
+            email_type: 'password-reset',
+            recipient: normalizedEmail,
+            subject: `Reset Your ${COMPANY_NAME} HR Portal Password`,
+            status: 'failed',
+            error_message: 'Login access disabled for employee',
+            metadata: { employeeName: employee.name, employee_id: employee.id },
+            triggered_by_employee_id: authResult.triggeredByEmployeeId,
+            triggered_by_name: authResult.triggeredByName,
+          });
+          return jsonResponse(404, {
+            success: false,
+            error: 'Login access is disabled for this employee. Enable it in their profile first.',
+          });
+        }
+
+        const provision = await provisionEmployeeAuthUser(authResult.adminClient, employee);
+        if (!provision.ok) {
+          await insertEmailLog({
+            email_type: 'password-reset',
+            recipient: normalizedEmail,
+            subject: `Reset Your ${COMPANY_NAME} HR Portal Password`,
+            status: 'failed',
+            error_message: provision.error?.message || 'Failed to create auth account',
+            metadata: { employeeName: employee.name, employee_id: employee.id },
+            triggered_by_employee_id: authResult.triggeredByEmployeeId,
+            triggered_by_name: authResult.triggeredByName,
+          });
+          return jsonResponse(500, {
+            success: false,
+            error: provision.error?.message || 'Failed to create login account.',
+          });
+        }
+
+        provisioned = provision.created;
+        ({ data: linkData, error: linkError } = await generateRecoveryLink(
+          authResult.adminClient,
+          normalizedEmail,
+          redirectTo
+        ));
+      }
 
       if (linkError) {
         await insertEmailLog({
@@ -881,15 +993,14 @@ export const handler = async (event) => {
           subject: `Reset Your ${COMPANY_NAME} HR Portal Password`,
           status: 'failed',
           error_message: linkError.message,
-          metadata: { employeeName: employeeName || null },
+          metadata: { employeeName: employeeName || null, provisioned },
           triggered_by_employee_id: authResult.triggeredByEmployeeId,
           triggered_by_name: authResult.triggeredByName,
         });
-        const notFound = /user not found|not found|no user/i.test(linkError.message || '');
-        const msg = notFound
-          ? 'No login account exists for this email. Ensure the employee has a Supabase Auth account with this address.'
-          : (linkError.message || 'Failed to generate reset link.');
-        return jsonResponse(404, { success: false, error: msg });
+        return jsonResponse(404, {
+          success: false,
+          error: linkError.message || 'Failed to generate reset link.',
+        });
       }
 
       const resetLink = linkData?.properties?.action_link;
@@ -899,7 +1010,11 @@ export const handler = async (event) => {
 
       const resetLogContext = {
         email_type: 'password-reset',
-        metadata: stripSensitive({ email: normalizedEmail, employeeName: employeeName || null }),
+        metadata: stripSensitive({
+          email: normalizedEmail,
+          employeeName: employeeName || null,
+          auth_account_provisioned: provisioned,
+        }),
         triggered_by_employee_id: authResult.triggeredByEmployeeId,
         triggered_by_name: authResult.triggeredByName,
       };
@@ -912,7 +1027,11 @@ export const handler = async (event) => {
         logContext: resetLogContext,
       });
 
-      return jsonResponse(200, { success: true, messageId: info.messageId });
+      return jsonResponse(200, {
+        success: true,
+        messageId: info.messageId,
+        provisioned,
+      });
     }
 
     return jsonResponse(404, { success: false, error: 'Endpoint not found.' });
